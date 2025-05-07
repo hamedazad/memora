@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+# Ignore virtual environments
+.venv/
+venv/
+
+# Ignore database
+*.sqlite3
+
+# Ignore VSCode/JetBrains configs
+.idea/
+.vscode/
