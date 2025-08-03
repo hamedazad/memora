@@ -1,9 +1,10 @@
-# Memora Memory Assistant v1.0.0
+# Memora Memory Assistant v1.1.0
 
-A Django-based memory management application with advanced voice capabilities for creating, searching, and managing personal memories.
+A Django-based memory management application with advanced AI-powered features for creating, searching, and managing personal memories with intelligent recommendations and insights.
 
 ## 🚀 Features
 
+### Core Features
 - **Voice Memory Creation**: Create memories using voice input with browser-based speech recognition
 - **Smart Search**: Advanced search with contextual filtering and relevance scoring
 - **Voice Search**: Search memories using voice commands
@@ -11,6 +12,16 @@ A Django-based memory management application with advanced voice capabilities fo
 - **AI-Powered Summaries**: Automatic memory summarization using ChatGPT
 - **Time-Aware Search**: Intelligent filtering based on time context (today, tomorrow, etc.)
 - **Responsive Design**: Modern, mobile-friendly interface
+
+### 🤖 AI-Powered Features (NEW!)
+- **Personalized Recommendations**: AI-generated memory prompts based on your patterns
+- **Smart Content Suggestions**: Intelligent suggestions for what to write about
+- **Memory Insights**: Analytics and insights about your memory patterns
+- **Trending Topics**: Discover what topics you're thinking about most
+- **Related Memories**: Find connections between your memories
+- **Smart Search Suggestions**: AI-powered search term suggestions
+- **Improvement Tips**: Personalized tips to enhance your memory journaling
+- **Pattern Analysis**: Understand your memory creation habits and preferences
 
 ## 📋 Requirements
 
@@ -73,11 +84,19 @@ A Django-based memory management application with advanced voice capabilities fo
 - Use the voice creation feature to speak your memories
 - Or use the text input for manual entry
 - Memories are automatically summarized and tagged
+- Get AI-powered suggestions for what to write about
 
 ### Searching Memories
 - Use the search bar for text-based searches
 - Use voice search for hands-free memory retrieval
 - Search results are ranked by relevance and recency
+- Get AI-powered search suggestions for better results
+
+### 🤖 AI Dashboard
+- Access personalized recommendations and insights
+- View trending topics and related memories
+- Get improvement tips based on your patterns
+- See analytics about your memory creation habits
 
 ### Voice Features
 - **Voice Creation**: Click the microphone button and speak clearly
@@ -100,7 +119,16 @@ The voice features require a modern browser with Web Speech API support:
 
 ## 📦 Version History
 
-### v1.0.0 (Current)
+### v1.1.0 (Current)
+- Added AI-powered personalized recommendations
+- New AI dashboard with insights and analytics
+- Smart content suggestions for memory creation
+- Trending topics and related memories
+- AI-powered search suggestions
+- Pattern analysis and improvement tips
+- Enhanced user experience with intelligent features
+
+### v1.0.0
 - Initial release
 - Voice memory creation and search
 - Advanced contextual search filtering
@@ -145,4 +173,4 @@ If you encounter any issues:
 
 ---
 
-**Memora Memory Assistant v1.0.0** - Making memory management effortless and intuitive. 
+**Memora Memory Assistant v1.1.0** - Making memory management effortless and intelligent with AI-powered insights. 

@@ -17,9 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.contrib.auth import views as auth_views
+from memory_assistant.forms import UserLoginForm
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', lambda request: redirect('memory_assistant:dashboard'), name='home'),
+    path('', lambda request: redirect('login') if not request.user.is_authenticated else redirect('memory_assistant:dashboard'), name='home'),
     path('memora/', include('memory_assistant.urls')),
+    
+    # Authentication URLs
+    path('login/', auth_views.LoginView.as_view(template_name='memory_assistant/login.html', form_class=UserLoginForm), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login', http_method_names=['post']), name='logout'),
 ]

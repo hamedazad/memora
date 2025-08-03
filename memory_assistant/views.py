@@ -11,20 +11,9 @@ from datetime import datetime, timedelta
 
 from .models import Memory, MemorySearch
 from .services import ChatGPTService
-from .forms import MemoryForm
+from .forms import MemoryForm, UserRegistrationForm
 from .voice_service import voice_service
-
-
-def safe_delete_file(file_path):
-    """Safely delete a file with proper error handling"""
-    import time
-    try:
-        if file_path and os.path.exists(file_path):
-            # Add a small delay to ensure file is not in use
-            time.sleep(0.1)
-            os.unlink(file_path)
-    except (OSError, PermissionError):
-        pass  # File might be locked, ignore error
+from .recommendation_service import AIRecommendationService
 
 
 @login_required
@@ -58,6 +47,21 @@ def dashboard(request):
     }
     
     return render(request, 'memory_assistant/dashboard.html', context)
+
+
+def safe_delete_file(file_path):
+    """Safely delete a file with proper error handling"""
+    import time
+    try:
+        if file_path and os.path.exists(file_path):
+            # Add a small delay to ensure file is not in use
+            time.sleep(0.1)
+            os.unlink(file_path)
+    except (OSError, PermissionError):
+        pass  # File might be locked, ignore error
+
+
+
 
 
 @login_required
@@ -801,4 +805,125 @@ def debug_memories(request):
                 'error': str(e)
             })
     
-    return JsonResponse({'success': False, 'error': 'Invalid request method'}) 
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def ai_recommendations(request):
+    """Get AI-powered personalized recommendations"""
+    if request.method == 'GET':
+        try:
+            recommendation_service = AIRecommendationService()
+            
+            if not recommendation_service.is_available():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI recommendations are not available. Please check your OpenAI API key.',
+                    'ai_available': False
+                })
+            
+            recommendations = recommendation_service.get_personalized_recommendations(request.user)
+            
+            return JsonResponse({
+                'success': True,
+                'ai_available': True,
+                'recommendations': recommendations
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+                'ai_available': False
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def ai_insights(request):
+    """Get AI-powered insights about user's memory patterns"""
+    if request.method == 'GET':
+        try:
+            recommendation_service = AIRecommendationService()
+            
+            if not recommendation_service.is_available():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI insights are not available. Please check your OpenAI API key.',
+                    'ai_available': False
+                })
+            
+            insights = recommendation_service.get_memory_insights(request.user)
+            
+            return JsonResponse({
+                'success': True,
+                'ai_available': True,
+                'insights': insights
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+                'ai_available': False
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def smart_search_suggestions(request):
+    """Get smart search suggestions based on user's memories"""
+    if request.method == 'GET':
+        query = request.GET.get('q', '')
+        
+        if not query:
+            return JsonResponse({
+                'success': False,
+                'error': 'Query parameter is required'
+            })
+        
+        try:
+            recommendation_service = AIRecommendationService()
+            
+            if not recommendation_service.is_available():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Smart search suggestions are not available.',
+                    'ai_available': False
+                })
+            
+            suggestions = recommendation_service.get_smart_search_suggestions(request.user, query)
+            
+            return JsonResponse({
+                'success': True,
+                'ai_available': True,
+                'suggestions': suggestions
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+                'ai_available': False
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+
+
+
+def register(request):
+    """User registration view"""
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f'Account created successfully for {user.username}! You can now log in.')
+            return redirect('login')
+    else:
+        form = UserRegistrationForm()
+    
+    return render(request, 'memory_assistant/register.html', {'form': form}) 

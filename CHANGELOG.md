@@ -15,6 +15,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced AI integrations
 - Calendar integration
 
+## [1.2.0] - 2025-08-03
+
+### Added
+- User registration system with email validation
+- Login and logout functionality with proper authentication
+- CSRF protection for all forms
+- Bootstrap-styled authentication pages
+- Proper URL routing for authentication
+- User session management
+- Registration form with password confirmation
+- Login form with remember me functionality
+- Proper error handling for authentication failures
+
+### Changed
+- Updated navigation to include authentication links
+- Improved base template with user-aware navigation
+- Enhanced security with proper CSRF tokens
+- Streamlined dashboard access for authenticated users
+
+### Fixed
+- CSRF token issues in login and registration forms
+- URL routing conflicts between dashboards
+- Icon compatibility issues (Font Awesome to Bootstrap Icons)
+- Authentication redirect issues
+
+### Technical
+- Added UserRegistrationForm and UserLoginForm
+- Implemented proper Django authentication views
+- Enhanced template structure for authentication pages
+- Improved error handling and user feedback
+
 ## [1.0.0] - 2025-08-03
 
 ### Added
@@ -42,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Django 5.2.4 backend
 - Web Speech API for voice features
 - OpenAI GPT integration for AI processing
-- SQLite database (configurable for production)
+- PostgreSQL database with migration tools
 - Bootstrap 5.3.0 for responsive design
 - Python 3.8+ compatibility
 

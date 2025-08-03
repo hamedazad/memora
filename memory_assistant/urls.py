@@ -31,4 +31,12 @@ urlpatterns = [
     path('voice/create/', views.voice_create_memory, name='voice_create_memory'),
     path('voice/search/', views.voice_search_memories, name='voice_search_memories'),
     path('voice/read/<int:memory_id>/', views.voice_read_memory, name='voice_read_memory'),
+    
+    # AI Features
+    path('ai/recommendations/', views.ai_recommendations, name='ai_recommendations'),
+    path('ai/insights/', views.ai_insights, name='ai_insights'),
+    path('ai/search-suggestions/', views.smart_search_suggestions, name='smart_search_suggestions'),
+    
+    # Authentication
+    path('register/', views.register, name='register'),
 ] 

@@ -32,6 +32,19 @@
                         {% endif %}
                     </div>
 
+                    <!-- AI Suggestions -->
+                    <div class="mb-3" id="ai-suggestions" style="display: none;">
+                        <label class="form-label">
+                            <i class="bi bi-lightbulb"></i> AI Suggestions
+                        </label>
+                        <div class="alert alert-info">
+                            <div id="suggestions-content">
+                                <p class="mb-2"><strong>Suggested prompts to help you get started:</strong></p>
+                                <div id="suggested-prompts"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -126,4 +139,57 @@
         </div>
     </div>
 </div>
+
+<script>
+// Load AI suggestions when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadAISuggestions();
+    
+    // Check for suggested prompt from AI dashboard
+    const suggestedPrompt = localStorage.getItem('suggestedPrompt');
+    if (suggestedPrompt) {
+        document.getElementById('{{ form.content.id_for_label }}').value = suggestedPrompt;
+        localStorage.removeItem('suggestedPrompt');
+    }
+});
+
+function loadAISuggestions() {
+    fetch('{% url "memory_assistant:ai_recommendations" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ai_available) {
+                displaySuggestions(data.recommendations.memory_prompts);
+            }
+        })
+        .catch(error => {
+            console.log('Could not load AI suggestions:', error);
+        });
+}
+
+function displaySuggestions(prompts) {
+    const suggestionsDiv = document.getElementById('ai-suggestions');
+    const promptsDiv = document.getElementById('suggested-prompts');
+    
+    if (prompts && prompts.length > 0) {
+        promptsDiv.innerHTML = '';
+        prompts.forEach(prompt => {
+            const promptElement = document.createElement('div');
+            promptElement.className = 'mb-2';
+            promptElement.innerHTML = `
+                <button type="button" class="btn btn-outline-primary btn-sm" 
+                        onclick="usePrompt('${prompt.replace(/'/g, "\\'")}')">
+                    <i class="bi bi-lightbulb"></i> ${prompt}
+                </button>
+            `;
+            promptsDiv.appendChild(promptElement);
+        });
+        suggestionsDiv.style.display = 'block';
+    }
+}
+
+function usePrompt(prompt) {
+    document.getElementById('{{ form.content.id_for_label }}').value = prompt;
+    document.getElementById('{{ form.content.id_for_label }}').focus();
+}
+</script>
 {% endblock %} 

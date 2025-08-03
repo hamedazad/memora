@@ -42,6 +42,13 @@
                         <strong>AI Search:</strong> Results are ranked by semantic relevance, not just keyword matches.
                     </div>
                     
+                    <!-- AI Search Suggestions -->
+                    <div class="alert alert-warning" id="ai-suggestions" style="display: none;">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>AI Suggestions:</strong> Try these related search terms:
+                        <div id="suggestions-list" class="mt-2"></div>
+                    </div>
+                    
                     <div class="row">
                         {% for memory in search_results %}
                             <div class="col-md-6 col-lg-4 mb-4">
@@ -208,4 +215,45 @@
         </div>
     </div>
 </div>
+
+<script>
+// Load AI search suggestions when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const query = '{{ query }}';
+    if (query && query.trim() !== '') {
+        loadAISearchSuggestions(query);
+    }
+});
+
+function loadAISearchSuggestions(query) {
+    fetch(`{% url 'memory_assistant:smart_search_suggestions' %}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.ai_available && data.suggestions.length > 0) {
+                displaySearchSuggestions(data.suggestions);
+            }
+        })
+        .catch(error => {
+            console.log('Could not load AI search suggestions:', error);
+        });
+}
+
+function displaySearchSuggestions(suggestions) {
+    const suggestionsDiv = document.getElementById('ai-suggestions');
+    const suggestionsList = document.getElementById('suggestions-list');
+    
+    suggestionsList.innerHTML = '';
+    suggestions.forEach(suggestion => {
+        const suggestionElement = document.createElement('button');
+        suggestionElement.className = 'btn btn-outline-warning btn-sm me-2 mb-2';
+        suggestionElement.textContent = suggestion;
+        suggestionElement.onclick = function() {
+            window.location.href = `{% url 'memory_assistant:search_memories' %}?q=${encodeURIComponent(suggestion)}`;
+        };
+        suggestionsList.appendChild(suggestionElement);
+    });
+    
+    suggestionsDiv.style.display = 'block';
+}
+</script>
 {% endblock %} 

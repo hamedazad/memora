@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.models import User
 from .models import Memory
 
 
@@ -9,16 +11,11 @@ class MemoryForm(forms.ModelForm):
         widgets = {
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 6,
-                'placeholder': 'Write your memory here...',
-                'style': 'resize: vertical;'
+                'rows': 4,
+                'placeholder': 'What would you like to remember?'
             }),
-            'memory_type': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'importance': forms.Select(attrs={
-                'class': 'form-select'
-            })
+            'memory_type': forms.Select(attrs={'class': 'form-control'}),
+            'importance': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'content': 'Memory Content',
@@ -87,3 +84,74 @@ class SearchForm(forms.Form):
         }),
         label='Minimum Importance'
     ) 
+
+
+class UserRegistrationForm(UserCreationForm):
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email address'
+        })
+    )
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your first name'
+        })
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your last name'
+        })
+    )
+    
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customize password field widgets
+        self.fields['username'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Choose a username'
+        })
+        self.fields['password1'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter your password'
+        })
+        self.fields['password2'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Confirm your password'
+        })
+        
+        # Customize help text
+        self.fields['username'].help_text = 'Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'
+        self.fields['password1'].help_text = 'Your password must contain at least 8 characters.'
+        self.fields['password2'].help_text = 'Enter the same password as before, for verification.'
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('This email address is already in use.')
+        return email
+
+
+class UserLoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Customize field widgets
+        self.fields['username'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter your username'
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Enter your password'
+        }) 
