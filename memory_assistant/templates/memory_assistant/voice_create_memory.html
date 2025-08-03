@@ -1,0 +1,277 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Voice Memory Creation - Memora{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-mic"></i> Create Memory with Voice
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="bi bi-mic-fill display-1 text-primary"></i>
+                    <h4 class="mt-3">Voice Memory Creation</h4>
+                    <p class="text-muted">Click the button below and speak your memory clearly</p>
+                </div>
+                
+                <div class="mb-4">
+                    <button id="startRecording" class="btn btn-primary btn-lg">
+                        <i class="bi bi-mic"></i> Start Recording
+                    </button>
+                    <button id="stopRecording" class="btn btn-danger btn-lg" style="display: none;">
+                        <i class="bi bi-stop-circle"></i> Stop Recording
+                    </button>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted">Or test with text input:</small>
+                    <div class="input-group">
+                        <input type="text" id="testInput" class="form-control" placeholder="Enter test text here...">
+                        <button id="testButton" class="btn btn-outline-secondary">
+                            <i class="bi bi-play"></i> Test
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="recordingStatus" class="alert alert-info" style="display: none;">
+                    <i class="bi bi-mic"></i> Listening... Speak now!
+                </div>
+                
+                <div id="result" class="mt-4" style="display: none;">
+                    <h6>Transcribed Text:</h6>
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <p id="transcribedText" class="mb-0"></p>
+                    </div>
+                    <button id="saveMemory" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Save Memory
+                    </button>
+                    <button id="tryAgain" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise"></i> Try Again
+                    </button>
+                </div>
+                
+                <div id="error" class="alert alert-danger mt-3" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i> <span id="errorMessage"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Tips for Better Voice Recognition
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Speak clearly and at a normal pace</li>
+                    <li>Ensure your microphone is working properly</li>
+                    <li>Minimize background noise</li>
+                    <li>Speak for at least 2-3 seconds</li>
+                    <li>Be specific and descriptive for better AI processing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isRecording = false;
+let recognition = null;
+
+// Check if browser supports speech recognition
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+} else {
+    document.getElementById('errorMessage').textContent = 'Speech recognition is not supported in this browser. Please use Chrome or Edge.';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('startRecording').disabled = true;
+}
+
+document.getElementById('startRecording').addEventListener('click', function() {
+    startVoiceRecording();
+});
+
+document.getElementById('stopRecording').addEventListener('click', function() {
+    stopVoiceRecording();
+});
+
+document.getElementById('saveMemory').addEventListener('click', function() {
+    saveVoiceMemory();
+});
+
+document.getElementById('tryAgain').addEventListener('click', function() {
+    resetRecording();
+});
+
+document.getElementById('testButton').addEventListener('click', function() {
+    const testText = document.getElementById('testInput').value.trim();
+    if (testText) {
+        document.getElementById('transcribedText').textContent = testText;
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+    }
+});
+
+function startVoiceRecording() {
+    if (!recognition) {
+        document.getElementById('errorMessage').textContent = 'Speech recognition not available';
+        document.getElementById('error').style.display = 'block';
+        return;
+    }
+    
+    try {
+        isRecording = true;
+        document.getElementById('startRecording').style.display = 'none';
+        document.getElementById('stopRecording').style.display = 'inline-block';
+        document.getElementById('recordingStatus').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+        
+        let finalTranscript = '';
+        
+        recognition.onresult = function(event) {
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+            
+            // Show interim results
+            if (interimTranscript) {
+                document.getElementById('transcribedText').textContent = finalTranscript + ' ' + interimTranscript;
+                document.getElementById('result').style.display = 'block';
+            }
+        };
+        
+        recognition.onend = function() {
+            if (isRecording) {
+                // Auto-restart if still recording
+                recognition.start();
+            } else {
+                // Final result
+                document.getElementById('transcribedText').textContent = finalTranscript;
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('startRecording').style.display = 'inline-block';
+                document.getElementById('stopRecording').style.display = 'none';
+                document.getElementById('recordingStatus').style.display = 'none';
+            }
+        };
+        
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            let errorMessage = 'Speech recognition error occurred';
+            
+            switch(event.error) {
+                case 'no-speech':
+                    errorMessage = 'No speech detected. Please try again.';
+                    break;
+                case 'audio-capture':
+                    errorMessage = 'Microphone access denied. Please check permissions.';
+                    break;
+                case 'not-allowed':
+                    errorMessage = 'Microphone access denied. Please allow microphone access.';
+                    break;
+                case 'network':
+                    errorMessage = 'Network error occurred. Please check your connection.';
+                    break;
+                default:
+                    errorMessage = 'Speech recognition error: ' + event.error;
+            }
+            
+            document.getElementById('errorMessage').textContent = errorMessage;
+            document.getElementById('error').style.display = 'block';
+            stopVoiceRecording();
+        };
+        
+        recognition.start();
+        
+        // Auto-stop after 30 seconds
+        setTimeout(() => {
+            if (isRecording) {
+                stopVoiceRecording();
+            }
+        }, 30000);
+        
+    } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        document.getElementById('errorMessage').textContent = 'Error starting speech recognition';
+        document.getElementById('error').style.display = 'block';
+        stopVoiceRecording();
+    }
+}
+
+function stopVoiceRecording() {
+    isRecording = false;
+    if (recognition) {
+        recognition.stop();
+    }
+    
+    document.getElementById('startRecording').style.display = 'inline-block';
+    document.getElementById('stopRecording').style.display = 'none';
+    document.getElementById('recordingStatus').style.display = 'none';
+}
+
+function saveVoiceMemory() {
+    const text = document.getElementById('transcribedText').textContent.trim();
+    if (text) {
+        // Create memory via AJAX
+        fetch('{% url "memory_assistant:quick_add_memory" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message before redirecting
+                document.getElementById('error').className = 'alert alert-success mt-3';
+                document.getElementById('errorMessage').textContent = 'Memory saved successfully! Redirecting...';
+                document.getElementById('error').style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '{% url "memory_assistant:memory_list" %}';
+                }, 1500);
+            } else {
+                document.getElementById('error').className = 'alert alert-danger mt-3';
+                document.getElementById('errorMessage').textContent = data.error;
+                document.getElementById('error').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error saving memory:', error);
+            document.getElementById('error').className = 'alert alert-danger mt-3';
+            document.getElementById('errorMessage').textContent = 'Error saving memory';
+            document.getElementById('error').style.display = 'block';
+        });
+    } else {
+        document.getElementById('error').className = 'alert alert-warning mt-3';
+        document.getElementById('errorMessage').textContent = 'Please record some text before saving';
+        document.getElementById('error').style.display = 'block';
+    }
+}
+
+function resetRecording() {
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('transcribedText').textContent = '';
+    document.getElementById('testInput').value = '';
+}
+</script>
+{% endblock %} 
