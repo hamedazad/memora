@@ -5,14 +5,24 @@ from typing import Tuple
 class VoiceService:
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
         self.engine = pyttsx3.init()
         
         # Configure text-to-speech engine
         self.engine.setProperty('rate', 150)
         self.engine.setProperty('volume', 0.9)
+        
+        # Initialize microphone only if PyAudio is available
+        try:
+            self.microphone = sr.Microphone()
+            self.voice_available = True
+        except Exception:
+            self.microphone = None
+            self.voice_available = False
     
     def listen_for_speech(self, timeout: int = 5) -> Tuple[bool, str]:
+        if not self.voice_available or self.microphone is None:
+            return False, "Voice input not available. PyAudio is required for microphone access."
+        
         try:
             with self.microphone as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)

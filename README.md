@@ -1,154 +1,336 @@
-# Memora Memory Assistant v1.1.0
+# Memora Mobile App
 
-A Django-based memory management application with advanced AI-powered features for creating, searching, and managing personal memories with intelligent recommendations and insights.
+A React Native mobile application for the Memora Memory Assistant platform, featuring AI-powered memory management, offline sync, voice input, and push notifications.
 
 ## 🚀 Features
 
 ### Core Features
-- **Voice Memory Creation**: Create memories using voice input with browser-based speech recognition
-- **Smart Search**: Advanced search with contextual filtering and relevance scoring
-- **Voice Search**: Search memories using voice commands
-- **Text-to-Speech**: Listen to your memories being read aloud
-- **AI-Powered Summaries**: Automatic memory summarization using ChatGPT
-- **Time-Aware Search**: Intelligent filtering based on time context (today, tomorrow, etc.)
-- **Responsive Design**: Modern, mobile-friendly interface
+- **Memory Management**: Create, edit, delete, and organize memories
+- **AI-Powered**: Automatic summarization, tagging, and importance scoring
+- **Voice Input**: Speech-to-text for hands-free memory creation
+- **Search**: Advanced search with voice search capabilities
+- **Offline Sync**: Work offline with automatic sync when online
+- **Push Notifications**: Memory reminders and AI suggestions
 
-### 🤖 AI-Powered Features (NEW!)
-- **Personalized Recommendations**: AI-generated memory prompts based on your patterns
-- **Smart Content Suggestions**: Intelligent suggestions for what to write about
-- **Memory Insights**: Analytics and insights about your memory patterns
-- **Trending Topics**: Discover what topics you're thinking about most
-- **Related Memories**: Find connections between your memories
-- **Smart Search Suggestions**: AI-powered search term suggestions
-- **Improvement Tips**: Personalized tips to enhance your memory journaling
-- **Pattern Analysis**: Understand your memory creation habits and preferences
+### Advanced Features
+- **Biometric Authentication**: Fingerprint/face ID support
+- **Camera Integration**: Add photos to memories
+- **Location Tagging**: Automatically tag memories with location
+- **Mood Tracking**: Track emotional context of memories
+- **Analytics**: Memory patterns and insights
+- **Export/Import**: Backup and restore memories
 
-## 📋 Requirements
+### Technical Features
+- **Cross-Platform**: iOS and Android support
+- **TypeScript**: Full type safety
+- **Modern UI**: Material Design with React Native Paper
+- **State Management**: Context API with Zustand
+- **Data Fetching**: React Query for efficient caching
+- **Navigation**: React Navigation with bottom tabs
 
-- Python 3.8+
-- Django 5.2+
-- Modern web browser with Web Speech API support
-- OpenAI API key (optional, for AI features)
+## 📱 Screenshots
 
-## 🛠️ Installation
+*Screenshots will be added here*
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/memora.git
-   cd memora
-   ```
+## 🛠 Tech Stack
 
-2. **Create and activate virtual environment**:
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
+### Core
+- **React Native**: 0.72.6
+- **TypeScript**: 4.8.4
+- **React**: 18.2.0
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Navigation & UI
+- **React Navigation**: 6.1.9
+- **React Native Paper**: 5.11.1
+- **React Native Elements**: 3.4.3
+- **React Native Vector Icons**: 10.0.2
 
-4. **Set up environment variables**:
-   Create a `.env` file in the project root:
-   ```env
-   SECRET_KEY=your-secret-key-here
-   DEBUG=True
-   OPENAI_API_KEY=your-openai-api-key-here
-   ```
+### State Management & Data
+- **React Query**: 3.39.3
+- **Zustand**: 4.4.1
+- **AsyncStorage**: 1.19.5
+- **SQLite**: 6.0.1
 
-5. **Run migrations**:
-   ```bash
-   python manage.py migrate
-   ```
+### Voice & Media
+- **React Native Voice**: 0.3.0
+- **React Native TTS**: 4.1.0
+- **React Native Camera**: 4.2.1
+- **React Native Image Picker**: 5.6.0
 
-6. **Create superuser**:
-   ```bash
-   python manage.py createsuperuser
-   ```
+### Notifications & Sync
+- **React Native Push Notification**: 8.1.1
+- **Firebase**: 18.7.3
+- **NetInfo**: 9.4.1
 
-7. **Run the development server**:
-   ```bash
-   python manage.py runserver
-   ```
+### Security & Authentication
+- **React Native Keychain**: 8.1.3
+- **React Native Biometrics**: 3.0.1
+- **React Native Permissions**: 3.10.1
 
-8. **Access the application**:
-   Open your browser and go to `http://127.0.0.1:8000`
+## 📋 Prerequisites
 
-## 🎯 Usage
+### Development Environment
+- **Node.js**: 16.0 or later
+- **npm**: 8.0 or later
+- **React Native CLI**: Latest version
+- **Android Studio**: For Android development
+- **Xcode**: For iOS development (macOS only)
 
-### Creating Memories
-- Use the voice creation feature to speak your memories
-- Or use the text input for manual entry
-- Memories are automatically summarized and tagged
-- Get AI-powered suggestions for what to write about
+### System Requirements
+- **Android**: API level 21+ (Android 5.0+)
+- **iOS**: iOS 12.0+
+- **RAM**: 8GB minimum, 16GB recommended
+- **Storage**: 10GB free space
 
-### Searching Memories
-- Use the search bar for text-based searches
-- Use voice search for hands-free memory retrieval
-- Search results are ranked by relevance and recency
-- Get AI-powered search suggestions for better results
+## 🚀 Installation
 
-### 🤖 AI Dashboard
-- Access personalized recommendations and insights
-- View trending topics and related memories
-- Get improvement tips based on your patterns
-- See analytics about your memory creation habits
+### 1. Clone the Repository
+```bash
+git clone https://github.com/your-username/memora-mobile.git
+cd memora-mobile
+```
 
-### Voice Features
-- **Voice Creation**: Click the microphone button and speak clearly
-- **Voice Search**: Use natural language queries like "what's my plan for today"
-- **Text-to-Speech**: Click the speaker icon to hear memories read aloud
+### 2. Install Dependencies
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. iOS Setup (macOS only)
+```bash
+cd ios
+pod install
+cd ..
+```
+
+### 4. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+# API Configuration
+API_BASE_URL=http://localhost:8000/api/v1
+API_TIMEOUT=30000
+
+# Firebase Configuration (for notifications)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_API_KEY=your-api-key
+
+# Feature Flags
+ENABLE_VOICE_SEARCH=true
+ENABLE_BIOMETRIC_AUTH=true
+ENABLE_CAMERA=true
+```
+
+### 5. Android Setup
+1. Open Android Studio
+2. Open the `android` folder
+3. Sync Gradle files
+4. Build the project
+
+## 🏃‍♂️ Running the App
+
+### Development Mode
+```bash
+# Start Metro bundler
+npm start
+# or
+yarn start
+
+# Run on Android
+npm run android
+# or
+yarn android
+
+# Run on iOS (macOS only)
+npm run ios
+# or
+yarn ios
+```
+
+### Production Build
+```bash
+# Android
+npm run build:android
+# or
+yarn build:android
+
+# iOS (macOS only)
+npm run build:ios
+# or
+yarn build:ios
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── TabBarIcon.tsx
+│   └── LoadingScreen.tsx
+├── navigation/          # Navigation configuration
+│   └── AppNavigator.tsx
+├── screens/            # Screen components
+│   ├── auth/          # Authentication screens
+│   ├── main/          # Main app screens
+│   └── memories/      # Memory-related screens
+├── services/           # API and external services
+│   ├── apiService.ts
+│   ├── authService.ts
+│   ├── memoryService.ts
+│   ├── syncService.ts
+│   └── notificationService.ts
+├── store/             # State management
+│   ├── AuthContext.tsx
+│   ├── MemoryContext.tsx
+│   └── NotificationContext.tsx
+├── types/             # TypeScript type definitions
+│   └── index.ts
+├── utils/             # Utility functions
+│   └── theme.ts
+└── assets/            # Static assets
+    ├── images/
+    └── icons/
+```
 
 ## 🔧 Configuration
 
-### Environment Variables
-- `SECRET_KEY`: Django secret key for security
-- `DEBUG`: Set to False in production
-- `OPENAI_API_KEY`: Required for AI-powered features
+### API Configuration
+The app connects to the Django backend API. Update the API configuration in `src/services/apiService.ts`:
 
-### Browser Compatibility
-The voice features require a modern browser with Web Speech API support:
-- Chrome 25+
-- Firefox 44+
-- Safari 14.1+
-- Edge 79+
+```typescript
+const baseURL = process.env.API_BASE_URL || 'http://localhost:8000/api/v1';
+```
 
-## 📦 Version History
+### Theme Configuration
+Customize the app theme in `src/utils/theme.ts`:
 
-### v1.1.0 (Current)
-- Added AI-powered personalized recommendations
-- New AI dashboard with insights and analytics
-- Smart content suggestions for memory creation
-- Trending topics and related memories
-- AI-powered search suggestions
-- Pattern analysis and improvement tips
-- Enhanced user experience with intelligent features
+```typescript
+export const lightTheme = {
+  colors: {
+    primary: '#6200EE',
+    secondary: '#03DAC6',
+    // ... other colors
+  }
+};
+```
 
-### v1.0.0
-- Initial release
-- Voice memory creation and search
-- Advanced contextual search filtering
-- Time-aware search capabilities
-- AI-powered memory summarization
-- Responsive web interface
+### Navigation Configuration
+Update navigation in `src/navigation/AppNavigator.tsx`:
 
-## 🐛 Known Issues
+```typescript
+const MainTabNavigator = () => (
+  <Tab.Navigator>
+    <Tab.Screen name="Home" component={HomeScreen} />
+    <Tab.Screen name="Memories" component={MemoryStack} />
+    // ... other tabs
+  </Tab.Navigator>
+);
+```
 
-- Voice features require HTTPS in production
-- Some browsers may require microphone permissions
-- Speech recognition accuracy varies by accent and environment
+## 🧪 Testing
+
+### Run Tests
+```bash
+npm test
+# or
+yarn test
+```
+
+### Test Coverage
+```bash
+npm run test:coverage
+# or
+yarn test:coverage
+```
+
+## 📦 Building for Production
+
+### Android
+1. Generate a signed APK:
+```bash
+cd android
+./gradlew assembleRelease
+```
+
+2. The APK will be in `android/app/build/outputs/apk/release/`
+
+### iOS
+1. Open the project in Xcode
+2. Select your team and bundle identifier
+3. Archive and distribute
+
+## 🔐 Security Features
+
+- **Biometric Authentication**: Fingerprint/face ID support
+- **Secure Storage**: Encrypted local storage
+- **Token Management**: Automatic token refresh
+- **Network Security**: HTTPS-only API calls
+- **Permission Handling**: Granular permission requests
+
+## 🔄 Offline Sync
+
+The app supports offline functionality with automatic sync:
+
+- **Local Storage**: SQLite database for offline data
+- **Sync Queue**: Pending changes stored locally
+- **Conflict Resolution**: Automatic conflict detection
+- **Background Sync**: Sync when network is available
+
+## 📱 Platform-Specific Features
+
+### Android
+- Material Design components
+- Android-specific navigation patterns
+- Background job processing
+- Custom notification channels
+
+### iOS
+- iOS-specific UI patterns
+- Face ID/Touch ID integration
+- iOS notification handling
+- Background app refresh
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Metro bundler issues**:
+```bash
+npx react-native start --reset-cache
+```
+
+2. **iOS build issues**:
+```bash
+cd ios && pod install && cd ..
+```
+
+3. **Android build issues**:
+```bash
+cd android && ./gradlew clean && cd ..
+```
+
+4. **Permission issues**:
+- Check device settings
+- Reinstall the app
+- Clear app data
+
+### Debug Mode
+Enable debug mode in development:
+```bash
+# Android
+adb reverse tcp:8081 tcp:8081
+
+# iOS
+# Use Xcode debugger
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## 📄 License
 
@@ -156,21 +338,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-If you encounter any issues:
-1. Check the browser console for errors
-2. Ensure your browser supports Web Speech API
-3. Verify microphone permissions are granted
-4. Check the Django server logs for backend errors
+- **Documentation**: Check the [Wiki](../../wiki)
+- **Issues**: Report bugs on [GitHub Issues](../../issues)
+- **Discussions**: Join the [GitHub Discussions](../../discussions)
 
-## 🔮 Roadmap
+## 🔄 Version History
 
-- [ ] Mobile app development
-- [ ] Offline voice processing
-- [ ] Multi-language support
-- [ ] Memory sharing features
-- [ ] Advanced AI integrations
-- [ ] Calendar integration
+- **v1.0.0**: Initial release with core features
+- **v1.1.0**: Added voice search and biometric auth
+- **v1.2.0**: Enhanced offline sync and notifications
+
+## 📞 Contact
+
+- **Email**: support@memora.app
+- **Website**: https://memora.app
+- **Twitter**: @memora_app
 
 ---
 
-**Memora Memory Assistant v1.1.0** - Making memory management effortless and intelligent with AI-powered insights. 
+Made with ❤️ by the Memora Team 

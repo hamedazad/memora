@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_ai
 
 app_name = 'memory_assistant'
 
@@ -36,6 +37,14 @@ urlpatterns = [
     path('ai/recommendations/', views.ai_recommendations, name='ai_recommendations'),
     path('ai/insights/', views.ai_insights, name='ai_insights'),
     path('ai/search-suggestions/', views.smart_search_suggestions, name='smart_search_suggestions'),
+    
+    # New AI Features
+    path('ai/dashboard/', views_ai.ai_dashboard, name='ai_dashboard'),
+    path('ai/enhance/', views_ai.ai_enhance_memory, name='ai_enhance_memory'),
+    path('ai/categorize/', views_ai.ai_auto_categorize, name='ai_auto_categorize'),
+    path('ai/tags/', views_ai.ai_generate_tags, name='ai_generate_tags'),
+    path('ai/suggestions/', views_ai.ai_memory_suggestions, name='ai_memory_suggestions'),
+    path('ai/related/<int:memory_id>/', views_ai.ai_related_memories, name='ai_related_memories'),
     
     # Authentication
     path('register/', views.register, name='register'),
