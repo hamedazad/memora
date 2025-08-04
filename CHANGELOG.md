@@ -88,7 +88,7 @@
 ### 🔑 **Setup Instructions**
 
 #### **OpenAI API Configuration**
-1. API Key: `[CONFIGURED - See setup instructions]`
+1. API Key: `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`
 2. Environment: Development
 3. Status: ✅ Configured and Ready
 
