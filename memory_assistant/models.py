@@ -23,6 +23,20 @@ class Memory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_archived = models.BooleanField(default=False)
     
+    # Delivery and encryption fields
+    delivery_date = models.DateTimeField(null=True, blank=True, help_text="When to deliver this memory")
+    delivery_type = models.CharField(max_length=50, default='immediate', 
+                                   choices=[
+                                       ('immediate', 'Immediate'),
+                                       ('scheduled', 'Scheduled'),
+                                       ('recurring', 'Recurring'),
+                                       ('conditional', 'Conditional')
+                                   ],
+                                   help_text="How this memory should be delivered")
+    encrypted_content = models.TextField(default='', help_text="Encrypted version of the content")
+    is_delivered = models.BooleanField(default=False, help_text="Whether this memory has been delivered")
+    is_time_locked = models.BooleanField(default=False, help_text="Whether this memory is time-locked")
+    
     class Meta:
         ordering = ['-created_at']
         verbose_name_plural = "Memories"

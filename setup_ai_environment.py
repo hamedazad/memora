@@ -15,7 +15,7 @@ def setup_environment():
     print("=" * 50)
     
     # Your OpenAI API key
-    api_key = "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"
+    api_key = "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"
     
     # Set environment variable
     os.environ['OPENAI_API_KEY'] = api_key
