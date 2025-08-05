@@ -40,11 +40,11 @@ FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
 FIREBASE_APP_ID=your_firebase_app_id_here
 
 # OpenAI Configuration (for AI features)
-OPENAI_API_KEY={api_key}
+OPENAI_API_KEY=your_openai_api_key_here
 
 # App Configuration
 APP_NAME=Memora
-APP_VERSION=3.0.0
+APP_VERSION=3.1.0
 APP_ENVIRONMENT=development
 
 # Sync Configuration
