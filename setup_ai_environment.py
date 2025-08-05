@@ -37,7 +37,7 @@ OPENAI_API_KEY={api_key}
 
 # App Configuration
 APP_NAME=Memora
-APP_VERSION=2.0.0
+APP_VERSION=3.0.0
 APP_ENVIRONMENT=development
 
 # Sync Configuration
