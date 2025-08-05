@@ -7,6 +7,7 @@ class Memory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memories')
     content = models.TextField(help_text="The memory content")
     summary = models.TextField(blank=True, help_text="AI-generated summary of the memory")
+    ai_reasoning = models.TextField(blank=True, help_text="AI reasoning for categorization")
     tags = models.JSONField(default=list, help_text="AI-generated tags for categorization")
     importance = models.IntegerField(default=5, choices=[(i, i) for i in range(1, 11)], 
                                    help_text="Importance level from 1-10")

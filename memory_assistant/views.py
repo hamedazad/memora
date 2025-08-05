@@ -66,29 +66,66 @@ def safe_delete_file(file_path):
 
 @login_required
 def memory_list(request):
-    """List all memories with filtering and pagination"""
+    """List all memories with enhanced filtering and search"""
     memories = Memory.objects.filter(user=request.user, is_archived=False)
     
-    # Filtering
+    # Get filter parameters
     memory_type = request.GET.get('type')
+    importance = request.GET.get('importance')
+    search_query = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    # Apply filters
     if memory_type:
         memories = memories.filter(memory_type=memory_type)
     
-    importance = request.GET.get('importance')
     if importance:
-        memories = memories.filter(importance__gte=int(importance))
+        try:
+            importance_val = int(importance)
+            memories = memories.filter(importance__gte=importance_val)
+        except ValueError:
+            pass  # Ignore invalid importance values
     
-    search_query = request.GET.get('q')
+    # Enhanced search functionality
     if search_query:
-        memories = memories.filter(
-            Q(content__icontains=search_query) |
-            Q(summary__icontains=search_query)
-        )
+        # Create a comprehensive search query
+        search_conditions = Q()
+        
+        # Search in content and summary
+        search_conditions |= Q(content__icontains=search_query)
+        search_conditions |= Q(summary__icontains=search_query)
+        
+        # Search in tags (JSON field)
+        search_conditions |= Q(tags__contains=[search_query])
+        
+        # Search in AI reasoning
+        search_conditions |= Q(ai_reasoning__icontains=search_query)
+        
+        # Split query into words for more flexible matching
+        query_words = search_query.split()
+        for word in query_words:
+            if len(word) >= 2:  # Only search for words with 2+ characters
+                search_conditions |= Q(content__icontains=word)
+                search_conditions |= Q(summary__icontains=word)
+                search_conditions |= Q(tags__contains=[word])
+        
+        memories = memories.filter(search_conditions)
+    
+    # Apply sorting
+    valid_sort_fields = ['created_at', '-created_at', 'importance', '-importance', 'memory_type', '-memory_type']
+    if sort_by in valid_sort_fields:
+        memories = memories.order_by(sort_by)
+    else:
+        memories = memories.order_by('-created_at')  # Default sort
     
     # Pagination
-    paginator = Paginator(memories, 10)
+    paginator = Paginator(memories, 12)  # Show more items per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Get statistics for the current filter
+    total_memories = Memory.objects.filter(user=request.user, is_archived=False).count()
+    filtered_count = memories.count()
     
     context = {
         'page_obj': page_obj,
@@ -96,6 +133,10 @@ def memory_list(request):
         'search_query': search_query,
         'selected_type': memory_type,
         'selected_importance': importance,
+        'selected_sort': sort_by,
+        'total_memories': total_memories,
+        'filtered_count': filtered_count,
+        'has_filters': bool(search_query or memory_type or importance),
     }
     
     return render(request, 'memory_assistant/memory_list.html', context)
@@ -110,15 +151,19 @@ def create_memory(request):
             memory = form.save(commit=False)
             memory.user = request.user
             
-            # Process with ChatGPT
+            # Process with ChatGPT for auto-categorization
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(memory.content)
             
+            # Apply AI-generated categorization
             memory.summary = processed_data.get('summary', '')
+            memory.ai_reasoning = processed_data.get('reasoning', '')
             memory.tags = processed_data.get('tags', [])
+            memory.memory_type = processed_data.get('memory_type', 'general')
+            memory.importance = processed_data.get('importance', 5)
             memory.save()
             
-            messages.success(request, 'Memory created successfully!')
+            messages.success(request, f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}')
             return redirect('memory_assistant:memory_detail', memory_id=memory.id)
     else:
         form = MemoryForm()
@@ -250,117 +295,92 @@ def delete_memory(request, memory_id):
 
 @login_required
 def search_memories(request):
-    """Search memories"""
-    query = request.GET.get('q', '')
+    """Enhanced search memories with AI-powered semantic search"""
+    query = request.GET.get('q', '').strip()
     memories = []
+    search_method = "basic"
     
     if query:
-        print(f"DEBUG: Regular search for query: '{query}'")  # Debug log
-        
         # Get all memories for the user
         all_memories = Memory.objects.filter(
             user=request.user,
             is_archived=False
         )
         
-        print(f"DEBUG: Total memories for user: {all_memories.count()}")  # Debug log
+        # Try AI-powered semantic search first
+        try:
+            chatgpt_service = ChatGPTService()
+            if chatgpt_service.is_available():
+                # Use AI to find semantically related memories
+                memory_data = [
+                    {
+                        'id': memory.id,
+                        'content': memory.content,
+                        'summary': memory.summary or '',
+                        'tags': memory.tags or [],
+                        'memory_type': memory.memory_type
+                    }
+                    for memory in all_memories
+                ]
+                
+                ai_results = chatgpt_service.search_memories(query, memory_data)
+                if ai_results:
+                    # Get the memory IDs from AI results
+                    ai_memory_ids = [result.get('id') for result in ai_results if result.get('id')]
+                    memories = all_memories.filter(id__in=ai_memory_ids)
+                    search_method = "ai_semantic"
+        except Exception as e:
+            print(f"AI search failed, falling back to basic search: {e}")
         
-        # Split query into words for better matching
-        query_words = query.lower().split()
-        print(f"DEBUG: Query words: {query_words}")  # Debug log
-        
-        # Create a more flexible search - try multiple approaches
-        search_conditions = Q()
-        
-        # First try: exact phrase match
-        search_conditions |= Q(content__icontains=query)
-        search_conditions |= Q(summary__icontains=query)
-        
-        # Second try: individual word matches (more lenient)
-        for word in query_words:
-            if len(word) >= 2:  # Allow shorter words
-                search_conditions |= Q(content__icontains=word)
-                search_conditions |= Q(summary__icontains=word)
-        
-        # Third try: partial matches for common words
-        common_words = ['plan', 'today', 'meeting', 'work', 'home', 'buy', 'need']
-        for word in common_words:
-            if word in query.lower():
-                search_conditions |= Q(content__icontains=word)
-                search_conditions |= Q(summary__icontains=word)
-        
-        memories = all_memories.filter(search_conditions)
-        
-        print(f"DEBUG: Memories after filtering: {memories.count()}")  # Debug log
-        
-        # Apply contextual filtering to remove irrelevant results
-        if memories.count() > 0:
-            filtered_memories = []
-            query_lower = query.lower()
+        # If AI search didn't work or returned no results, use enhanced basic search
+        if not memories:
+            search_conditions = Q()
             
-            for memory in memories:
-                content_lower = memory.content.lower()
-                summary_lower = memory.summary.lower() if memory.summary else ""
-                
-                # Context-specific filtering
-                is_relevant = True
-                
-                # Time-based filtering - be more precise about time context
-                if 'today' in query_lower:
-                    # If searching for "today", exclude memories that mention other days
-                    time_indicators = ['tomorrow', 'yesterday', 'next week', 'next month', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-                    if any(indicator in content_lower for indicator in time_indicators):
-                        # Check if it's actually about today or a different day
-                        if 'today' not in content_lower and 'now' not in content_lower:
-                            is_relevant = False
-                
-                elif 'tomorrow' in query_lower:
-                    # If searching for "tomorrow", exclude memories that mention other days
-                    time_indicators = ['today', 'yesterday', 'next week', 'next month', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-                    if any(indicator in content_lower for indicator in time_indicators):
-                        # Check if it's actually about tomorrow or a different day
-                        if 'tomorrow' not in content_lower:
-                            is_relevant = False
-                
-                # For "call" related queries, ensure the memory is actually about calling someone
-                elif 'call' in query_lower:
-                    call_indicators = ['call', 'phone', 'contact', 'dial', 'ring']
-                    if not any(indicator in content_lower for indicator in call_indicators):
-                        is_relevant = False
-                
-                # For "plan" related queries, ensure it's about planning or scheduling
-                elif 'plan' in query_lower:
-                    plan_indicators = ['plan', 'schedule', 'arrange', 'organize', 'prepare']
-                    if not any(indicator in content_lower for indicator in plan_indicators):
-                        is_relevant = False
-                
-                # For "buy" or "shopping" related queries
-                elif any(word in query_lower for word in ['buy', 'purchase', 'shop', 'shopping']):
-                    shopping_indicators = ['buy', 'purchase', 'shop', 'shopping', 'list', 'store', 'market']
-                    if not any(indicator in content_lower for indicator in shopping_indicators):
-                        is_relevant = False
-                
-                # For "meeting" related queries
-                elif 'meeting' in query_lower:
-                    meeting_indicators = ['meeting', 'appointment', 'conference', 'discussion', 'session']
-                    if not any(indicator in content_lower for indicator in meeting_indicators):
-                        is_relevant = False
-                
-                if is_relevant:
-                    filtered_memories.append(memory)
+            # Search in content and summary
+            search_conditions |= Q(content__icontains=query)
+            search_conditions |= Q(summary__icontains=query)
             
-            memories = filtered_memories
-            print(f"DEBUG: Memories after contextual filtering: {len(memories)}")  # Debug log
+            # Search in tags (JSON field)
+            search_conditions |= Q(tags__contains=[query])
+            
+            # Search in AI reasoning
+            search_conditions |= Q(ai_reasoning__icontains=query)
+            
+            # Split query into words for more flexible matching
+            query_words = query.split()
+            for word in query_words:
+                if len(word) >= 2:  # Only search for words with 2+ characters
+                    search_conditions |= Q(content__icontains=word)
+                    search_conditions |= Q(summary__icontains=word)
+                    search_conditions |= Q(tags__contains=[word])
+            
+            memories = all_memories.filter(search_conditions)
+            search_method = "enhanced_basic"
         
-        # If no results found, show all recent memories
-        if len(memories) == 0:
-            print("DEBUG: No memories found in regular search, showing recent memories")
-            memories = list(all_memories.order_by('-created_at')[:10])
+        # If still no results, try fuzzy matching
+        if not memories:
+            # Try searching for partial matches
+            for word in query.split():
+                if len(word) >= 3:
+                    memories = all_memories.filter(
+                        Q(content__icontains=word) |
+                        Q(summary__icontains=word) |
+                        Q(tags__contains=[word])
+                    )
+                    if memories.exists():
+                        search_method = "fuzzy"
+                        break
+        
+        # If no results found, show recent memories as suggestions
+        if not memories:
+            memories = all_memories.order_by('-created_at')[:5]
+            search_method = "suggestions"
     
     context = {
         'search_results': memories,
         'results_count': len(memories),
         'query': query,
+        'search_method': search_method,
         'ai_available': ChatGPTService().is_available(),
     }
     
@@ -382,26 +402,27 @@ def quick_add_memory(request):
                     'error': 'Memory content must be at least 10 characters long.'
                 })
             
-            # Create memory
-            memory = Memory.objects.create(
-                user=request.user,
-                content=content,
-                memory_type='general',
-                importance=5
-            )
-            
-            # Process with ChatGPT
+            # Process with ChatGPT first to get categorization
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(content)
             
-            memory.summary = processed_data.get('summary', '')
-            memory.tags = processed_data.get('tags', [])
-            memory.save()
+            # Create memory with AI categorization
+            memory = Memory.objects.create(
+                user=request.user,
+                content=content,
+                memory_type=processed_data.get('memory_type', 'general'),
+                importance=processed_data.get('importance', 5),
+                summary=processed_data.get('summary', ''),
+                ai_reasoning=processed_data.get('reasoning', ''),
+                tags=processed_data.get('tags', [])
+            )
             
             return JsonResponse({
                 'success': True,
                 'memory_id': memory.id,
-                'message': 'Memory added successfully!'
+                'message': f'Memory added successfully! Categorized as: {memory.get_memory_type_display()}',
+                'category': memory.memory_type,
+                'importance': memory.importance
             })
             
         except json.JSONDecodeError:
@@ -445,9 +466,31 @@ def voice_create_memory(request):
             # Check if text input was provided (for testing)
             if request.POST.get('text'):
                 text = request.POST.get('text')
+                
+                # Use AI to categorize the audio memory
+                from .voice_service import voice_service
+                categorization = voice_service.categorize_audio_memory(text)
+                
+                # Create the memory with AI categorization
+                memory = Memory.objects.create(
+                    user=request.user,
+                    content=text,
+                    summary=categorization.get('summary', ''),
+                    ai_reasoning=categorization.get('reasoning', ''),
+                    tags=categorization.get('tags', []),
+                    memory_type=categorization.get('category', 'general'),
+                    importance=categorization.get('importance', 5)
+                )
+                
                 return JsonResponse({
                     'success': True,
                     'content': text,
+                    'memory_id': memory.id,
+                    'category': categorization.get('category', 'general'),
+                    'confidence': categorization.get('confidence', 50),
+                    'summary': categorization.get('summary', ''),
+                    'tags': categorization.get('tags', []),
+                    'importance': categorization.get('importance', 5)
                 })
             else:
                 return JsonResponse({

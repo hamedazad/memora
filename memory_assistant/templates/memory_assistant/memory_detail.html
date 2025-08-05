@@ -46,6 +46,16 @@
                     </div>
                 {% endif %}
                 
+                {% if memory.ai_reasoning %}
+                    <h6 class="card-title">AI Reasoning</h6>
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <p class="mb-0 text-muted">
+                            <i class="bi bi-lightbulb"></i> 
+                            {{ memory.ai_reasoning }}
+                        </p>
+                    </div>
+                {% endif %}
+                
                 {% if memory.tags %}
                     <h6 class="card-title">Tags</h6>
                     <div class="mb-3">

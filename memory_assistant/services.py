@@ -26,7 +26,7 @@ class ChatGPTService:
     
     def process_memory(self, content: str) -> Dict[str, Any]:
         """
-        Process a memory using ChatGPT to generate summary and tags
+        Process a memory using advanced AI to generate summary, tags, and auto-categorize
         """
         if not self.is_available():
             # Return fallback values if API is not available
@@ -37,42 +37,66 @@ class ChatGPTService:
                 "memory_type": "general"
             }
         
-        prompt = f"""
-        Analyze the following memory content and provide:
-        1. A concise summary (2-3 sentences)
-        2. Relevant tags (5-8 tags as a JSON array)
-        3. Importance level (1-10, where 10 is most important)
-        4. Memory type (general, work, personal, learning, idea, reminder)
-        
-        Memory content: {content}
-        
-        Respond in JSON format:
-        {{
-            "summary": "summary text",
-            "tags": ["tag1", "tag2", "tag3"],
-            "importance": 7,
-            "memory_type": "work"
-        }}
-        """
-        
+        # Use the more advanced AI service for better categorization
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=500
-            )
+            from .ai_services import get_ai_service
+            ai_service = get_ai_service()
+            result = ai_service.auto_categorize_memory(content)
             
-            result = json.loads(response.choices[0].message.content)
-            return result
-        except Exception as e:
-            # Fallback values if API fails
+            # Map the AI result to our expected format
             return {
-                "summary": f"Memory about: {content[:100]}...",
-                "tags": ["general"],
-                "importance": 5,
-                "memory_type": "general"
+                "summary": result.get("summary", f"Memory about: {content[:100]}..."),
+                "tags": result.get("tags", ["general"]),
+                "importance": result.get("importance", 5),
+                "memory_type": result.get("category", "general")
             }
+        except Exception as e:
+            # Fallback to the original method if AI service fails
+            prompt = f"""
+            Analyze the following memory content and provide:
+            1. A concise summary (2-3 sentences)
+            2. Relevant tags (5-8 tags as a JSON array)
+            3. Importance level (1-10, where 10 is most important)
+            4. Memory type - categorize into one of these:
+               - work: Professional tasks, meetings, projects, career-related items
+               - personal: Family, friends, hobbies, personal life, relationships
+               - learning: Education, skills, courses, knowledge acquisition
+               - idea: Creative thoughts, innovations, concepts, brainstorming
+               - reminder: Tasks, to-dos, appointments, deadlines
+               - general: Everything else
+            
+            Memory content: {content}
+            
+            Respond in JSON format:
+            {{
+                "summary": "summary text",
+                "tags": ["tag1", "tag2", "tag3"],
+                "importance": 7,
+                "memory_type": "work"
+            }}
+            """
+            
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at categorizing and analyzing personal memories. Be accurate and consistent in your categorization."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=500
+                )
+                
+                result = json.loads(response.choices[0].message.content)
+                return result
+            except Exception as e2:
+                # Final fallback values if all AI methods fail
+                return {
+                    "summary": f"Memory about: {content[:100]}...",
+                    "tags": ["general"],
+                    "importance": 5,
+                    "memory_type": "general"
+                }
     
     def search_memories(self, query: str, memories: List[Dict]) -> List[Dict]:
         """

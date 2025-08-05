@@ -1,0 +1,5 @@
+[33m3b5a524[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;33mtag: v2.1.0[m[33m)[m v2.1.0: Remove hardcoded API key for security
+[33m66828bc[m Merge feature/v2.1.0-database-fixes: Resolve API key conflict
+[33md2db5da[m[33m ([m[1;32mfeature/v2.1.0-database-fixes[m[33m)[m v2.1.0: Fix database constraints and integrate OpenAI API key
+[33m144428f[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: Remove API key from documentation for security
+[33m5d87387[m feat: Add AI-powered features to Memora v2.0.0

@@ -26,9 +26,9 @@ class MemoryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add help text
-        self.fields['content'].help_text = 'Describe what you want to remember. Be as detailed as possible for better AI processing.'
-        self.fields['memory_type'].help_text = 'Choose the category that best fits this memory.'
-        self.fields['importance'].help_text = 'Rate how important this memory is to you (1-10).'
+        self.fields['content'].help_text = 'Describe what you want to remember. Be as detailed as possible for better AI processing and auto-categorization.'
+        self.fields['memory_type'].help_text = 'Choose the category that best fits this memory. AI will also suggest a category automatically.'
+        self.fields['importance'].help_text = 'Rate how important this memory is to you (1-10). AI will also suggest an importance level.'
     
     def clean_content(self):
         content = self.cleaned_data.get('content')
