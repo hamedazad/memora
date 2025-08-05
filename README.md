@@ -1,32 +1,48 @@
-# Memora Mobile App
+# Memora Core - AI-Powered Memory Assistant
 
-A React Native mobile application for the Memora Memory Assistant platform, featuring AI-powered memory management, offline sync, voice input, and push notifications.
+**Version 3.1.0** - Enhanced AI memory type recognition and improved search/filter functionality
+
+A comprehensive Django-based memory management system featuring advanced AI-powered categorization, intelligent search, voice input, and personalized insights.
 
 ## 🚀 Features
 
-### Core Features
-- **Memory Management**: Create, edit, delete, and organize memories
-- **AI-Powered**: Automatic summarization, tagging, and importance scoring
-- **Voice Input**: Speech-to-text for hands-free memory creation
-- **Search**: Advanced search with voice search capabilities
-- **Offline Sync**: Work offline with automatic sync when online
-- **Push Notifications**: Memory reminders and AI suggestions
+### 🧠 AI-Powered Memory Management
+- **Smart Categorization**: AI automatically recognizes memory types (Work, Personal, Learning, Idea, Reminder, General)
+- **Intelligent Summarization**: AI generates concise summaries of your memories
+- **Automatic Tagging**: AI creates relevant tags for easy organization
+- **Importance Scoring**: AI assesses and suggests importance levels (1-10)
+- **Reasoning Display**: See why AI categorized your memory the way it did
 
-### Advanced Features
-- **Biometric Authentication**: Fingerprint/face ID support
-- **Camera Integration**: Add photos to memories
-- **Location Tagging**: Automatically tag memories with location
-- **Mood Tracking**: Track emotional context of memories
-- **Analytics**: Memory patterns and insights
-- **Export/Import**: Backup and restore memories
+### 🔍 Enhanced Search & Filter
+- **Comprehensive Search**: Search across content, summary, tags, and AI reasoning
+- **AI Semantic Search**: Find memories using natural language understanding
+- **Advanced Filtering**: Filter by type, importance, and date
+- **Multiple Sorting**: Sort by newest, oldest, importance, or type
+- **Smart Suggestions**: Get relevant suggestions when no exact matches found
 
-### Technical Features
-- **Cross-Platform**: iOS and Android support
-- **TypeScript**: Full type safety
-- **Modern UI**: Material Design with React Native Paper
-- **State Management**: Context API with Zustand
-- **Data Fetching**: React Query for efficient caching
-- **Navigation**: React Navigation with bottom tabs
+### 🎤 Voice Features
+- **Voice Input**: Create memories using speech-to-text
+- **Voice Search**: Search memories using voice commands
+- **Voice Reading**: Have memories read aloud to you
+- **Audio Categorization**: AI categorizes voice-transcribed memories
+
+### 📊 Memory Organization
+- **Memory Types**: Work, Personal, Learning, Idea, Reminder, General
+- **Importance Levels**: 1-10 scale for priority management
+- **Tag System**: AI-generated tags for easy categorization
+- **Archive System**: Archive old memories while keeping them accessible
+
+### 🔐 User Management
+- **User Registration**: Secure account creation
+- **Authentication**: Login/logout functionality
+- **User-Specific Data**: Each user's memories are private and secure
+
+### 🛠 Technical Features
+- **Django Framework**: Robust web framework with admin interface
+- **PostgreSQL Support**: Scalable database with advanced features
+- **OpenAI Integration**: Advanced AI capabilities via OpenAI API
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **RESTful API**: Clean API design for future integrations
 
 ## 📱 Screenshots
 
@@ -34,252 +50,300 @@ A React Native mobile application for the Memora Memory Assistant platform, feat
 
 ## 🛠 Tech Stack
 
-### Core
-- **React Native**: 0.72.6
-- **TypeScript**: 4.8.4
-- **React**: 18.2.0
+### Core Framework
+- **Django**: 4.2.7 - Robust web framework
+- **Python**: 3.8+ - Programming language
+- **PostgreSQL**: 12+ - Primary database
+- **SQLite**: 3.35+ - Development database
 
-### Navigation & UI
-- **React Navigation**: 6.1.9
-- **React Native Paper**: 5.11.1
-- **React Native Elements**: 3.4.3
-- **React Native Vector Icons**: 10.0.2
+### AI & Machine Learning
+- **OpenAI GPT-3.5-turbo**: Advanced language model for AI features
+- **OpenAI API**: Integration for memory categorization and analysis
+- **Natural Language Processing**: Semantic search and text analysis
 
-### State Management & Data
-- **React Query**: 3.39.3
-- **Zustand**: 4.4.1
-- **AsyncStorage**: 1.19.5
-- **SQLite**: 6.0.1
+### Voice Processing
+- **SpeechRecognition**: Speech-to-text conversion
+- **pyttsx3**: Text-to-speech synthesis
+- **PyAudio**: Audio processing and microphone access
 
-### Voice & Media
-- **React Native Voice**: 0.3.0
-- **React Native TTS**: 4.1.0
-- **React Native Camera**: 4.2.1
-- **React Native Image Picker**: 5.6.0
+### Frontend & UI
+- **Bootstrap 5**: Modern responsive UI framework
+- **Bootstrap Icons**: Icon library
+- **HTML5/CSS3**: Modern web standards
+- **JavaScript**: Interactive functionality
 
-### Notifications & Sync
-- **React Native Push Notification**: 8.1.1
-- **Firebase**: 18.7.3
-- **NetInfo**: 9.4.1
+### Database & ORM
+- **Django ORM**: Object-relational mapping
+- **Django Migrations**: Database schema management
+- **JSON Fields**: Flexible data storage for tags and metadata
 
-### Security & Authentication
-- **React Native Keychain**: 8.1.3
-- **React Native Biometrics**: 3.0.1
-- **React Native Permissions**: 3.10.1
+### Development & Deployment
+- **Git**: Version control
+- **Docker**: Containerization (optional)
+- **Virtual Environment**: Python dependency isolation
+- **Environment Variables**: Secure configuration management
 
 ## 📋 Prerequisites
 
 ### Development Environment
-- **Node.js**: 16.0 or later
-- **npm**: 8.0 or later
-- **React Native CLI**: Latest version
-- **Android Studio**: For Android development
-- **Xcode**: For iOS development (macOS only)
+- **Python**: 3.8 or later
+- **pip**: Python package installer
+- **Git**: Version control system
+- **PostgreSQL**: 12 or later (for production)
+- **SQLite**: 3.35 or later (for development)
 
 ### System Requirements
-- **Android**: API level 21+ (Android 5.0+)
-- **iOS**: iOS 12.0+
-- **RAM**: 8GB minimum, 16GB recommended
-- **Storage**: 10GB free space
+- **Operating System**: Windows, macOS, or Linux
+- **RAM**: 4GB minimum, 8GB recommended
+- **Storage**: 2GB free space
+- **Internet Connection**: Required for OpenAI API access
+
+### API Requirements
+- **OpenAI API Key**: Required for AI features
+- **Google Speech Recognition**: Free tier available for voice features
 
 ## 🚀 Installation
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/memora-mobile.git
-cd memora-mobile
+git clone https://github.com/your-username/memora-core.git
+cd memora-core
 ```
 
-### 2. Install Dependencies
+### 2. Set Up Virtual Environment
 ```bash
-npm install
-# or
-yarn install
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 ```
 
-### 3. iOS Setup (macOS only)
+### 3. Install Dependencies
 ```bash
-cd ios
-pod install
-cd ..
+pip install -r requirements.txt
 ```
 
 ### 4. Environment Configuration
-Create a `.env` file in the root directory:
-```env
-# API Configuration
-API_BASE_URL=http://localhost:8000/api/v1
-API_TIMEOUT=30000
+```bash
+# Copy environment template
+cp env.example .env
 
-# Firebase Configuration (for notifications)
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_API_KEY=your-api-key
+# Edit .env file with your settings
+# Add your OpenAI API key
+OPENAI_API_KEY=your_openai_api_key_here
+```
+### 5. Database Setup
+```bash
+# Run database migrations
+python manage.py migrate
 
-# Feature Flags
-ENABLE_VOICE_SEARCH=true
-ENABLE_BIOMETRIC_AUTH=true
-ENABLE_CAMERA=true
+# Create superuser (optional)
+python manage.py createsuperuser
 ```
 
-### 5. Android Setup
-1. Open Android Studio
-2. Open the `android` folder
-3. Sync Gradle files
-4. Build the project
+### 6. Run the Application
+```bash
+# Start the development server
+python manage.py runserver
 
-## 🏃‍♂️ Running the App
+# Access the application at http://127.0.0.1:8000/
+```
+
+### 7. Voice Features Setup (Optional)
+```bash
+# Install PyAudio for voice features
+# On Windows:
+pip install pyaudio
+
+# On macOS:
+brew install portaudio
+pip install pyaudio
+
+# On Linux:
+sudo apt-get install python3-pyaudio
+pip install pyaudio
+```
+
+## 🏃‍♂️ Running the Application
 
 ### Development Mode
 ```bash
-# Start Metro bundler
-npm start
-# or
-yarn start
+# Start the Django development server
+python manage.py runserver
 
-# Run on Android
-npm run android
-# or
-yarn android
-
-# Run on iOS (macOS only)
-npm run ios
-# or
-yarn ios
+# Access the application at http://127.0.0.1:8000/
+# Admin interface at http://127.0.0.1:8000/admin/
 ```
 
-### Production Build
+### Production Deployment
 ```bash
-# Android
-npm run build:android
-# or
-yarn build:android
+# Collect static files
+python manage.py collectstatic
 
-# iOS (macOS only)
-npm run build:ios
-# or
-yarn build:ios
-```
-
-## 📁 Project Structure
-
-```
-src/
-├── components/          # Reusable UI components
-│   ├── TabBarIcon.tsx
-│   └── LoadingScreen.tsx
-├── navigation/          # Navigation configuration
-│   └── AppNavigator.tsx
-├── screens/            # Screen components
-│   ├── auth/          # Authentication screens
-│   ├── main/          # Main app screens
-│   └── memories/      # Memory-related screens
-├── services/           # API and external services
-│   ├── apiService.ts
-│   ├── authService.ts
-│   ├── memoryService.ts
-│   ├── syncService.ts
-│   └── notificationService.ts
-├── store/             # State management
-│   ├── AuthContext.tsx
-│   ├── MemoryContext.tsx
-│   └── NotificationContext.tsx
-├── types/             # TypeScript type definitions
-│   └── index.ts
-├── utils/             # Utility functions
-│   └── theme.ts
-└── assets/            # Static assets
-    ├── images/
-    └── icons/
-```
-
-## 🔧 Configuration
-
-### API Configuration
-The app connects to the Django backend API. Update the API configuration in `src/services/apiService.ts`:
-
-```typescript
-const baseURL = process.env.API_BASE_URL || 'http://localhost:8000/api/v1';
-```
-
-### Theme Configuration
-Customize the app theme in `src/utils/theme.ts`:
-
-```typescript
-export const lightTheme = {
-  colors: {
-    primary: '#6200EE',
-    secondary: '#03DAC6',
-    // ... other colors
-  }
-};
-```
-
-### Navigation Configuration
-Update navigation in `src/navigation/AppNavigator.tsx`:
-
-```typescript
-const MainTabNavigator = () => (
-  <Tab.Navigator>
-    <Tab.Screen name="Home" component={HomeScreen} />
-    <Tab.Screen name="Memories" component={MemoryStack} />
-    // ... other tabs
-  </Tab.Navigator>
-);
+# Run with production server (e.g., Gunicorn)
+gunicorn memora_project.wsgi:application
 ```
 
 ## 🧪 Testing
 
-### Run Tests
+### Run Test Suite
 ```bash
-npm test
-# or
-yarn test
+# Run all tests
+python manage.py test
+
+# Run specific test
+python test_ai_memory_categorization.py
+python test_search_filter.py
 ```
 
-### Test Coverage
-```bash
-npm run test:coverage
-# or
-yarn test:coverage
+## 🆕 What's New in Version 3.1.0
+
+### 🧠 Enhanced AI Memory Type Recognition
+- **Advanced Categorization**: AI now provides detailed reasoning for memory categorization
+- **Confidence Scores**: Each categorization includes a confidence level (0-100%)
+- **Improved Accuracy**: Better recognition of memory types with more detailed prompts
+- **Fallback System**: Multiple layers of AI services ensure reliability
+
+### 🔍 Improved Search & Filter Functionality
+- **Comprehensive Search**: Search across content, summary, tags, and AI reasoning
+- **AI Semantic Search**: Find memories using natural language understanding
+- **Advanced Filtering**: Filter by type, importance, and sort by various criteria
+- **Smart Suggestions**: Get relevant suggestions when no exact matches found
+- **Filter Summary**: Visual feedback showing current filter status
+
+### 🎯 Key Improvements
+- **Better User Experience**: Improved UI with clear visual feedback
+- **Enhanced Performance**: More efficient search algorithms
+- **Robust Error Handling**: Better fallback mechanisms
+- **Comprehensive Testing**: Extensive test coverage for new features
+
+## 📚 Documentation
+
+- [AI Memory Categorization Guide](AI_MEMORY_CATEGORIZATION_GUIDE.md)
+- [Search & Filter Improvements](SEARCH_FILTER_IMPROVEMENTS.md)
+- [PostgreSQL Migration Guide](POSTGRESQL_MIGRATION.md)
+- [Deployment Guide](DEPLOYMENT.md)
+
+## 📁 Project Structure
+
+```
+memora-core/
+├── memora_project/           # Django project settings
+│   ├── settings.py          # Project configuration
+│   ├── urls.py              # Main URL routing
+│   └── wsgi.py              # WSGI application
+├── memory_assistant/        # Main Django app
+│   ├── models.py            # Database models
+│   ├── views.py             # View functions
+│   ├── urls.py              # App URL routing
+│   ├── ai_services.py       # AI-powered services
+│   ├── services.py          # ChatGPT integration
+│   ├── voice_service.py     # Voice processing
+│   ├── recommendation_service.py  # AI recommendations
+│   ├── forms.py             # Django forms
+│   ├── admin.py             # Admin interface
+│   ├── templates/           # HTML templates
+│   │   └── memory_assistant/
+│   │       ├── base.html
+│   │       ├── dashboard.html
+│   │       ├── memory_list.html
+│   │       ├── create_memory.html
+│   │       └── search_results.html
+│   └── migrations/          # Database migrations
+├── requirements.txt         # Python dependencies
+├── manage.py               # Django management script
+├── env.example             # Environment variables template
+├── version.py              # Version information
+├── test_ai_memory_categorization.py  # AI test script
+├── test_search_filter.py   # Search/filter test script
+└── docs/                   # Documentation
+    ├── AI_MEMORY_CATEGORIZATION_GUIDE.md
+    ├── SEARCH_FILTER_IMPROVEMENTS.md
+    └── POSTGRESQL_MIGRATION.md
 ```
 
-## 📦 Building for Production
+## 🔧 Configuration
 
-### Android
-1. Generate a signed APK:
-```bash
-cd android
-./gradlew assembleRelease
+### Django Settings
+Configure the application in `memora_project/settings.py`:
+
+```python
+# Database configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'memora_db',
+        'USER': 'memora_user',
+        'PASSWORD': 'your_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+# OpenAI API configuration
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 ```
 
-2. The APK will be in `android/app/build/outputs/apk/release/`
+### Environment Variables
+Set up your environment variables in `.env`:
 
-### iOS
-1. Open the project in Xcode
-2. Select your team and bundle identifier
-3. Archive and distribute
+```env
+# Django settings
+SECRET_KEY=your_secret_key_here
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/memora_db
+
+# OpenAI API
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Voice features (optional)
+ENABLE_VOICE_FEATURES=True
+```
 
 ## 🔐 Security Features
 
-- **Biometric Authentication**: Fingerprint/face ID support
-- **Secure Storage**: Encrypted local storage
-- **Token Management**: Automatic token refresh
-- **Network Security**: HTTPS-only API calls
-- **Permission Handling**: Granular permission requests
+- **User Authentication**: Secure login/logout system
+- **CSRF Protection**: Built-in Django CSRF protection
+- **SQL Injection Prevention**: Django ORM protection
+- **XSS Protection**: Automatic HTML escaping
+- **Secure Headers**: Django security middleware
 
-## 🔄 Offline Sync
+## 🚀 Deployment
 
-The app supports offline functionality with automatic sync:
+### Production Setup
+1. Set `DEBUG=False` in settings
+2. Configure production database
+3. Set up static file serving
+4. Configure HTTPS
+5. Set up monitoring and logging
 
-- **Local Storage**: SQLite database for offline data
-- **Sync Queue**: Pending changes stored locally
-- **Conflict Resolution**: Automatic conflict detection
-- **Background Sync**: Sync when network is available
+### Docker Deployment
+```bash
+# Build Docker image
+docker build -t memora-core .
 
-## 📱 Platform-Specific Features
+# Run container
+docker run -p 8000:8000 memora-core
+```
 
-### Android
-- Material Design components
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new features
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 - Android-specific navigation patterns
 - Background job processing
 - Custom notification channels

@@ -15,6 +15,15 @@
                         </h4>
                         <p class="text-muted mb-0">
                             Found {{ results_count }} memory{{ results_count|pluralize }} for "{{ query }}"
+                            {% if search_method == "ai_semantic" %}
+                                <span class="badge bg-success ms-2">AI Semantic Search</span>
+                            {% elif search_method == "enhanced_basic" %}
+                                <span class="badge bg-info ms-2">Enhanced Search</span>
+                            {% elif search_method == "fuzzy" %}
+                                <span class="badge bg-warning ms-2">Fuzzy Match</span>
+                            {% elif search_method == "suggestions" %}
+                                <span class="badge bg-secondary ms-2">Recent Suggestions</span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="col-md-4 text-end">
@@ -37,10 +46,27 @@
             </div>
             <div class="card-body">
                 {% if search_results %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>AI Search:</strong> Results are ranked by semantic relevance, not just keyword matches.
+                                    {% if search_method == "ai_semantic" %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-robot"></i>
+                        <strong>AI Semantic Search:</strong> Results are ranked by semantic relevance using advanced AI analysis.
                     </div>
+                {% elif search_method == "enhanced_basic" %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-search"></i>
+                        <strong>Enhanced Search:</strong> Results found using comprehensive keyword matching across content, summary, tags, and AI reasoning.
+                    </div>
+                {% elif search_method == "fuzzy" %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-search"></i>
+                        <strong>Fuzzy Match:</strong> Results found using partial word matching. Try more specific search terms for better results.
+                    </div>
+                {% elif search_method == "suggestions" %}
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Recent Memories:</strong> No exact matches found. Showing your most recent memories as suggestions.
+                    </div>
+                {% endif %}
                     
                     <!-- AI Search Suggestions -->
                     <div class="alert alert-warning" id="ai-suggestions" style="display: none;">

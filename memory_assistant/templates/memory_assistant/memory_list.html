@@ -14,12 +14,12 @@
             </div>
             <div class="card-body">
                 <form method="GET" class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="q" class="form-label">Search</label>
                         <input type="text" class="form-control" id="q" name="q" 
-                               value="{{ search_query }}" placeholder="Search memories...">
+                               value="{{ search_query }}" placeholder="Search content, tags, or summary...">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="type" class="form-label">Type</label>
                         <select class="form-select" id="type" name="type">
                             <option value="">All Types</option>
@@ -30,10 +30,10 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="importance" class="form-label">Minimum Importance</label>
+                    <div class="col-md-2">
+                        <label for="importance" class="form-label">Min Importance</label>
                         <select class="form-select" id="importance" name="importance">
-                            <option value="">All Importance</option>
+                            <option value="">All</option>
                             {% for i in "12345678910" %}
                                 <option value="{{ i }}" {% if selected_importance == i %}selected{% endif %}>
                                     {{ i }}+
@@ -41,15 +41,48 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> Filter
+                    <div class="col-md-2">
+                        <label for="sort" class="form-label">Sort By</label>
+                        <select class="form-select" id="sort" name="sort">
+                            <option value="-created_at" {% if selected_sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                            <option value="created_at" {% if selected_sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                            <option value="-importance" {% if selected_sort == '-importance' %}selected{% endif %}>Most Important</option>
+                            <option value="importance" {% if selected_sort == 'importance' %}selected{% endif %}>Least Important</option>
+                            <option value="memory_type" {% if selected_sort == 'memory_type' %}selected{% endif %}>Type A-Z</option>
+                            <option value="-memory_type" {% if selected_sort == '-memory_type' %}selected{% endif %}>Type Z-A</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-search"></i> Search
                         </button>
+                        <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Filter Summary -->
+    {% if has_filters %}
+    <div class="col-12 mb-3">
+        <div class="alert alert-info d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-info-circle"></i>
+                <strong>Filtered Results:</strong> 
+                Showing {{ filtered_count }} of {{ total_memories }} memories
+                {% if search_query %} • Searching for "{{ search_query }}"{% endif %}
+                {% if selected_type %} • Type: {{ selected_type|title }}{% endif %}
+                {% if selected_importance %} • Min Importance: {{ selected_importance }}+{% endif %}
+            </div>
+            <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-x-circle"></i> Clear All Filters
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Memories List -->
     <div class="col-12">
