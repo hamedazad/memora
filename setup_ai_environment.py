@@ -14,8 +14,8 @@ def setup_environment():
     print("🤖 Setting up AI Environment for Memora")
     print("=" * 50)
     
-    # Your OpenAI API key - Replace with your actual API key
-    api_key = "your_openai_api_key_here"
+    # Your OpenAI API key
+    api_key = "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"
     
     # Set environment variable
     os.environ['OPENAI_API_KEY'] = api_key
