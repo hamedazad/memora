@@ -174,47 +174,165 @@ class ChatGPTService:
         """
         if not user_memories:
             return [
-                "What did you learn today?",
-                "Any important meetings or conversations?",
-                "What ideas came to mind?",
-                "Any personal achievements to remember?"
-            ]
-        
-        if not self.is_available():
-            return [
-                "What's the next step for your current projects?",
-                "Any insights from today's experiences?",
+                "What did you learn today that you want to remember?",
+                "Any important conversations or insights from today?",
+                "What's one thing you accomplished that you're proud of?",
+                "Any ideas or thoughts that came to mind today?",
                 "What would you like to remember about this week?"
             ]
         
+        if not self.is_available():
+            # Generate contextual fallback suggestions based on existing memories
+            return self._generate_fallback_suggestions(user_memories)
+        
         # Analyze recent memories to generate suggestions
         recent_content = "\n".join([
-            memory['content'][:100] for memory in user_memories[:5]
+            f"Memory: {memory.get('content', '')[:150]}... (Tags: {', '.join(memory.get('tags', []))})"
+            for memory in user_memories[:8]  # Use more memories for better context
         ])
         
         prompt = f"""
         Based on these recent memories:
         {recent_content}
         
-        Generate 3-5 thoughtful questions or prompts that might help the user
-        remember related or follow-up information. Make them specific and actionable.
+        Generate 4-6 thoughtful, specific, and actionable questions or prompts that would help the user
+        remember related or follow-up information. Make them:
+        - Specific to their current patterns and interests
+        - Actionable and practical
+        - Varied in scope (daily, weekly, project-based)
+        - Relevant to their recent activities
         
-        Return as a JSON array of strings.
+        Focus on:
+        - Follow-up actions from recent memories
+        - Related topics they might want to explore
+        - Important details they might have missed
+        - Future planning based on current activities
+        
+        CRITICAL: You must respond with ONLY a valid JSON array. No other text.
+        Format: ["suggestion1", "suggestion2", "suggestion3", "suggestion4"]
         """
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": "You are an expert at helping people remember and organize their thoughts. You must ALWAYS respond with valid JSON arrays only. Never include explanatory text or formatting outside the JSON."},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=0.7,
-                max_tokens=300
+                max_tokens=400
             )
             
-            suggestions = json.loads(response.choices[0].message.content)
-            return suggestions
+            try:
+                content = response.choices[0].message.content.strip()
+                
+                # Try to fix common JSON issues
+                if content.startswith('[') and not content.endswith(']'):
+                    # Add missing closing bracket
+                    content += ']'
+                elif not content.startswith('[') and content.endswith(']'):
+                    # Add missing opening bracket
+                    content = '[' + content
+                elif not content.startswith('[') and not content.endswith(']'):
+                    # Wrap in brackets if neither present
+                    content = '[' + content + ']'
+                
+                suggestions = json.loads(content)
+                # Ensure we return a list of strings
+                if isinstance(suggestions, list):
+                    return [str(s).strip() for s in suggestions if s and str(s).strip()]
+                else:
+                    return self._generate_fallback_suggestions(user_memories)
+                    
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {e}")
+                print(f"Raw content: {response.choices[0].message.content}")
+                
+                # Try to parse as comma-separated values
+                content = response.choices[0].message.content.strip()
+                
+                # Remove any JSON-like formatting
+                if content.startswith('['):
+                    content = content[1:]
+                if content.endswith(']'):
+                    content = content[:-1]
+                
+                # Split by comma and clean up
+                suggestions = []
+                for item in content.split(','):
+                    item = item.strip().strip('"\'')
+                    if item and len(item) > 5:  # Only include meaningful suggestions
+                        suggestions.append(item)
+                
+                if suggestions:
+                    return suggestions
+                else:
+                    return self._generate_fallback_suggestions(user_memories)
+                
         except Exception as e:
-            return [
-                "What's the next step for your current projects?",
-                "Any insights from today's experiences?",
-                "What would you like to remember about this week?"
-            ] 
+            print(f"Error generating AI suggestions: {e}")
+            return self._generate_fallback_suggestions(user_memories)
+    
+    def _generate_fallback_suggestions(self, user_memories: List[Dict]) -> List[str]:
+        """
+        Generate contextual fallback suggestions when AI is not available
+        """
+        suggestions = []
+        
+        # Analyze memory patterns to generate contextual suggestions
+        all_content = " ".join([memory.get('content', '') for memory in user_memories])
+        all_tags = []
+        for memory in user_memories:
+            all_tags.extend(memory.get('tags', []))
+        
+        # Check for common themes
+        content_lower = all_content.lower()
+        
+        # Work-related suggestions
+        if any(word in content_lower for word in ['meeting', 'project', 'work', 'client', 'deadline', 'task']):
+            suggestions.extend([
+                "What's the next step for your current work projects?",
+                "Any follow-up actions needed from recent meetings?",
+                "What deadlines are coming up this week?"
+            ])
+        
+        # Learning-related suggestions
+        if any(word in content_lower for word in ['learn', 'study', 'course', 'skill', 'knowledge', 'read']):
+            suggestions.extend([
+                "What did you learn today that you want to remember?",
+                "Any insights from your recent learning activities?",
+                "What skills would you like to develop further?"
+            ])
+        
+        # Personal-related suggestions
+        if any(word in content_lower for word in ['family', 'friend', 'personal', 'hobby', 'relationship']):
+            suggestions.extend([
+                "Any important personal events or conversations to remember?",
+                "What personal goals are you working towards?",
+                "Any family or friend activities you want to plan?"
+            ])
+        
+        # Idea-related suggestions
+        if any(word in content_lower for word in ['idea', 'creative', 'innovation', 'concept', 'thought']):
+            suggestions.extend([
+                "What creative ideas have you had recently?",
+                "Any innovative solutions you've been thinking about?",
+                "What problems are you trying to solve?"
+            ])
+        
+        # Add general suggestions if we don't have enough
+        if len(suggestions) < 3:
+            suggestions.extend([
+                "What's one thing you accomplished today that you're proud of?",
+                "Any important insights or realizations from this week?",
+                "What would you like to remember about this month?"
+            ])
+        
+        # Add tag-based suggestions
+        if all_tags:
+            unique_tags = list(set(all_tags))[:3]
+            for tag in unique_tags:
+                suggestions.append(f"What's new with your {tag} activities?")
+        
+        # Ensure we return 4-6 suggestions
+        return suggestions[:6] 

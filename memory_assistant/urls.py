@@ -16,6 +16,9 @@ urlpatterns = [
     path('memories/<int:memory_id>/delete/', views.delete_memory, name='delete_memory'),
     path('memories/<int:memory_id>/archive/', views.archive_memory, name='archive_memory'),
     
+    # Filtered Memory Views (for dashboard cards)
+    path('memories/filter/<str:filter_type>/', views.filtered_memories, name='filtered_memories'),
+    
     # Search
     path('search/', views.search_memories, name='search_memories'),
     

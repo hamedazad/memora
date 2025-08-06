@@ -2,8 +2,8 @@
 Version information for Memora Memory Assistant
 """
 
-__version__ = "3.2.0"
-__version_info__ = (3, 2, 0)
+__version__ = "3.3.0"
+__version_info__ = (3, 3, 0)
 
 # Version history
 VERSION_HISTORY = [
@@ -15,6 +15,7 @@ VERSION_HISTORY = [
     "3.0.0 - Major release with advanced AI features and improved database architecture",
     "3.1.0 - Enhanced AI memory type recognition and improved search/filter functionality",
     "3.2.0 - Major search improvements: enhanced natural language processing, fixed QuerySet errors, improved voice search, and better date recognition",
+    "3.3.0 - Enhanced AI Suggestions with contextual fallbacks, clickable dashboard cards, and improved JSON parsing for better user experience",
 ]
 
 def get_version():

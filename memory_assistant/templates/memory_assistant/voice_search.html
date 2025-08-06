@@ -116,28 +116,6 @@
                     </div>
                 </div>
                 
-                <!-- Quick test buttons -->
-                <div class="mb-3">
-                    <small class="text-muted">Quick test queries:</small>
-                    <div class="btn-group-vertical w-100">
-                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('what\'s the plan for tomorrow')">
-                            "what's the plan for tomorrow"
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('meeting tomorrow')">
-                            "meeting tomorrow"
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('buy groceries')">
-                            "buy groceries"
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('family dinner')">
-                            "family dinner"
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('dentist appointment')">
-                            "dentist appointment"
-                        </button>
-                    </div>
-                </div>
-                
                 <!-- Test memory creation -->
                 <div class="mb-3">
                     <button id="createCatList" class="btn btn-success btn-sm">
@@ -149,7 +127,7 @@
                 </div>
                 
                 <div id="searchStatus" class="alert alert-info" style="display: none;">
-                    <i class="bi bi-search"></i> Searching...
+                    <i class="bi bi-mic"></i> Listening... Speak your search query
                 </div>
                 
                 <div id="searchError" class="alert alert-danger" style="display: none;">
@@ -168,13 +146,18 @@
 <script>
 let recognition = null;
 let isSearching = false;
+let speechTimeout = null;
+let lastSpeechTime = null;
 
 // Initialize speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true; // Enable interim results for better speech detection
     recognition.lang = 'en-US';
+    
+    // Configure speech end detection
+    recognition.maxAlternatives = 1;
 } else {
     document.getElementById('errorMessage').textContent = 'Speech recognition not supported in this browser';
     document.getElementById('searchError').style.display = 'block';
@@ -211,20 +194,61 @@ function startVoiceSearch() {
         document.getElementById('searchError').style.display = 'none';
         
         recognition.onresult = function(event) {
-            const query = event.results[0][0].transcript;
-            document.getElementById('testSearchInput').value = query;
-            performSearch(query);
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            // Update last speech time for timeout detection
+            lastSpeechTime = Date.now();
+            
+            // Clear any existing timeout
+            if (speechTimeout) {
+                clearTimeout(speechTimeout);
+            }
+            
+            // Process all results
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+            
+            // Update the input field with interim results for real-time feedback
+            if (interimTranscript) {
+                document.getElementById('testSearchInput').value = interimTranscript;
+                // Update status to show speech is being detected
+                document.getElementById('searchStatus').innerHTML = '<i class="bi bi-mic-fill text-success"></i> Detecting speech...';
+            }
+            
+            // If we have final results, process the search and stop recording
+            if (finalTranscript) {
+                document.getElementById('testSearchInput').value = finalTranscript;
+                // Update status to show processing
+                document.getElementById('searchStatus').innerHTML = '<i class="bi bi-search"></i> Processing search...';
+                performSearch(finalTranscript);
+                // Auto-stop recording after successful speech recognition
+                setTimeout(() => {
+                    stopVoiceSearch();
+                }, 500); // Small delay to ensure the search is processed
+            } else {
+                // Set timeout for speech end detection (3 seconds of silence)
+                speechTimeout = setTimeout(() => {
+                    if (isSearching && lastSpeechTime && (Date.now() - lastSpeechTime) > 3000) {
+                        console.log('Speech timeout - stopping recording');
+                        stopVoiceSearch();
+                    }
+                }, 3000);
+            }
         };
         
         recognition.onend = function() {
-            if (isSearching) {
-                // Auto-restart if still searching
-                recognition.start();
-            } else {
-                document.getElementById('startVoiceSearch').style.display = 'inline-block';
-                document.getElementById('stopVoiceSearch').style.display = 'none';
-                document.getElementById('searchStatus').style.display = 'none';
-            }
+            // Don't auto-restart - let the user control when to start again
+            document.getElementById('startVoiceSearch').style.display = 'inline-block';
+            document.getElementById('stopVoiceSearch').style.display = 'none';
+            document.getElementById('searchStatus').style.display = 'none';
+            isSearching = false;
         };
         
         recognition.onerror = function(event) {
@@ -244,6 +268,13 @@ function startVoiceSearch() {
 
 function stopVoiceSearch() {
     isSearching = false;
+    
+    // Clear speech timeout
+    if (speechTimeout) {
+        clearTimeout(speechTimeout);
+        speechTimeout = null;
+    }
+    
     if (recognition) {
         recognition.stop();
     }

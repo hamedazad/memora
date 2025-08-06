@@ -43,13 +43,19 @@ def dashboard(request):
     important_memories = memories.filter(importance__gte=8).count()
     scheduled_memories = memories.filter(scheduled_date__isnull=False).count()
     
-    # Get memory suggestions
+    # Get memory suggestions with better context
     chatgpt_service = ChatGPTService()
+    
+    # Get a broader set of memories for better suggestions (not just recent unscheduled ones)
+    suggestion_memories = memories.order_by('-created_at')[:10]
     recent_memory_data = [
         {
             'content': memory.content,
-            'tags': memory.tags
-        } for memory in recent_memories
+            'tags': memory.tags,
+            'memory_type': memory.memory_type,
+            'importance': memory.importance,
+            'created_at': memory.created_at.strftime('%Y-%m-%d')
+        } for memory in suggestion_memories
     ]
     suggestions = chatgpt_service.generate_memory_suggestions(recent_memory_data)
     
@@ -67,6 +73,75 @@ def dashboard(request):
     }
     
     return render(request, 'memory_assistant/dashboard.html', context)
+
+
+@login_required
+def filtered_memories(request, filter_type):
+    """View for filtered memory lists based on dashboard card categories"""
+    memories = Memory.objects.filter(user=request.user, is_archived=False)
+    today = timezone.now().date()
+    
+    # Apply filters based on type
+    if filter_type == 'total':
+        filtered_memories = memories
+        title = "All Memories"
+        description = f"Showing all {memories.count()} memories"
+        icon = "bi-collection"
+        badge_color = "primary"
+    elif filter_type == 'important':
+        filtered_memories = memories.filter(importance__gte=8)
+        title = "Important Memories"
+        description = f"Showing {filtered_memories.count()} important memories (importance ≥ 8)"
+        icon = "bi-star"
+        badge_color = "warning"
+    elif filter_type == 'scheduled':
+        filtered_memories = memories.filter(scheduled_date__isnull=False)
+        title = "Scheduled Memories"
+        description = f"Showing {filtered_memories.count()} scheduled memories"
+        icon = "bi-calendar-check"
+        badge_color = "info"
+    elif filter_type == 'today':
+        filtered_memories = memories.filter(scheduled_date=today)
+        title = "Today's Memories"
+        description = f"Showing {filtered_memories.count()} memories scheduled for today ({today.strftime('%B %d, %Y')})"
+        icon = "bi-calendar3"
+        badge_color = "success"
+    else:
+        # Default to all memories if invalid filter type
+        filtered_memories = memories
+        title = "All Memories"
+        description = f"Showing all {memories.count()} memories"
+        icon = "bi-collection"
+        badge_color = "primary"
+    
+    # Apply sorting
+    sort_by = request.GET.get('sort', '-created_at')
+    if sort_by == 'importance':
+        filtered_memories = filtered_memories.order_by('-importance', '-created_at')
+    elif sort_by == 'scheduled_date':
+        filtered_memories = filtered_memories.order_by('scheduled_date', '-created_at')
+    elif sort_by == 'created_at':
+        filtered_memories = filtered_memories.order_by('-created_at')
+    else:
+        filtered_memories = filtered_memories.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(filtered_memories, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'memories': page_obj,
+        'title': title,
+        'description': description,
+        'icon': icon,
+        'badge_color': badge_color,
+        'filter_type': filter_type,
+        'total_count': filtered_memories.count(),
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'memory_assistant/filtered_memories.html', context)
 
 
 def safe_delete_file(file_path):

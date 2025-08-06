@@ -124,29 +124,83 @@ class AIService:
             print(f"Error in find_related_topics: {e}")
             return []
     
-    def generate_memory_suggestions(self, user_memories: List[str]) -> List[str]:
+    def generate_memory_suggestions(self, user_memories: List[Dict]) -> List[str]:
         """Generate suggestions for new memories based on existing ones."""
         try:
             from openai import OpenAI
             client = OpenAI(api_key=self.api_key)
             
-            # Analyze recent memories to generate suggestions
-            recent_memories = "\n".join(user_memories[-5:])  # Last 5 memories
+            # Format memories for better context
+            formatted_memories = []
+            for memory in user_memories[-8:]:  # Last 8 memories for better context
+                if isinstance(memory, dict):
+                    content = memory.get('content', '')
+                    tags = memory.get('tags', [])
+                    memory_type = memory.get('memory_type', 'general')
+                    importance = memory.get('importance', 5)
+                    formatted_memories.append(f"Type: {memory_type}, Importance: {importance}/10, Content: {content[:100]}..., Tags: {', '.join(tags)}")
+                else:
+                    formatted_memories.append(str(memory))
+            
+            recent_memories = "\n".join(formatted_memories)
             
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that suggests new memory topics based on existing memories. Return 3-5 suggestions as a comma-separated list."},
-                    {"role": "user", "content": f"Based on these recent memories, suggest new topics to remember: {recent_memories}"}
+                    {"role": "system", "content": "You are an expert at helping people remember and organize their thoughts. You must ALWAYS respond with valid JSON arrays only. Never include explanatory text or formatting outside the JSON."},
+                    {"role": "user", "content": f"Based on these recent memories, suggest 4-6 new topics to remember. Return ONLY a JSON array: {recent_memories}"}
                 ],
-                max_tokens=150,
-                temperature=0.6
+                max_tokens=300,
+                temperature=0.7
             )
-            suggestions = response.choices[0].message.content.strip().split(',')
-            return [suggestion.strip() for suggestion in suggestions]
+            
+            try:
+                content = response.choices[0].message.content.strip()
+                
+                # Try to fix common JSON issues
+                if content.startswith('[') and not content.endswith(']'):
+                    content += ']'
+                elif not content.startswith('[') and content.endswith(']'):
+                    content = '[' + content
+                elif not content.startswith('[') and not content.endswith(']'):
+                    content = '[' + content + ']'
+                
+                suggestions = json.loads(content)
+                if isinstance(suggestions, list):
+                    return [str(s).strip() for s in suggestions if s and str(s).strip()]
+                else:
+                    # Fallback to comma-separated parsing
+                    suggestions = response.choices[0].message.content.strip().split(',')
+                    return [suggestion.strip() for suggestion in suggestions if suggestion.strip()]
+            except json.JSONDecodeError as e:
+                print(f"AI Services JSON parsing error: {e}")
+                print(f"Raw content: {response.choices[0].message.content}")
+                
+                # Fallback to comma-separated parsing
+                content = response.choices[0].message.content.strip()
+                
+                # Remove any JSON-like formatting
+                if content.startswith('['):
+                    content = content[1:]
+                if content.endswith(']'):
+                    content = content[:-1]
+                
+                suggestions = []
+                for item in content.split(','):
+                    item = item.strip().strip('"\'')
+                    if item and len(item) > 5:  # Only include meaningful suggestions
+                        suggestions.append(item)
+                
+                return suggestions if suggestions else ["Unable to generate suggestions at this time."]
+                
         except Exception as e:
             print(f"Error in generate_memory_suggestions: {e}")
-            return ["Unable to generate suggestions at this time."]
+            return [
+                "What did you learn today that you want to remember?",
+                "Any important conversations or insights from today?",
+                "What's one thing you accomplished that you're proud of?",
+                "Any ideas or thoughts that came to mind today?"
+            ]
     
     def analyze_productivity_patterns(self, memories: List[Dict]) -> Dict:
         """Analyze productivity patterns from memories."""

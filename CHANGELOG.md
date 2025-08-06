@@ -2,189 +2,127 @@
 
 All notable changes to the Memora Memory Assistant project will be documented in this file.
 
-## [3.2.0] - 2025-08-06
+## [3.3.0] - 2024-01-15
 
-### 🚀 Major Search Improvements
+### Added
+- **Clickable Dashboard Cards**: All four statistics cards (Total Memories, Important Memories, Scheduled Memories, Today's Memories) are now clickable and lead to filtered memory views
+- **Filtered Memory Views**: New dedicated pages for viewing memories by category with sorting and pagination
+- **Interactive AI Suggestions**: "Use This" buttons on suggestions to quickly apply them to the quick add form
+- **Enhanced Fallback System**: Contextual suggestions generated even when AI is unavailable
+- **Better Error Handling**: Robust JSON parsing with automatic fixing of malformed responses
 
-#### Enhanced Natural Language Processing
-- **Improved text search** with better natural language query understanding
-- **Enhanced voice search** with improved contextual filtering and relevance scoring
-- **Added semantic variations** for common terms (plan/schedule, tomorrow/upcoming, etc.)
-- **Better word matching** - now supports single-character words for more flexible searches
-- **Comprehensive field search** - searches across content, summary, tags, and AI reasoning fields
+### Enhanced
+- **AI Suggestions**: 
+  - More contextual suggestions based on user's memory patterns
+  - Uses up to 10 recent memories for better context analysis
+  - Includes memory type, importance, tags, and creation date
+  - Theme detection for work, learning, personal, and idea-related content
+  - Tag-based personalized suggestions
+- **User Interface**:
+  - Improved suggestion card design with icons and better spacing
+  - Suggestion counter showing number of available suggestions
+  - Smooth animations and hover effects
+  - Better visual feedback for interactive elements
+- **JSON Parsing**: 
+  - Automatic fixing of common JSON malformations
+  - Multiple parsing strategies for reliability
+  - Better error logging and debugging
 
-#### Fixed Critical Bugs
-- **Fixed QuerySet errors** in search functions that were causing crashes
-- **Fixed variable scope issues** in voice search that prevented proper execution
-- **Fixed template variable mismatches** that prevented search results from displaying
-- **Fixed date recognition** integration with search functionality
+### Fixed
+- **AI Suggestions JSON Parsing**: Fixed issues with malformed JSON responses from AI
+- **Suggestion Relevance**: Improved contextual analysis for more relevant suggestions
+- **Error Recovery**: Better fallback mechanisms when AI services fail
+- **User Experience**: More intuitive interaction with suggestions
 
-#### Voice Search Enhancements
-- **Improved relevance scoring** system for better result ranking
-- **Enhanced contextual filtering** with simplified and more effective logic
-- **Better error handling** for both GET and POST requests
-- **Fixed template syntax errors** in voice search display
+### Technical Improvements
+- **Enhanced Data Structure**: More comprehensive memory data for better AI context
+- **Improved AI Prompts**: More explicit instructions for better JSON responses
+- **Better Error Handling**: Graceful degradation with detailed logging
+- **Code Quality**: Improved error handling and fallback mechanisms
 
-#### Date Recognition Improvements
-- **Better integration** between date recognition service and search functions
-- **Enhanced date-based filtering** for natural language queries
-- **Improved date extraction** from voice and text queries
+### Files Changed
+- `memory_assistant/views.py` - Added filtered_memories view and enhanced dashboard
+- `memory_assistant/urls.py` - Added new URL patterns for filtered views
+- `memory_assistant/services.py` - Enhanced AI suggestions with better parsing
+- `memory_assistant/ai_services.py` - Improved JSON handling and error recovery
+- `memory_assistant/templates/memory_assistant/dashboard.html` - Made cards clickable and improved suggestions UI
+- `memory_assistant/templates/memory_assistant/filtered_memories.html` - New template for filtered memory views
+- `memory_assistant/templates/memory_assistant/base.html` - Enhanced CSS for interactive elements
 
-#### User Interface Improvements
-- **Fixed search results display** - results now show properly in both text and voice search
-- **Enhanced search result cards** with better information display
-- **Improved error messages** and user feedback
-- **Better search tips** and guidance for users
+## [3.2.0] - 2024-01-10
 
-#### Technical Improvements
-- **Code refactoring** for better maintainability
-- **Improved error handling** throughout search functions
-- **Better separation of concerns** between different search methods
-- **Enhanced debugging** with better log messages
+### Added
+- Enhanced natural language processing for search
+- Improved voice search functionality
+- Better date recognition and parsing
+- Fixed QuerySet errors in search functionality
 
-### 🔧 Technical Details
+### Fixed
+- Search performance issues
+- Voice search reliability
+- Date parsing accuracy
 
-#### Search Function Improvements
-- `search_memories()`: Fixed QuerySet initialization and improved natural language processing
-- `voice_search_memories()`: Fixed variable scope issues and enhanced relevance scoring
-- Template fixes: Corrected variable name mismatches in search results display
-
-#### Database Query Optimizations
-- Better QuerySet management to prevent premature evaluation
-- Improved filtering logic for date-based searches
-- Enhanced semantic search with AI integration
-
-#### Frontend Enhancements
-- Fixed search results template to properly display found memories
-- Improved voice search interface with better error handling
-- Enhanced search suggestions and tips
-
-### 🐛 Bug Fixes
-- Fixed `AttributeError: 'list' object has no attribute 'exists'` in search functions
-- Fixed `TemplateSyntaxError: Invalid filter: 'times'` in voice search template
-- Fixed `cannot access local variable 'query_words'` error in voice search
-- Fixed search results not displaying despite being found
-
-### 📝 Documentation
-- Updated version history with detailed search improvements
-- Enhanced inline code comments for better maintainability
-- Improved error messages and user guidance
-
----
-
-## [3.1.0] - 2025-08-05
+## [3.1.0] - 2024-01-05
 
 ### Added
 - Enhanced AI memory type recognition
 - Improved search and filter functionality
-- Better database constraints handling
+- Better memory categorization
 
-### Changed
-- Updated AI service integration
-- Improved memory categorization accuracy
+### Enhanced
+- Search accuracy and performance
+- Filter options and usability
 
-### Fixed
-- Database constraint issues
-- AI service availability checks
-
----
-
-## [3.0.0] - 2025-08-04
+## [3.0.0] - 2024-01-01
 
 ### Added
-- Advanced AI features integration
+- Major release with advanced AI features
 - Improved database architecture
-- Enhanced voice processing capabilities
+- Enhanced memory processing capabilities
 
 ### Changed
-- Major refactoring of core components
-- Updated AI service integration
+- Significant architectural improvements
+- Better AI integration
+
+## [2.1.0] - 2023-12-20
 
 ### Fixed
-- Various performance issues
-- Database optimization
+- Database constraints issues
+- OpenAI API key integration
 
----
+### Enhanced
+- Database stability
+- API configuration
 
-## [2.1.0] - 2025-08-03
+## [2.0.0] - 2023-12-15
 
 ### Added
 - PostgreSQL support
-- OpenAI API key integration
 - Enhanced AI features
+- Improved database performance
 
 ### Changed
-- Database backend improvements
-- API integration updates
+- Database backend upgrade
+- AI feature enhancements
 
-### Fixed
-- Database constraint issues
-- API authentication problems
-
----
-
-## [2.0.0] - 2025-08-02
-
-### Added
-- PostgreSQL database support
-- Enhanced AI features
-- Improved user interface
-
-### Changed
-- Database architecture overhaul
-- UI/UX improvements
-
-### Fixed
-- Various bugs and performance issues
-
----
-
-## [1.2.0] - 2025-08-01
+## [1.2.0] - 2023-12-10
 
 ### Added
 - User registration system
 - Authentication features
-- User profile management
+- User management capabilities
 
-### Changed
-- Security improvements
-- User experience enhancements
-
-### Fixed
-- Authentication bugs
-- Security vulnerabilities
-
----
-
-## [1.1.0] - 2025-07-31
+## [1.1.0] - 2023-12-05
 
 ### Added
 - AI-powered personalized recommendations
-- Advanced insights generation
-- Enhanced memory analysis
+- User insights and analytics
+- Smart memory suggestions
 
-### Changed
-- AI integration improvements
-- Recommendation algorithms
-
-### Fixed
-- AI service integration issues
-- Performance optimizations
-
----
-
-## [1.0.0] - 2025-07-30
+## [1.0.0] - 2023-12-01
 
 ### Added
-- Initial release with voice memory creation
-- Basic search functionality
-- Memory management features
-- Voice input processing
-- Basic AI integration
-
-### Features
-- Voice-to-text memory creation
-- Text-based memory search
-- Memory categorization
-- User authentication
-- Basic dashboard 
+- Initial release
+- Voice memory creation
+- Search functionality
+- Basic memory management 

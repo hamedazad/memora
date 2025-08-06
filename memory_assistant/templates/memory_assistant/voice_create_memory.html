@@ -39,7 +39,7 @@
                 </div>
                 
                 <div id="recordingStatus" class="alert alert-info" style="display: none;">
-                    <i class="bi bi-mic"></i> Listening... Speak now!
+                    <i class="bi bi-mic"></i> Listening... Speak your memory clearly
                 </div>
                 
                 <div id="result" class="mt-4" style="display: none;">
@@ -83,13 +83,18 @@
 <script>
 let isRecording = false;
 let recognition = null;
+let speechTimeout = null;
+let lastSpeechTime = null;
 
 // Check if browser supports speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = true;
+    recognition.continuous = false; // Changed to false for better auto-stop behavior
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+    
+    // Configure speech end detection
+    recognition.maxAlternatives = 1;
 } else {
     document.getElementById('errorMessage').textContent = 'Speech recognition is not supported in this browser. Please use Chrome or Edge.';
     document.getElementById('error').style.display = 'block';
@@ -141,6 +146,14 @@ function startVoiceRecording() {
         recognition.onresult = function(event) {
             let interimTranscript = '';
             
+            // Update last speech time for timeout detection
+            lastSpeechTime = Date.now();
+            
+            // Clear any existing timeout
+            if (speechTimeout) {
+                clearTimeout(speechTimeout);
+            }
+            
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
@@ -150,25 +163,41 @@ function startVoiceRecording() {
                 }
             }
             
-            // Show interim results
+            // Show interim results with real-time feedback
             if (interimTranscript) {
                 document.getElementById('transcribedText').textContent = finalTranscript + ' ' + interimTranscript;
                 document.getElementById('result').style.display = 'block';
+                // Update status to show speech is being detected
+                document.getElementById('recordingStatus').innerHTML = '<i class="bi bi-mic-fill text-success"></i> Detecting speech...';
+            }
+            
+            // If we have final results, auto-stop recording
+            if (finalTranscript && !interimTranscript) {
+                document.getElementById('transcribedText').textContent = finalTranscript;
+                document.getElementById('result').style.display = 'block';
+                // Update status to show processing
+                document.getElementById('recordingStatus').innerHTML = '<i class="bi bi-check-circle text-success"></i> Speech captured!';
+                // Auto-stop recording after successful speech recognition
+                setTimeout(() => {
+                    stopVoiceRecording();
+                }, 1000); // Small delay to show the final result
+            } else {
+                // Set timeout for speech end detection (3 seconds of silence)
+                speechTimeout = setTimeout(() => {
+                    if (isRecording && lastSpeechTime && (Date.now() - lastSpeechTime) > 3000) {
+                        console.log('Speech timeout - stopping recording');
+                        stopVoiceRecording();
+                    }
+                }, 3000);
             }
         };
         
         recognition.onend = function() {
-            if (isRecording) {
-                // Auto-restart if still recording
-                recognition.start();
-            } else {
-                // Final result
-                document.getElementById('transcribedText').textContent = finalTranscript;
-                document.getElementById('result').style.display = 'block';
-                document.getElementById('startRecording').style.display = 'inline-block';
-                document.getElementById('stopRecording').style.display = 'none';
-                document.getElementById('recordingStatus').style.display = 'none';
-            }
+            // Don't auto-restart - let the user control when to start again
+            document.getElementById('startRecording').style.display = 'inline-block';
+            document.getElementById('stopRecording').style.display = 'none';
+            document.getElementById('recordingStatus').style.display = 'none';
+            isRecording = false;
         };
         
         recognition.onerror = function(event) {
@@ -199,13 +228,6 @@ function startVoiceRecording() {
         
         recognition.start();
         
-        // Auto-stop after 30 seconds
-        setTimeout(() => {
-            if (isRecording) {
-                stopVoiceRecording();
-            }
-        }, 30000);
-        
     } catch (error) {
         console.error('Error starting speech recognition:', error);
         document.getElementById('errorMessage').textContent = 'Error starting speech recognition';
@@ -216,6 +238,13 @@ function startVoiceRecording() {
 
 function stopVoiceRecording() {
     isRecording = false;
+    
+    // Clear speech timeout
+    if (speechTimeout) {
+        clearTimeout(speechTimeout);
+        speechTimeout = null;
+    }
+    
     if (recognition) {
         recognition.stop();
     }

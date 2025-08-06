@@ -38,10 +38,16 @@
             background: #f8f9fa;
             border-left: 4px solid #007bff;
             transition: all 0.2s ease;
+            border-radius: 8px;
         }
         .suggestion-card:hover {
             background: #e9ecef;
             transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+        .suggestions-container {
+            max-height: 400px;
+            overflow-y: auto;
         }
         .navbar-brand {
             font-weight: bold;
@@ -51,6 +57,20 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
+        }
+        .clickable-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .clickable-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        .clickable-card .card-body {
+            transition: all 0.2s ease-in-out;
+        }
+        .clickable-card:hover .card-body {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         }
     </style>
     {% block extra_css %}{% endblock %}
