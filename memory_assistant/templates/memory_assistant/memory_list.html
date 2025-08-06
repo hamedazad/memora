@@ -14,7 +14,7 @@
             </div>
             <div class="card-body">
                 <form method="GET" class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="q" class="form-label">Search</label>
                         <input type="text" class="form-control" id="q" name="q" 
                                value="{{ search_query }}" placeholder="Search content, tags, or summary...">
@@ -42,6 +42,27 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label for="date_filter" class="form-label">Date Filter</label>
+                        <select class="form-select" id="date_filter" name="date_filter">
+                            <option value="">All Dates</option>
+                            <option value="today" {% if selected_date_filter == 'today' %}selected{% endif %}>
+                                Today ({{ todays_count }})
+                            </option>
+                            <option value="overdue" {% if selected_date_filter == 'overdue' %}selected{% endif %}>
+                                Overdue ({{ overdue_count }})
+                            </option>
+                            <option value="upcoming" {% if selected_date_filter == 'upcoming' %}selected{% endif %}>
+                                Upcoming ({{ upcoming_count }})
+                            </option>
+                            <option value="scheduled" {% if selected_date_filter == 'scheduled' %}selected{% endif %}>
+                                Scheduled ({{ scheduled_count }})
+                            </option>
+                            <option value="unscheduled" {% if selected_date_filter == 'unscheduled' %}selected{% endif %}>
+                                Unscheduled
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label for="sort" class="form-label">Sort By</label>
                         <select class="form-select" id="sort" name="sort">
                             <option value="-created_at" {% if selected_sort == '-created_at' %}selected{% endif %}>Newest First</option>
@@ -50,9 +71,11 @@
                             <option value="importance" {% if selected_sort == 'importance' %}selected{% endif %}>Least Important</option>
                             <option value="memory_type" {% if selected_sort == 'memory_type' %}selected{% endif %}>Type A-Z</option>
                             <option value="-memory_type" {% if selected_sort == '-memory_type' %}selected{% endif %}>Type Z-A</option>
+                            <option value="scheduled_date" {% if selected_sort == 'scheduled_date' %}selected{% endif %}>Date (Earliest)</option>
+                            <option value="-scheduled_date" {% if selected_sort == '-scheduled_date' %}selected{% endif %}>Date (Latest)</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end gap-2">
+                    <div class="col-md-2 d-flex align-items-end gap-2">
                         <button type="submit" class="btn btn-primary flex-grow-1">
                             <i class="bi bi-search"></i> Search
                         </button>
@@ -76,6 +99,7 @@
                 {% if search_query %} • Searching for "{{ search_query }}"{% endif %}
                 {% if selected_type %} • Type: {{ selected_type|title }}{% endif %}
                 {% if selected_importance %} • Min Importance: {{ selected_importance }}+{% endif %}
+                {% if selected_date_filter %} • Date: {{ selected_date_filter|title }}{% endif %}
             </div>
             <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-sm btn-outline-info">
                 <i class="bi bi-x-circle"></i> Clear All Filters
@@ -103,53 +127,68 @@
                 {% if page_obj %}
                     <div class="row">
                         {% for memory in page_obj %}
-                            <div class="col-md-6 col-lg-4 mb-4">
-                                <div class="card memory-card h-100">
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card memory-card h-100 {% if memory.is_due_today %}border-primary{% elif memory.is_overdue %}border-warning{% elif memory.scheduled_date %}border-info{% endif %}">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <span class="badge bg-primary importance-badge">
-                                                {{ memory.importance }}/10
+                                                Importance: {{ memory.importance }}/10
                                             </span>
                                             <span class="badge bg-secondary importance-badge">
                                                 {{ memory.get_memory_type_display }}
                                             </span>
                                         </div>
                                         
-                                        <h6 class="card-title">{{ memory.content|truncatewords:20 }}</h6>
+                                        <!-- Scheduled Date Badge -->
+                                        {% if memory.scheduled_date %}
+                                            <div class="mb-2">
+                                                {% if memory.is_due_today %}
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-calendar-check"></i> Today ({{ memory.scheduled_date|date:"M j, Y" }})
+                                                    </span>
+                                                {% elif memory.is_overdue %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="bi bi-exclamation-triangle"></i> Overdue ({{ memory.scheduled_date|date:"M j, Y" }})
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-calendar-plus"></i> {{ memory.scheduled_date|date:"M j, Y" }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
                                         
                                         {% if memory.summary %}
                                             <p class="card-text text-muted small">
-                                                {{ memory.summary|truncatewords:25 }}
+                                                {{ memory.summary|truncatewords:20 }}
                                             </p>
                                         {% endif %}
                                         
                                         {% if memory.tags %}
-                                            <div class="mb-3">
-                                                {% for tag in memory.tags|slice:":4" %}
+                                            <div class="mb-2">
+                                                {% for tag in memory.tags|slice:":3" %}
                                                     <span class="badge bg-light text-dark tag-badge">{{ tag }}</span>
                                                 {% endfor %}
-                                                {% if memory.tags|length > 4 %}
-                                                    <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-4" }}</span>
+                                                {% if memory.tags|length > 3 %}
+                                                    <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-3" }}</span>
                                                 {% endif %}
                                             </div>
                                         {% endif %}
                                         
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
-                                                {{ memory.created_at|date:"M j, Y" }}
+                                                Created: {{ memory.created_at|date:"M j, Y" }}
                                             </small>
                                             <div class="btn-group" role="group">
                                                 <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
                                                    class="btn btn-outline-primary btn-sm">
-                                                    <i class="bi bi-eye"></i>
+                                                    <i class="bi bi-eye"></i> View
                                                 </a>
                                                 <a href="{% url 'memory_assistant:edit_memory' memory.id %}" 
                                                    class="btn btn-outline-secondary btn-sm">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <a href="{% url 'memory_assistant:delete_memory' memory.id %}" 
-                                                   class="btn btn-outline-danger btn-sm">
-                                                    <i class="bi bi-trash"></i>
+                                                    <i class="bi bi-pencil"></i> Edit
                                                 </a>
                                             </div>
                                         </div>
@@ -158,24 +197,24 @@
                             </div>
                         {% endfor %}
                     </div>
-
+                    
                     <!-- Pagination -->
                     {% if page_obj.has_other_pages %}
-                        <nav aria-label="Memory pagination" class="mt-4">
+                        <nav aria-label="Memory pagination">
                             <ul class="pagination justify-content-center">
                                 {% if page_obj.has_previous %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
+                                        <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_date_filter %}&date_filter={{ selected_date_filter }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
                                             <i class="bi bi-chevron-double-left"></i>
                                         </a>
                                     </li>
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_date_filter %}&date_filter={{ selected_date_filter }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
                                             <i class="bi bi-chevron-left"></i>
                                         </a>
                                     </li>
                                 {% endif %}
-
+                                
                                 {% for num in page_obj.paginator.page_range %}
                                     {% if page_obj.number == num %}
                                         <li class="page-item active">
@@ -183,21 +222,19 @@
                                         </li>
                                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                                         <li class="page-item">
-                                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                                {{ num }}
-                                            </a>
+                                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_date_filter %}&date_filter={{ selected_date_filter }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">{{ num }}</a>
                                         </li>
                                     {% endif %}
                                 {% endfor %}
-
+                                
                                 {% if page_obj.has_next %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_date_filter %}&date_filter={{ selected_date_filter }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
                                             <i class="bi bi-chevron-right"></i>
                                         </a>
                                     </li>
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_date_filter %}&date_filter={{ selected_date_filter }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
                                             <i class="bi bi-chevron-double-right"></i>
                                         </a>
                                     </li>
@@ -205,21 +242,13 @@
                             </ul>
                         </nav>
                     {% endif %}
-
                 {% else %}
-                    <div class="text-center py-5">
+                    <div class="text-center py-4">
                         <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                        <h5 class="text-muted">
-                            {% if search_query or selected_type or selected_importance %}
-                                No memories found matching your criteria
-                            {% else %}
-                                No memories yet
-                            {% endif %}
-                        </h5>
+                        <h5 class="text-muted">No memories found</h5>
                         <p class="text-muted">
-                            {% if search_query or selected_type or selected_importance %}
-                                Try adjusting your search criteria or 
-                                <a href="{% url 'memory_assistant:memory_list' %}">view all memories</a>
+                            {% if has_filters %}
+                                Try adjusting your filters or search terms.
                             {% else %}
                                 Start by adding your first memory!
                             {% endif %}

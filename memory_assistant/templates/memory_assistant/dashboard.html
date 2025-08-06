@@ -37,7 +37,7 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card stats-card h-100">
             <div class="card-body text-center">
                 <i class="bi bi-collection display-4 mb-3"></i>
@@ -47,7 +47,7 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card stats-card h-100">
             <div class="card-body text-center">
                 <i class="bi bi-star display-4 mb-3"></i>
@@ -57,15 +57,138 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card stats-card h-100">
             <div class="card-body text-center">
-                <i class="bi bi-calendar3 display-4 mb-3"></i>
-                <h3 class="card-title">{{ recent_memories|length }}</h3>
-                <p class="card-text">Recent Memories</p>
+                <i class="bi bi-calendar-check display-4 mb-3"></i>
+                <h3 class="card-title">{{ scheduled_memories }}</h3>
+                <p class="card-text">Scheduled Memories</p>
             </div>
         </div>
     </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar3 display-4 mb-3"></i>
+                <h3 class="card-title">{{ todays_memories|length }}</h3>
+                <p class="card-text">Today's Memories</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Scheduled Memories -->
+    {% if todays_memories %}
+    <div class="col-12 mb-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-check"></i> Today's Scheduled Memories ({{ today|date:"F j, Y" }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for memory in todays_memories %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card memory-card h-100 border-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-primary importance-badge">
+                                            Importance: {{ memory.importance }}/10
+                                        </span>
+                                        <span class="badge bg-success importance-badge">
+                                            <i class="bi bi-calendar-check"></i> Today
+                                        </span>
+                                    </div>
+                                    
+                                    <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
+                                    
+                                    {% if memory.summary %}
+                                        <p class="card-text text-muted small">
+                                            {{ memory.summary|truncatewords:20 }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    {% if memory.tags %}
+                                        <div class="mb-2">
+                                            {% for tag in memory.tags|slice:":3" %}
+                                                <span class="badge bg-light text-dark tag-badge">{{ tag }}</span>
+                                            {% endfor %}
+                                            {% if memory.tags|length > 3 %}
+                                                <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-3" }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-secondary importance-badge">
+                                            {{ memory.get_memory_type_display }}
+                                        </span>
+                                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            View <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Overdue Memories -->
+    {% if overdue_memories %}
+    <div class="col-12 mb-4">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Overdue Memories ({{ overdue_memories|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for memory in overdue_memories %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card memory-card h-100 border-warning">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-warning text-dark importance-badge">
+                                            Overdue: {{ memory.scheduled_date|date:"M j" }}
+                                        </span>
+                                        <span class="badge bg-secondary importance-badge">
+                                            {{ memory.get_memory_type_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
+                                    
+                                    {% if memory.summary %}
+                                        <p class="card-text text-muted small">
+                                            {{ memory.summary|truncatewords:20 }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-primary importance-badge">
+                                            Importance: {{ memory.importance }}/10
+                                        </span>
+                                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                           class="btn btn-outline-warning btn-sm">
+                                            View <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Quick Add Memory -->
     <div class="col-md-6 mb-4">
@@ -79,7 +202,7 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <textarea id="quick-memory-content" class="form-control" rows="4" 
-                              placeholder="Write a quick memory... (minimum 10 characters)"></textarea>
+                              placeholder="Write a quick memory... (minimum 10 characters)&#10;Examples:&#10;- I have a meeting tomorrow at 2 PM&#10;- Call my father tonight&#10;- Submit the report by Friday"></textarea>
                 </div>
                 <button type="button" class="btn btn-primary" onclick="quickAddMemory()">
                     <i class="bi bi-plus-circle"></i> Add Memory
@@ -121,6 +244,57 @@
             </div>
         </div>
     </div>
+
+    <!-- Upcoming Memories -->
+    {% if upcoming_memories %}
+    <div class="col-12 mb-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-plus"></i> Upcoming Memories (Next 7 Days)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for memory in upcoming_memories %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card memory-card h-100 border-info">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-info importance-badge">
+                                            {{ memory.scheduled_date|date:"M j" }}
+                                        </span>
+                                        <span class="badge bg-secondary importance-badge">
+                                            {{ memory.get_memory_type_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
+                                    
+                                    {% if memory.summary %}
+                                        <p class="card-text text-muted small">
+                                            {{ memory.summary|truncatewords:20 }}
+                                        </p>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-primary importance-badge">
+                                            Importance: {{ memory.importance }}/10
+                                        </span>
+                                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                           class="btn btn-outline-info btn-sm">
+                                            View <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Recent Memories -->
     <div class="col-12">

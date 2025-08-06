@@ -23,6 +23,8 @@ class Memory(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_archived = models.BooleanField(default=False)
+    scheduled_date = models.DateField(null=True, blank=True,
+                                     help_text="Date when this memory should be displayed or acted upon")
     
     # Note: Delivery and encryption fields have been removed in version 3.1.0
     
@@ -32,6 +34,32 @@ class Memory(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.content[:50]}..."
+    
+    @property
+    def is_scheduled(self):
+        """Check if this memory has a scheduled date"""
+        return self.scheduled_date is not None
+    
+    @property
+    def is_due_today(self):
+        """Check if this memory is scheduled for today"""
+        if not self.scheduled_date:
+            return False
+        return self.scheduled_date == timezone.now().date()
+    
+    @property
+    def is_overdue(self):
+        """Check if this memory is overdue (scheduled date is in the past)"""
+        if not self.scheduled_date:
+            return False
+        return self.scheduled_date < timezone.now().date()
+    
+    @property
+    def is_upcoming(self):
+        """Check if this memory is scheduled for the future"""
+        if not self.scheduled_date:
+            return False
+        return self.scheduled_date > timezone.now().date()
 
 
 class MemorySearch(models.Model):

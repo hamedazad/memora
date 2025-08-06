@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-md-8">
         <!-- Memory Content -->
-        <div class="card mb-4">
+        <div class="card mb-4 {% if memory.is_due_today %}border-primary{% elif memory.is_overdue %}border-warning{% elif memory.scheduled_date %}border-info{% endif %}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="bi bi-journal-text"></i> Memory Details
@@ -21,6 +21,29 @@
                 </div>
             </div>
             <div class="card-body">
+                <!-- Scheduled Date Information -->
+                {% if memory.scheduled_date %}
+                    <div class="alert {% if memory.is_due_today %}alert-success{% elif memory.is_overdue %}alert-warning{% else %}alert-info{% endif %} mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi {% if memory.is_due_today %}bi-calendar-check{% elif memory.is_overdue %}bi-exclamation-triangle{% else %}bi-calendar-plus{% endif %} me-2"></i>
+                            <div>
+                                <strong>
+                                    {% if memory.is_due_today %}
+                                        Scheduled for Today
+                                    {% elif memory.is_overdue %}
+                                        Overdue
+                                    {% else %}
+                                        Scheduled for {{ memory.scheduled_date|date:"F j, Y" }}
+                                    {% endif %}
+                                </strong>
+                                {% if memory.is_overdue %}
+                                    <br><small>Was due on {{ memory.scheduled_date|date:"F j, Y" }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <span class="badge bg-primary importance-badge">
@@ -100,70 +123,30 @@
                             {% if memory.is_archived %}Unarchive{% else %}Archive{% endif %}
                         </button>
                     </form>
-                    <a href="{% url 'memory_assistant:delete_memory' memory.id %}" class="btn btn-outline-danger">
-                        <i class="bi bi-trash"></i> Delete Memory
-                    </a>
                 </div>
             </div>
         </div>
         
-        <!-- Memory Info -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-info-circle"></i> Memory Information
-                </h6>
-            </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-6">Type:</dt>
-                    <dd class="col-sm-6">{{ memory.get_memory_type_display }}</dd>
-                    
-                    <dt class="col-sm-6">Importance:</dt>
-                    <dd class="col-sm-6">
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar" role="progressbar" 
-                                 style="width: {% widthratio memory.importance 1 10 %}%"
-                                 aria-valuenow="{{ memory.importance }}" 
-                                 aria-valuemin="0" aria-valuemax="10">
-                                {{ memory.importance }}/10
-                            </div>
-                        </div>
-                    </dd>
-                    
-                    <dt class="col-sm-6">Status:</dt>
-                    <dd class="col-sm-6">
-                        {% if memory.is_archived %}
-                            <span class="badge bg-warning">Archived</span>
-                        {% else %}
-                            <span class="badge bg-success">Active</span>
-                        {% endif %}
-                    </dd>
-                    
-                    <dt class="col-sm-6">Tags Count:</dt>
-                    <dd class="col-sm-6">{{ memory.tags|length }}</dd>
-                </dl>
-            </div>
-        </div>
-        
-        <!-- Navigation -->
+        <!-- Related Memories -->
         <div class="card">
             <div class="card-header">
                 <h6 class="card-title mb-0">
-                    <i class="bi bi-arrow-left-right"></i> Navigation
+                    <i class="bi bi-link-45deg"></i> Quick Actions
                 </h6>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-list-ul"></i> All Memories
+                        <i class="bi bi-list-ul"></i> View All Memories
                     </a>
-                    <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-plus-circle"></i> New Memory
+                    <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> Create New Memory
                     </a>
-                    <a href="{% url 'memory_assistant:dashboard' %}" class="btn btn-outline-info">
-                        <i class="bi bi-house"></i> Dashboard
-                    </a>
+                    {% if memory.scheduled_date %}
+                        <a href="{% url 'memory_assistant:memory_list' %}?date_filter=today" class="btn btn-outline-primary">
+                            <i class="bi bi-calendar-check"></i> View Today's Memories
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -172,33 +155,27 @@
 
 <script>
 function readMemoryAloud() {
-    fetch('{% url "memory_assistant:voice_read_memory" memory.id %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show a brief notification that memory is being read
-            const button = event.target.closest('button');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="bi bi-volume-up"></i> Reading...';
-            button.disabled = true;
-            
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }, 3000);
-        } else {
-            alert('Failed to read memory aloud: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        alert('Error reading memory aloud: ' + error);
-    });
+    const text = `Memory: ${document.querySelector('.card-body .border').textContent.trim()}`;
+    
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        speechSynthesis.speak(utterance);
+        
+        // Show feedback
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-volume-mute"></i> Reading...';
+        button.disabled = true;
+        
+        utterance.onend = function() {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        };
+    } else {
+        alert('Text-to-speech is not supported in your browser.');
+    }
 }
 </script>
 {% endblock %} 

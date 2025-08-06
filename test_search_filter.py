@@ -6,6 +6,7 @@ Test script to demonstrate improved search and filter functionality
 import os
 import sys
 import django
+from datetime import datetime, timedelta
 
 # Setup Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'memora_project.settings')
@@ -14,6 +15,7 @@ django.setup()
 from memory_assistant.models import Memory
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.utils import timezone
 
 def test_search_filter_functionality():
     """Test the enhanced search and filter functionality"""
@@ -41,16 +43,45 @@ def test_search_filter_functionality():
             "memory_type": "work",
             "importance": 8,
             "summary": "Work meeting about new feature development",
-            "tags": ["meeting", "development", "feature", "project"],
-            "ai_reasoning": "This is a work-related memory about a professional meeting"
+            "tags": ["meeting", "development", "feature", "project", "tomorrow"],
+            "ai_reasoning": "This is a work-related memory about a professional meeting scheduled for tomorrow",
+            "scheduled_date": (timezone.now() + timedelta(days=1)).date()
         },
         {
-            "content": "Need to buy groceries: milk, bread, eggs, and vegetables. Also pick up the dry cleaning.",
+            "content": "Need to buy groceries tomorrow: milk, bread, eggs, and vegetables. Also pick up the dry cleaning.",
             "memory_type": "reminder",
             "importance": 6,
-            "summary": "Shopping list and errands",
-            "tags": ["shopping", "groceries", "errands", "dry cleaning"],
-            "ai_reasoning": "This is a reminder for shopping and errands"
+            "summary": "Shopping list and errands for tomorrow",
+            "tags": ["shopping", "groceries", "errands", "dry cleaning", "tomorrow"],
+            "ai_reasoning": "This is a reminder for shopping and errands scheduled for tomorrow",
+            "scheduled_date": (timezone.now() + timedelta(days=1)).date()
+        },
+        {
+            "content": "Dentist appointment tomorrow at 10 AM. Need to bring insurance card and remember to floss tonight.",
+            "memory_type": "reminder",
+            "importance": 7,
+            "summary": "Dentist appointment scheduled for tomorrow",
+            "tags": ["dentist", "appointment", "health", "tomorrow"],
+            "ai_reasoning": "This is a health-related reminder for a dentist appointment tomorrow",
+            "scheduled_date": (timezone.now() + timedelta(days=1)).date()
+        },
+        {
+            "content": "Planning to work on the new project tomorrow. Need to review the requirements and start coding the basic structure.",
+            "memory_type": "work",
+            "importance": 8,
+            "summary": "Project work planned for tomorrow",
+            "tags": ["work", "project", "coding", "planning", "tomorrow"],
+            "ai_reasoning": "This is a work-related plan for tomorrow involving project development",
+            "scheduled_date": (timezone.now() + timedelta(days=1)).date()
+        },
+        {
+            "content": "Family dinner tomorrow evening. Mom is cooking her famous lasagna and we're all bringing side dishes.",
+            "memory_type": "personal",
+            "importance": 9,
+            "summary": "Family dinner planned for tomorrow evening",
+            "tags": ["family", "dinner", "lasagna", "tomorrow"],
+            "ai_reasoning": "This is a personal memory about family plans for tomorrow evening",
+            "scheduled_date": (timezone.now() + timedelta(days=1)).date()
         },
         {
             "content": "Had a great dinner with family tonight. We talked about our upcoming vacation plans and shared stories from our childhood.",
@@ -58,7 +89,8 @@ def test_search_filter_functionality():
             "importance": 7,
             "summary": "Family dinner and vacation planning",
             "tags": ["family", "dinner", "vacation", "childhood"],
-            "ai_reasoning": "This is a personal memory about family time"
+            "ai_reasoning": "This is a personal memory about family time",
+            "scheduled_date": timezone.now().date()
         },
         {
             "content": "Started learning Python programming today. Completed the basic syntax tutorial and built my first simple calculator program.",
@@ -66,7 +98,8 @@ def test_search_filter_functionality():
             "importance": 9,
             "summary": "Learning Python programming basics",
             "tags": ["python", "programming", "learning", "tutorial"],
-            "ai_reasoning": "This is a learning memory about programming education"
+            "ai_reasoning": "This is a learning memory about programming education",
+            "scheduled_date": timezone.now().date()
         },
         {
             "content": "Got an idea for a new mobile app that helps people track their daily habits and build better routines.",
@@ -74,7 +107,8 @@ def test_search_filter_functionality():
             "importance": 8,
             "summary": "Creative idea for habit tracking app",
             "tags": ["idea", "mobile app", "habits", "routines"],
-            "ai_reasoning": "This is a creative idea for a new application"
+            "ai_reasoning": "This is a creative idea for a new application",
+            "scheduled_date": timezone.now().date()
         }
     ]
     
@@ -88,68 +122,107 @@ def test_search_filter_functionality():
             importance=memory_data["importance"],
             summary=memory_data["summary"],
             ai_reasoning=memory_data["ai_reasoning"],
-            tags=memory_data["tags"]
+            tags=memory_data["tags"],
+            scheduled_date=memory_data["scheduled_date"]
         )
         created_memories.append(memory)
         print(f"✅ Created memory {i}: {memory_data['memory_type']} - {memory_data['content'][:50]}...")
     
     print(f"\n📊 Total memories created: {len(created_memories)}")
     
-    # Test different search scenarios
+    # Test natural language search queries
+    print("\n\n🔍 Testing Natural Language Search Queries:")
+    print("-" * 50)
+    
     search_tests = [
         {
-            "query": "meeting",
-            "description": "Search for work meetings",
-            "expected_types": ["work"]
-        },
-        {
-            "query": "shopping",
-            "description": "Search for shopping-related content",
-            "expected_types": ["reminder"]
-        },
-        {
-            "query": "family",
-            "description": "Search for family-related content",
-            "expected_types": ["personal"]
-        },
-        {
-            "query": "python",
-            "description": "Search for programming content",
-            "expected_types": ["learning"]
-        },
-        {
-            "query": "app idea",
-            "description": "Search for creative ideas",
-            "expected_types": ["idea"]
+            "query": "what's the plan for tomorrow",
+            "description": "Natural language query for tomorrow's plans",
+            "expected_types": ["work", "reminder", "personal"]
         },
         {
             "query": "tomorrow",
-            "description": "Search for time-related content",
-            "expected_types": ["work", "reminder"]
+            "description": "Simple date-based search",
+            "expected_types": ["work", "reminder", "personal"]
+        },
+        {
+            "query": "meeting",
+            "description": "Search for meetings",
+            "expected_types": ["work"]
+        },
+        {
+            "query": "buy groceries",
+            "description": "Shopping-related search",
+            "expected_types": ["reminder"]
+        },
+        {
+            "query": "dentist",
+            "description": "Health appointment search",
+            "expected_types": ["reminder"]
+        },
+        {
+            "query": "family dinner",
+            "description": "Personal activity search",
+            "expected_types": ["personal"]
+        },
+        {
+            "query": "work project",
+            "description": "Work-related search",
+            "expected_types": ["work"]
+        },
+        {
+            "query": "call insurance",
+            "description": "Phone call search",
+            "expected_types": ["reminder"]
         }
     ]
-    
-    print("\n🔍 Testing Search Functionality:")
-    print("-" * 40)
     
     for test in search_tests:
         print(f"\n📝 Test: {test['description']}")
         print(f"Query: '{test['query']}'")
         
-        # Test the search functionality
+        # Test the enhanced search functionality
         search_conditions = Q()
+        
+        # Exact phrase match
         search_conditions |= Q(content__icontains=test['query'])
         search_conditions |= Q(summary__icontains=test['query'])
-        search_conditions |= Q(tags__contains=[test['query']])
         search_conditions |= Q(ai_reasoning__icontains=test['query'])
         
-        # Also search for individual words
-        query_words = test['query'].split()
+        # Word-based matching
+        query_words = test['query'].lower().split()
         for word in query_words:
-            if len(word) >= 2:
+            if len(word) >= 1:  # Allow single character words
                 search_conditions |= Q(content__icontains=word)
                 search_conditions |= Q(summary__icontains=word)
                 search_conditions |= Q(tags__contains=[word])
+                search_conditions |= Q(ai_reasoning__icontains=word)
+        
+        # Semantic variations
+        semantic_variations = {
+            'plan': ['plan', 'plans', 'planning', 'schedule', 'scheduled', 'arrange', 'arrangement'],
+            'tomorrow': ['tomorrow', 'next day', 'day after', 'upcoming'],
+            'today': ['today', 'tonight', 'this evening', 'now'],
+            'meeting': ['meeting', 'appointment', 'call', 'conference', 'discussion'],
+            'buy': ['buy', 'purchase', 'shop', 'shopping', 'get', 'pick up'],
+            'call': ['call', 'phone', 'contact', 'dial', 'ring'],
+            'work': ['work', 'job', 'office', 'professional', 'business'],
+            'family': ['family', 'home', 'personal', 'kids', 'children'],
+            'learn': ['learn', 'learning', 'study', 'education', 'tutorial'],
+            'idea': ['idea', 'concept', 'thought', 'innovation', 'creative'],
+            'what': ['what', 'when', 'where', 'how', 'why'],
+            'the': ['the', 'a', 'an', 'this', 'that'],
+            'for': ['for', 'to', 'with', 'about', 'regarding']
+        }
+        
+        # Add semantic variations for words in the query
+        for word in query_words:
+            if word in semantic_variations:
+                for variation in semantic_variations[word]:
+                    search_conditions |= Q(content__icontains=variation)
+                    search_conditions |= Q(summary__icontains=variation)
+                    search_conditions |= Q(tags__contains=[variation])
+                    search_conditions |= Q(ai_reasoning__icontains=variation)
         
         results = Memory.objects.filter(
             user=user,
@@ -175,66 +248,36 @@ def test_search_filter_functionality():
     
     # Test by memory type
     print("\n📋 Filter by Type:")
-    for memory_type in ['work', 'personal', 'learning', 'idea', 'reminder']:
-        filtered = Memory.objects.filter(user=user, memory_type=memory_type, is_archived=False)
-        print(f"  {memory_type.title()}: {filtered.count()} memories")
+    for memory_type, _ in Memory.memory_type.field.choices:
+        count = Memory.objects.filter(user=user, memory_type=memory_type, is_archived=False).count()
+        if count > 0:
+            print(f"  {memory_type}: {count} memories")
     
     # Test by importance
     print("\n⭐ Filter by Importance:")
-    for importance in [5, 6, 7, 8, 9]:
-        filtered = Memory.objects.filter(user=user, importance__gte=importance, is_archived=False)
-        print(f"  {importance}+: {filtered.count()} memories")
+    for importance in range(1, 11):
+        count = Memory.objects.filter(user=user, importance__gte=importance, is_archived=False).count()
+        if count > 0:
+            print(f"  {importance}+: {count} memories")
     
-    # Test combined filters
-    print("\n🔗 Combined Filters:")
+    # Test by scheduled date
+    print("\n📅 Filter by Scheduled Date:")
+    tomorrow = (timezone.now() + timedelta(days=1)).date()
+    today = timezone.now().date()
     
-    # Work memories with importance 8+
-    work_important = Memory.objects.filter(
-        user=user, 
-        memory_type='work', 
-        importance__gte=8, 
-        is_archived=False
-    )
-    print(f"  Work memories with importance 8+: {work_important.count()}")
+    tomorrow_count = Memory.objects.filter(user=user, scheduled_date=tomorrow, is_archived=False).count()
+    today_count = Memory.objects.filter(user=user, scheduled_date=today, is_archived=False).count()
     
-    # Learning memories containing "python"
-    python_learning = Memory.objects.filter(
-        user=user,
-        memory_type='learning',
-        content__icontains='python',
-        is_archived=False
-    )
-    print(f"  Learning memories about Python: {python_learning.count()}")
+    print(f"  Tomorrow ({tomorrow}): {tomorrow_count} memories")
+    print(f"  Today ({today}): {today_count} memories")
     
-    # Test sorting
-    print("\n📊 Testing Sorting:")
-    
-    # Sort by importance (descending)
-    by_importance = Memory.objects.filter(user=user, is_archived=False).order_by('-importance')
-    print(f"  Sorted by importance (highest first):")
-    for memory in by_importance[:3]:
-        print(f"    - {memory.importance}/10: {memory.content[:40]}...")
-    
-    # Sort by memory type
-    by_type = Memory.objects.filter(user=user, is_archived=False).order_by('memory_type')
-    print(f"  Sorted by memory type (A-Z):")
-    for memory in by_type:
-        print(f"    - {memory.memory_type}: {memory.content[:40]}...")
-    
-    print("\n" + "=" * 60)
-    print("✅ Search & Filter Test Completed!")
-    print("\nKey Improvements Demonstrated:")
-    print("• Enhanced search across content, summary, tags, and AI reasoning")
-    print("• Flexible word-based matching")
-    print("• Multiple filter combinations")
-    print("• Various sorting options")
-    print("• Better search result feedback")
-    
-    # Clean up test data
-    print("\n🧹 Cleaning up test data...")
-    for memory in created_memories:
-        memory.delete()
-    print("✅ Test data cleaned up")
+    print("\n✅ Search and filter testing completed!")
+    print("\n💡 Try these queries in the web interface:")
+    print("  - 'what's the plan for tomorrow'")
+    print("  - 'meeting tomorrow'")
+    print("  - 'buy groceries'")
+    print("  - 'family dinner'")
+    print("  - 'dentist appointment'")
 
 if __name__ == "__main__":
     test_search_filter_functionality() 

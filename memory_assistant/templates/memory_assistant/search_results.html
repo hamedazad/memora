@@ -17,6 +17,10 @@
                             Found {{ results_count }} memory{{ results_count|pluralize }} for "{{ query }}"
                             {% if search_method == "ai_semantic" %}
                                 <span class="badge bg-success ms-2">AI Semantic Search</span>
+                            {% elif search_method == "date_filtered" %}
+                                <span class="badge bg-primary ms-2">Date Filtered</span>
+                            {% elif search_method == "date_content_search" %}
+                                <span class="badge bg-info ms-2">Date Content Search</span>
                             {% elif search_method == "enhanced_basic" %}
                                 <span class="badge bg-info ms-2">Enhanced Search</span>
                             {% elif search_method == "fuzzy" %}
@@ -25,6 +29,14 @@
                                 <span class="badge bg-secondary ms-2">Recent Suggestions</span>
                             {% endif %}
                         </p>
+                        {% if date_filter_applied and extracted_date %}
+                            <div class="mt-2">
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-calendar-event"></i> 
+                                    Date recognized: {{ extracted_date|date:"F j, Y" }}
+                                </span>
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="col-md-4 text-end">
                         <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary">
@@ -45,7 +57,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                {% if search_results %}
+                {% if results %}
                                     {% if search_method == "ai_semantic" %}
                     <div class="alert alert-success">
                         <i class="bi bi-robot"></i>
@@ -76,7 +88,7 @@
                     </div>
                     
                     <div class="row">
-                        {% for memory in search_results %}
+                        {% for memory in results %}
                             <div class="col-md-6 col-lg-4 mb-4">
                                 <div class="card memory-card h-100">
                                     <div class="card-body">
@@ -88,6 +100,24 @@
                                                 {{ memory.get_memory_type_display }}
                                             </span>
                                         </div>
+                                        
+                                        {% if memory.scheduled_date %}
+                                            <div class="mb-2">
+                                                {% if memory.is_due_today %}
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-calendar-check"></i> Due Today
+                                                    </span>
+                                                {% elif memory.is_overdue %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="bi bi-calendar-x"></i> Overdue
+                                                    </span>
+                                                {% elif memory.is_upcoming %}
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-calendar-event"></i> {{ memory.scheduled_date|date:"M j" }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
                                         
                                         <h6 class="card-title">{{ memory.content|truncatewords:20 }}</h6>
                                         
@@ -137,9 +167,9 @@
                             Here are your recent memories:
                         </p>
                         
-                        {% if search_results %}
+                        {% if results %}
                             <div class="row mt-4">
-                                {% for memory in search_results %}
+                                {% for memory in results %}
                                     <div class="col-md-6 col-lg-4 mb-4">
                                         <div class="card memory-card h-100 border-info">
                                             <div class="card-body">
@@ -214,14 +244,21 @@
                         </p>
                     </div>
                     <div class="col-md-6">
+                        <h6>Date-Based Search</h6>
+                        <p class="text-muted small">
+                            Search by date naturally: "what's the plan for tonight", "appointments tomorrow", 
+                            or "meetings next week". The system automatically recognizes dates.
+                        </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
                         <h6>Context Matters</h6>
                         <p class="text-muted small">
                             The AI understands context, so you can search for concepts, emotions, or topics 
                             even if they're not explicitly mentioned.
                         </p>
                     </div>
-                </div>
-                <div class="row">
                     <div class="col-md-6">
                         <h6>Be Specific</h6>
                         <p class="text-muted small">
@@ -229,11 +266,20 @@
                             specific details when possible.
                         </p>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6">
                         <h6>Try Different Approaches</h6>
                         <p class="text-muted small">
                             If you don't find what you're looking for, try rephrasing your search or 
                             using related terms.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Voice Search</h6>
+                        <p class="text-muted small">
+                            Use voice search for hands-free queries. Try saying "what's my plan for tonight" 
+                            or "show me today's appointments".
                         </p>
                     </div>
                 </div>

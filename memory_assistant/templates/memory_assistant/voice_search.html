@@ -19,6 +19,84 @@
                     <p class="text-muted">Speak your search query and find relevant memories</p>
                 </div>
                 
+                <!-- Simple form-based search for direct testing -->
+                <div class="mb-4">
+                    <form method="POST" action="{% url 'memory_assistant:voice_search_memories' %}" id="searchForm">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            <input type="text" name="text" class="form-control" placeholder="Enter your search query..." 
+                                   value="{{ query|default:'' }}" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Display search results if available -->
+                {% if results %}
+                    <div class="mb-4">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> Found {{ results_count }} memories for "{{ query }}"
+                        </div>
+                        
+                        {% for memory in results %}
+                            <div class="card mb-3">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-primary">{{ memory.memory_type|title }}</span>
+                                    <span class="text-muted">
+                                        {% if memory.importance == 1 %}⭐{% endif %}
+                                        {% if memory.importance == 2 %}⭐⭐{% endif %}
+                                        {% if memory.importance == 3 %}⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 4 %}⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 5 %}⭐⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 6 %}⭐⭐⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 7 %}⭐⭐⭐⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 8 %}⭐⭐⭐⭐⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 9 %}⭐⭐⭐⭐⭐⭐⭐⭐⭐{% endif %}
+                                        {% if memory.importance == 10 %}⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐{% endif %}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ memory.content }}</p>
+                                    {% if memory.summary %}
+                                        <p class="text-muted"><small>{{ memory.summary }}</small></p>
+                                    {% endif %}
+                                    {% if memory.tags %}
+                                        <div class="mb-2">
+                                            {% for tag in memory.tags %}
+                                                <span class="badge bg-secondary me-1">{{ tag }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">Created: {{ memory.created_at|date:"F d, Y" }}</small>
+                                        </div>
+                                        {% if memory.scheduled_date %}
+                                            <div class="col-6">
+                                                <small class="text-info">Scheduled: {{ memory.scheduled_date|date:"F d, Y" }}</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    {% if memory.relevance_score %}
+                                        <div class="mt-2">
+                                            <small class="text-success">Relevance Score: {{ memory.relevance_score }}</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Display error if any -->
+                {% if error %}
+                    <div class="alert alert-danger mb-4">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                {% endif %}
+                
                 <div class="mb-4">
                     <button id="startVoiceSearch" class="btn btn-primary btn-lg">
                         <i class="bi bi-mic"></i> Start Voice Search
@@ -31,135 +109,91 @@
                 <div class="mb-3">
                     <small class="text-muted">Or test with text input:</small>
                     <div class="input-group">
-                        <input type="text" id="testSearchInput" class="form-control" placeholder="Enter search query here...">
+                        <input type="text" id="testSearchInput" class="form-control" placeholder="Try: 'what's the plan for tomorrow' or 'meeting tomorrow'...">
                         <button id="testSearchButton" class="btn btn-outline-secondary">
                             <i class="bi bi-search"></i> Test Search
                         </button>
                     </div>
                 </div>
                 
+                <!-- Quick test buttons -->
                 <div class="mb-3">
-                    <small class="text-muted">Quick test setup:</small>
-                    <button id="createCatList" class="btn btn-outline-info btn-sm">
+                    <small class="text-muted">Quick test queries:</small>
+                    <div class="btn-group-vertical w-100">
+                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('what\'s the plan for tomorrow')">
+                            "what's the plan for tomorrow"
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('meeting tomorrow')">
+                            "meeting tomorrow"
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('buy groceries')">
+                            "buy groceries"
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('family dinner')">
+                            "family dinner"
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="testQuery('dentist appointment')">
+                            "dentist appointment"
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Test memory creation -->
+                <div class="mb-3">
+                    <button id="createCatList" class="btn btn-success btn-sm">
                         <i class="bi bi-plus-circle"></i> Create Test Memories
                     </button>
-                    <button id="debugMemories" class="btn btn-outline-warning btn-sm ms-2">
-                        <i class="bi bi-bug"></i> Debug Memories
+                    <button id="debugMemories" class="btn btn-info btn-sm ms-2">
+                        <i class="bi bi-info-circle"></i> Debug Memories
                     </button>
                 </div>
                 
                 <div id="searchStatus" class="alert alert-info" style="display: none;">
-                    <i class="bi bi-mic"></i> Listening for search query... Speak now!
+                    <i class="bi bi-search"></i> Searching...
                 </div>
                 
-                <div id="searchResults" class="mt-4" style="display: none;">
-                    <h6>Search Results:</h6>
-                    <div id="resultsList" class="mt-3"></div>
-                </div>
-                
-                <div id="searchError" class="alert alert-danger mt-3" style="display: none;">
+                <div id="searchError" class="alert alert-danger" style="display: none;">
                     <i class="bi bi-exclamation-triangle"></i> <span id="errorMessage"></span>
                 </div>
-            </div>
-        </div>
-        
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-lightbulb"></i> Voice Search Tips
-                </h6>
-            </div>
-            <div class="card-body">
-                <ul class="mb-0">
-                    <li>Ask natural questions like "What did I learn about Python?"</li>
-                    <li>Use descriptive terms: "meeting with John about project"</li>
-                    <li>Mention dates: "memories from last week"</li>
-                    <li>Reference topics: "ideas about marketing strategy"</li>
-                    <li>Be specific for better results</li>
-                </ul>
+                
+                <div id="searchResults" style="display: none;">
+                    <h5>Search Results</h5>
+                    <div id="resultsList"></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-let isSearching = false;
 let recognition = null;
+let isSearching = false;
 
-// Check if browser supports speech recognition
+// Initialize speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 } else {
-    document.getElementById('errorMessage').textContent = 'Speech recognition is not supported in this browser. Please use Chrome or Edge.';
+    document.getElementById('errorMessage').textContent = 'Speech recognition not supported in this browser';
     document.getElementById('searchError').style.display = 'block';
-    document.getElementById('startVoiceSearch').disabled = true;
 }
 
-document.getElementById('startVoiceSearch').addEventListener('click', function() {
-    startVoiceSearch();
-});
-
-document.getElementById('stopVoiceSearch').addEventListener('click', function() {
-    stopVoiceSearch();
-});
-
+// Event listeners
+document.getElementById('startVoiceSearch').addEventListener('click', startVoiceSearch);
+document.getElementById('stopVoiceSearch').addEventListener('click', stopVoiceSearch);
 document.getElementById('testSearchButton').addEventListener('click', function() {
-    const testQuery = document.getElementById('testSearchInput').value.trim();
-    if (testQuery) {
-        performSearch(testQuery);
+    const query = document.getElementById('testSearchInput').value.trim();
+    if (query) {
+        performSearch(query);
     }
 });
 
-document.getElementById('createCatList').addEventListener('click', function() {
-    // Create test memories
-    fetch('{% url "memory_assistant:create_test_memory" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Test memories created! Now try searching for "what\'s plan for today" or "shopping list"');
-            // Auto-fill the search input
-            document.getElementById('testSearchInput').value = 'what\'s plan for today';
-        } else {
-            alert('Error creating test memories: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error creating test memories');
-    });
-});
-
-document.getElementById('debugMemories').addEventListener('click', function() {
-    // Check what memories exist in database
-    fetch('{% url "memory_assistant:debug_memories" %}', {
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Debug info:', data.debug_info);
-            alert(`Total memories: ${data.debug_info.total_memories}\n\nRecent memories:\n${data.debug_info.recent_memories.map(m => `- ${m.content}`).join('\n')}`);
-        } else {
-            alert('Error getting debug info: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error getting debug info');
-    });
-});
+function testQuery(query) {
+    document.getElementById('testSearchInput').value = query;
+    performSearch(query);
+}
 
 function startVoiceSearch() {
     if (!recognition) {
@@ -195,44 +229,16 @@ function startVoiceSearch() {
         
         recognition.onerror = function(event) {
             console.error('Speech recognition error:', event.error);
-            let errorMessage = 'Speech recognition error occurred';
-            
-            switch(event.error) {
-                case 'no-speech':
-                    errorMessage = 'No speech detected. Please try again.';
-                    break;
-                case 'audio-capture':
-                    errorMessage = 'Microphone access denied. Please check permissions.';
-                    break;
-                case 'not-allowed':
-                    errorMessage = 'Microphone access denied. Please allow microphone access.';
-                    break;
-                case 'network':
-                    errorMessage = 'Network error occurred. Please check your connection.';
-                    break;
-                default:
-                    errorMessage = 'Speech recognition error: ' + event.error;
-            }
-            
-            document.getElementById('errorMessage').textContent = errorMessage;
+            document.getElementById('errorMessage').textContent = 'Speech recognition error: ' + event.error;
             document.getElementById('searchError').style.display = 'block';
             stopVoiceSearch();
         };
         
         recognition.start();
-        
-        // Auto-stop after 15 seconds
-        setTimeout(() => {
-            if (isSearching) {
-                stopVoiceSearch();
-            }
-        }, 15000);
-        
     } catch (error) {
         console.error('Error starting speech recognition:', error);
         document.getElementById('errorMessage').textContent = 'Error starting speech recognition';
         document.getElementById('searchError').style.display = 'block';
-        stopVoiceSearch();
     }
 }
 
@@ -258,6 +264,7 @@ function performSearch(query) {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest',
         },
         body: formData
     })
@@ -282,82 +289,70 @@ function performSearch(query) {
 }
 
 function displaySearchResults(data) {
-    const resultsContainer = document.getElementById('searchResults');
-    
-    console.log('Displaying search results:', data); // Debug log
+    const resultsList = document.getElementById('resultsList');
+    const searchResults = document.getElementById('searchResults');
     
     if (data.results && data.results.length > 0) {
-        let html = `<h5>Search Results for "${data.query}"</h5>`;
+        let html = `<div class="alert alert-success mb-3">
+            <i class="bi bi-check-circle"></i> Found ${data.results.length} memories for "${data.query}"
+        </div>`;
         
-        data.results.forEach(memory => {
+        data.results.forEach((memory, index) => {
+            const memoryType = memory.memory_type.charAt(0).toUpperCase() + memory.memory_type.slice(1);
+            const importanceStars = '⭐'.repeat(memory.importance);
+            
             html += `
                 <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">${memoryType}</span>
+                        <span class="text-muted">${importanceStars}</span>
+                    </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <p class="card-text">${memory.content}</p>
-                                ${memory.summary ? `<small class="text-muted">${memory.summary}</small><br>` : ''}
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar"></i> ${memory.recency} 
-                                    (${memory.created_at})
-                                </small>
+                        <p class="card-text">${memory.content}</p>
+                        ${memory.summary ? `<p class="text-muted"><small>${memory.summary}</small></p>` : ''}
+                        ${memory.tags && memory.tags.length > 0 ? 
+                            `<div class="mb-2">
+                                ${memory.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('')}
+                            </div>` : ''
+                        }
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Created: ${memory.created_at}</small>
                             </div>
-                            <div class="btn-group-vertical ms-2">
-                                <button onclick="readMemory(${memory.id})" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-volume-up"></i> Read Aloud
-                                </button>
-                                <a href="/memora/memories/${memory.id}/" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                            </div>
+                            ${memory.scheduled_date ? 
+                                `<div class="col-6">
+                                    <small class="text-info">Scheduled: ${memory.scheduled_date}</small>
+                                </div>` : ''
+                            }
                         </div>
+                        ${memory.relevance_score ? 
+                            `<div class="mt-2">
+                                <small class="text-success">Relevance Score: ${memory.relevance_score}</small>
+                            </div>` : ''
+                        }
                     </div>
                 </div>
             `;
         });
         
-        resultsContainer.innerHTML = html;
-        resultsContainer.style.display = 'block'; // Make sure it's visible
-    } else if (data.suggestions && data.suggestions.length > 0) {
-        let html = `<h5>${data.message}</h5>`;
-        
-        data.suggestions.forEach(memory => {
-            html += `
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <p class="card-text">${memory.content}</p>
-                                ${memory.summary ? `<small class="text-muted">${memory.summary}</small><br>` : ''}
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar"></i> ${memory.recency} 
-                                    (${memory.created_at})
-                                </small>
-                            </div>
-                            <div class="btn-group-vertical ms-2">
-                                <button onclick="readMemory(${memory.id})" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-volume-up"></i> Read Aloud
-                                </button>
-                                <a href="/memora/memories/${memory.id}/" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        resultsContainer.innerHTML = html;
-        resultsContainer.style.display = 'block'; // Make sure it's visible
+        resultsList.innerHTML = html;
     } else {
-        resultsContainer.innerHTML = `<div class="alert alert-info">No memories found for "${data.query}".</div>`;
-        resultsContainer.style.display = 'block'; // Make sure it's visible
+        resultsList.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No memories found for "${data.query}"
+                <br><small>Try a different search term or create some test memories first.</small>
+            </div>
+        `;
     }
+    
+    searchResults.style.display = 'block';
+    document.getElementById('searchError').style.display = 'none';
 }
 
-function readMemory(memoryId) {
-    fetch(`/memora/voice/read/${memoryId}/`, {
+// Test memory creation
+document.getElementById('createCatList').addEventListener('click', function() {
+    // Create test memories
+    fetch('{% url "memory_assistant:create_test_memory" %}', {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -367,11 +362,40 @@ function readMemory(memoryId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Memory is being read aloud
+            alert('Test memories created! Now try searching for "what\'s plan for tomorrow" or "meeting tomorrow"');
+            // Auto-fill the search input
+            document.getElementById('testSearchInput').value = 'what\'s the plan for tomorrow';
         } else {
-            alert('Failed to read memory aloud');
+            alert('Error creating test memories: ' + data.error);
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating test memories');
     });
-}
+});
+
+document.getElementById('debugMemories').addEventListener('click', function() {
+    // Check what memories exist in database
+    fetch('{% url "memory_assistant:debug_memories" %}', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Debug info:', data.debug_info);
+            alert(`Total memories: ${data.debug_info.total_memories}\n\nRecent memories:\n${data.debug_info.recent_memories.map(m => `- ${m.content}`).join('\n')}`);
+        } else {
+            alert('Error getting debug info: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error getting debug info');
+    });
+});
 </script>
 {% endblock %} 

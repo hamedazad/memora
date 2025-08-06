@@ -26,15 +26,21 @@ class ChatGPTService:
     
     def process_memory(self, content: str) -> Dict[str, Any]:
         """
-        Process a memory using advanced AI to generate summary, tags, and auto-categorize
+        Process a memory using advanced AI to generate summary, tags, auto-categorize, and extract dates
         """
         if not self.is_available():
             # Return fallback values if API is not available
+            # Still try to extract dates even without AI
+            from .date_recognition_service import date_recognition_service
+            date_analysis = date_recognition_service.analyze_text_for_date_context(content)
+            
             return {
                 "summary": f"Memory about: {content[:100]}...",
                 "tags": ["general"],
                 "importance": 5,
-                "memory_type": "general"
+                "memory_type": "general",
+                "extracted_date": date_analysis.get('date'),
+                "date_analysis": date_analysis
             }
         
         # Use the more advanced AI service for better categorization
@@ -48,10 +54,17 @@ class ChatGPTService:
                 "summary": result.get("summary", f"Memory about: {content[:100]}..."),
                 "tags": result.get("tags", ["general"]),
                 "importance": result.get("importance", 5),
-                "memory_type": result.get("category", "general")
+                "memory_type": result.get("category", "general"),
+                "extracted_date": result.get("extracted_date"),
+                "date_analysis": result.get("date_analysis", {}),
+                "ai_reasoning": result.get("reasoning", "")
             }
         except Exception as e:
             # Fallback to the original method if AI service fails
+            # Still try to extract dates
+            from .date_recognition_service import date_recognition_service
+            date_analysis = date_recognition_service.analyze_text_for_date_context(content)
+            
             prompt = f"""
             Analyze the following memory content and provide:
             1. A concise summary (2-3 sentences)
@@ -88,6 +101,8 @@ class ChatGPTService:
                 )
                 
                 result = json.loads(response.choices[0].message.content)
+                result["extracted_date"] = date_analysis.get('date')
+                result["date_analysis"] = date_analysis
                 return result
             except Exception as e2:
                 # Final fallback values if all AI methods fail
@@ -95,7 +110,9 @@ class ChatGPTService:
                     "summary": f"Memory about: {content[:100]}...",
                     "tags": ["general"],
                     "importance": 5,
-                    "memory_type": "general"
+                    "memory_type": "general",
+                    "extracted_date": date_analysis.get('date'),
+                    "date_analysis": date_analysis
                 }
     
     def search_memories(self, query: str, memories: List[Dict]) -> List[Dict]:

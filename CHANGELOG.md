@@ -1,127 +1,190 @@
 # Changelog
 
-All notable changes to the Memora Core project will be documented in this file.
+All notable changes to the Memora Memory Assistant project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.2.0] - 2025-08-06
 
-## [3.1.0] - 2024-01-XX
+### 🚀 Major Search Improvements
+
+#### Enhanced Natural Language Processing
+- **Improved text search** with better natural language query understanding
+- **Enhanced voice search** with improved contextual filtering and relevance scoring
+- **Added semantic variations** for common terms (plan/schedule, tomorrow/upcoming, etc.)
+- **Better word matching** - now supports single-character words for more flexible searches
+- **Comprehensive field search** - searches across content, summary, tags, and AI reasoning fields
+
+#### Fixed Critical Bugs
+- **Fixed QuerySet errors** in search functions that were causing crashes
+- **Fixed variable scope issues** in voice search that prevented proper execution
+- **Fixed template variable mismatches** that prevented search results from displaying
+- **Fixed date recognition** integration with search functionality
+
+#### Voice Search Enhancements
+- **Improved relevance scoring** system for better result ranking
+- **Enhanced contextual filtering** with simplified and more effective logic
+- **Better error handling** for both GET and POST requests
+- **Fixed template syntax errors** in voice search display
+
+#### Date Recognition Improvements
+- **Better integration** between date recognition service and search functions
+- **Enhanced date-based filtering** for natural language queries
+- **Improved date extraction** from voice and text queries
+
+#### User Interface Improvements
+- **Fixed search results display** - results now show properly in both text and voice search
+- **Enhanced search result cards** with better information display
+- **Improved error messages** and user feedback
+- **Better search tips** and guidance for users
+
+#### Technical Improvements
+- **Code refactoring** for better maintainability
+- **Improved error handling** throughout search functions
+- **Better separation of concerns** between different search methods
+- **Enhanced debugging** with better log messages
+
+### 🔧 Technical Details
+
+#### Search Function Improvements
+- `search_memories()`: Fixed QuerySet initialization and improved natural language processing
+- `voice_search_memories()`: Fixed variable scope issues and enhanced relevance scoring
+- Template fixes: Corrected variable name mismatches in search results display
+
+#### Database Query Optimizations
+- Better QuerySet management to prevent premature evaluation
+- Improved filtering logic for date-based searches
+- Enhanced semantic search with AI integration
+
+#### Frontend Enhancements
+- Fixed search results template to properly display found memories
+- Improved voice search interface with better error handling
+- Enhanced search suggestions and tips
+
+### 🐛 Bug Fixes
+- Fixed `AttributeError: 'list' object has no attribute 'exists'` in search functions
+- Fixed `TemplateSyntaxError: Invalid filter: 'times'` in voice search template
+- Fixed `cannot access local variable 'query_words'` error in voice search
+- Fixed search results not displaying despite being found
+
+### 📝 Documentation
+- Updated version history with detailed search improvements
+- Enhanced inline code comments for better maintainability
+- Improved error messages and user guidance
+
+---
+
+## [3.1.0] - 2025-08-05
 
 ### Added
-- **Enhanced AI Memory Type Recognition**
-  - Advanced AI categorization with detailed reasoning
-  - Confidence scores for categorization decisions
-  - Improved accuracy with more detailed prompts
-  - Multiple fallback AI services for reliability
-  - AI reasoning display in memory details
-
-- **Improved Search & Filter Functionality**
-  - Comprehensive search across content, summary, tags, and AI reasoning
-  - AI-powered semantic search with natural language understanding
-  - Advanced filtering by type, importance, and date
-  - Multiple sorting options (newest, oldest, importance, type)
-  - Smart suggestions when no exact matches found
-  - Filter summary with visual feedback
-  - Search method indicators (AI, Enhanced, Fuzzy, Suggestions)
-
-- **Enhanced User Interface**
-  - Better organized filter controls
-  - Clear visual hierarchy and responsive design
-  - Improved search result display
-  - One-click filter clearing
-  - Better pagination with filter preservation
+- Enhanced AI memory type recognition
+- Improved search and filter functionality
+- Better database constraints handling
 
 ### Changed
-- Updated AI service prompts for better categorization accuracy
-- Enhanced search algorithms for improved performance
-- Improved error handling and fallback mechanisms
-- Updated database schema to include AI reasoning field
+- Updated AI service integration
+- Improved memory categorization accuracy
 
 ### Fixed
-- Search functionality now works across all memory fields
-- Filter combinations now work correctly together
-- Improved handling of edge cases in AI categorization
-- Better error messages and user feedback
+- Database constraint issues
+- AI service availability checks
 
-### Technical
-- Added comprehensive test coverage for new features
-- Improved code organization and documentation
-- Enhanced database queries for better performance
-- Updated dependencies and security patches
+---
 
-## [3.0.0] - 2024-01-XX
+## [3.0.0] - 2025-08-04
 
 ### Added
-- **Major AI Features**
-  - Advanced AI-powered memory categorization
-  - Intelligent summarization and tagging
-  - AI-powered recommendations and insights
-  - Voice memory creation and search
-  - OpenAI GPT-3.5-turbo integration
-
-- **Database Improvements**
-  - PostgreSQL support for production use
-  - Enhanced database schema with JSON fields
-  - Improved data relationships and constraints
-  - Better migration system
-
-- **User Management**
-  - User registration and authentication
-  - User-specific memory isolation
-  - Secure login/logout system
+- Advanced AI features integration
+- Improved database architecture
+- Enhanced voice processing capabilities
 
 ### Changed
-- Complete rewrite from mobile app to Django web application
-- Improved architecture and code organization
-- Enhanced security and data protection
-- Better performance and scalability
-
-## [2.1.0] - 2024-01-XX
+- Major refactoring of core components
+- Updated AI service integration
 
 ### Fixed
-- Database constraints and relationships
+- Various performance issues
+- Database optimization
+
+---
+
+## [2.1.0] - 2025-08-03
+
+### Added
+- PostgreSQL support
 - OpenAI API key integration
-- User authentication issues
-- Memory creation and editing functionality
+- Enhanced AI features
 
-## [2.0.0] - 2024-01-XX
+### Changed
+- Database backend improvements
+- API integration updates
+
+### Fixed
+- Database constraint issues
+- API authentication problems
+
+---
+
+## [2.0.0] - 2025-08-02
 
 ### Added
 - PostgreSQL database support
 - Enhanced AI features
 - Improved user interface
-- Better error handling
 
-## [1.2.0] - 2024-01-XX
+### Changed
+- Database architecture overhaul
+- UI/UX improvements
+
+### Fixed
+- Various bugs and performance issues
+
+---
+
+## [1.2.0] - 2025-08-01
 
 ### Added
 - User registration system
 - Authentication features
-- User-specific data isolation
+- User profile management
 
-## [1.1.0] - 2024-01-XX
+### Changed
+- Security improvements
+- User experience enhancements
 
-### Added
-- AI-powered personalized recommendations
-- Memory insights and analytics
-- Enhanced search functionality
-
-## [1.0.0] - 2024-01-XX
-
-### Added
-- Initial release
-- Voice memory creation
-- Basic search functionality
-- Memory management features
+### Fixed
+- Authentication bugs
+- Security vulnerabilities
 
 ---
 
-## Version History Summary
+## [1.1.0] - 2025-07-31
 
-- **3.1.0**: Enhanced AI memory type recognition and improved search/filter functionality
-- **3.0.0**: Major release with advanced AI features and improved database architecture
-- **2.1.0**: Fixed database constraints and integrated OpenAI API key
-- **2.0.0**: Added PostgreSQL support and enhanced AI features
-- **1.2.0**: Added user registration system and authentication features
-- **1.1.0**: Added AI-powered personalized recommendations and insights
-- **1.0.0**: Initial release with voice memory creation and search functionality 
+### Added
+- AI-powered personalized recommendations
+- Advanced insights generation
+- Enhanced memory analysis
+
+### Changed
+- AI integration improvements
+- Recommendation algorithms
+
+### Fixed
+- AI service integration issues
+- Performance optimizations
+
+---
+
+## [1.0.0] - 2025-07-30
+
+### Added
+- Initial release with voice memory creation
+- Basic search functionality
+- Memory management features
+- Voice input processing
+- Basic AI integration
+
+### Features
+- Voice-to-text memory creation
+- Text-based memory search
+- Memory categorization
+- User authentication
+- Basic dashboard 

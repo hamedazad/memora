@@ -176,10 +176,14 @@ class AIService:
             return {"analysis": "Unable to analyze patterns at this time.", "memory_count": len(memories)}
 
     def auto_categorize_memory(self, content: str) -> Dict[str, Any]:
-        """Automatically categorize a memory with advanced AI recognition."""
+        """Automatically categorize a memory with advanced AI recognition and date extraction."""
         try:
             from openai import OpenAI
             client = OpenAI(api_key=self.api_key)
+            
+            # First, extract date information using our date recognition service
+            from .date_recognition_service import date_recognition_service
+            date_analysis = date_recognition_service.analyze_text_for_date_context(content)
             
             prompt = f"""
             Analyze the following memory content and categorize it with high precision into one of these categories:
@@ -198,6 +202,7 @@ class AIService:
             3. Identify the primary focus of the content
             4. Consider temporal aspects (past events vs future plans)
             5. Evaluate the emotional and practical significance
+            6. Pay special attention to time-sensitive content and scheduled events
 
             Memory content: {content}
 
@@ -208,7 +213,9 @@ class AIService:
                 "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
                 "summary": "1-2 sentence summary",
                 "importance": 1-10,
-                "reasoning": "Brief explanation of why this category was chosen"
+                "reasoning": "Brief explanation of why this category was chosen",
+                "has_scheduled_date": true/false,
+                "date_context": "Description of any date/time information found"
             }}
             """
             
@@ -234,16 +241,41 @@ class AIService:
             if not isinstance(importance, int) or importance < 1 or importance > 10:
                 result['importance'] = 5
             
+            # Add date information to the result
+            result['extracted_date'] = date_analysis.get('date')
+            result['date_analysis'] = date_analysis
+            
+            # If AI detected a scheduled date but our service didn't find one, 
+            # or if our service found a date but AI didn't detect it, adjust accordingly
+            ai_has_scheduled = result.get('has_scheduled_date', False)
+            service_has_date = date_analysis.get('has_date', False)
+            
+            if service_has_date and not ai_has_scheduled:
+                result['has_scheduled_date'] = True
+                result['date_context'] = f"Detected date: {date_analysis.get('date')} ({date_analysis.get('date_type', 'unknown')})"
+            elif ai_has_scheduled and not service_has_date:
+                # AI detected a date but our service didn't - trust AI's judgment
+                result['extracted_date'] = None
+                result['date_analysis'] = {'has_date': False}
+            
             return result
         except Exception as e:
             print(f"Error in auto_categorize_memory: {e}")
+            # Fallback with date analysis
+            from .date_recognition_service import date_recognition_service
+            date_analysis = date_recognition_service.analyze_text_for_date_context(content)
+            
             return {
                 "category": "general",
                 "confidence": 50,
                 "tags": ["general"],
                 "summary": f"Memory about: {content[:100]}...",
                 "importance": 5,
-                "reasoning": "Fallback categorization due to processing error"
+                "reasoning": "Fallback categorization due to processing error",
+                "extracted_date": date_analysis.get('date'),
+                "date_analysis": date_analysis,
+                "has_scheduled_date": date_analysis.get('has_date', False),
+                "date_context": "Date analysis performed during fallback processing"
             }
     
     def categorize_audio_memory(self, audio_text: str) -> Dict[str, Any]:
