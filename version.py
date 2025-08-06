@@ -2,11 +2,13 @@
 Version information for Memora Memory Assistant
 """
 
-__version__ = "3.3.0"
-__version_info__ = (3, 3, 0)
+__version__ = "3.5.0"
+__version_info__ = (3, 5, 0)
 
 # Version history
 VERSION_HISTORY = [
+    "3.5.0 - 1",
+    "3.4.0 - 4.0.0",
     "1.0.0 - Initial release with voice memory creation and search functionality",
     "1.1.0 - Added AI-powered personalized recommendations and insights",
     "1.2.0 - Added user registration system and authentication features",

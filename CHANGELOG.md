@@ -2,6 +2,20 @@
 
 All notable changes to the Memora Memory Assistant project will be documented in this file.
 
+## [3.5.0] - 2025-01-27
+
+### Added
+- New version release with enhanced features and improvements
+- Improved version management and release process
+
+### Enhanced
+- Version control and release workflow
+- Documentation and project structure
+
+### Technical Improvements
+- Streamlined version update process
+- Better release management tools
+
 ## [3.3.0] - 2024-01-15
 
 ### Added

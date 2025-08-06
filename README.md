@@ -1,6 +1,6 @@
 # Memora Core - AI-Powered Memory Assistant
 
-**Version 3.1.0** - Enhanced AI memory type recognition and improved search/filter functionality
+**Version 3.3.0** - Enhanced AI Suggestions and Clickable Dashboard Cards
 
 A comprehensive Django-based memory management system featuring advanced AI-powered categorization, intelligent search, voice input, and personalized insights.
 
@@ -12,6 +12,8 @@ A comprehensive Django-based memory management system featuring advanced AI-powe
 - **Automatic Tagging**: AI creates relevant tags for easy organization
 - **Importance Scoring**: AI assesses and suggests importance levels (1-10)
 - **Reasoning Display**: See why AI categorized your memory the way it did
+- **Enhanced AI Suggestions**: Contextual memory suggestions with interactive "Use This" buttons
+- **Smart Fallbacks**: Works even when AI is unavailable with contextual suggestions
 
 ### 🔍 Enhanced Search & Filter
 - **Comprehensive Search**: Search across content, summary, tags, and AI reasoning
@@ -31,6 +33,8 @@ A comprehensive Django-based memory management system featuring advanced AI-powe
 - **Importance Levels**: 1-10 scale for priority management
 - **Tag System**: AI-generated tags for easy categorization
 - **Archive System**: Archive old memories while keeping them accessible
+- **Clickable Dashboard Cards**: Interactive statistics cards for quick access to filtered views
+- **Filtered Memory Views**: Dedicated pages for viewing memories by category with sorting and pagination
 
 ### 🔐 User Management
 - **User Registration**: Secure account creation
