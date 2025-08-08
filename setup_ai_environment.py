@@ -34,13 +34,13 @@ API_BASE_URL=http://localhost:8000/api/v1
 API_TIMEOUT=30000
 
 # Firebase Configuration (for push notifications)
-FIREBASE_API_KEY=your_firebase_api_key_here
+FIREBASE_API_KEY=your_firebase_key_here
 FIREBASE_PROJECT_ID=your_project_id_here
 FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
 FIREBASE_APP_ID=your_firebase_app_id_here
 
 # OpenAI Configuration (for AI features)
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=your_api_key_here
 
 # App Configuration
 APP_NAME=Memora
