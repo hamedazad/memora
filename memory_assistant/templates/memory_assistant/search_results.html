@@ -46,27 +46,32 @@
             </div>
             <div class="card-body">
                 {% if search_results %}
-                                    {% if search_method == "ai_semantic" %}
-                    <div class="alert alert-success">
-                        <i class="bi bi-robot"></i>
-                        <strong>AI Semantic Search:</strong> Results are ranked by semantic relevance using advanced AI analysis.
-                    </div>
-                {% elif search_method == "enhanced_basic" %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-search"></i>
-                        <strong>Enhanced Search:</strong> Results found using comprehensive keyword matching across content, summary, tags, and AI reasoning.
-                    </div>
-                {% elif search_method == "fuzzy" %}
-                    <div class="alert alert-warning">
-                        <i class="bi bi-search"></i>
-                        <strong>Fuzzy Match:</strong> Results found using partial word matching. Try more specific search terms for better results.
-                    </div>
-                {% elif search_method == "suggestions" %}
-                    <div class="alert alert-secondary">
-                        <i class="bi bi-lightbulb"></i>
-                        <strong>Recent Memories:</strong> No exact matches found. Showing your most recent memories as suggestions.
-                    </div>
-                {% endif %}
+                    {% if search_method == "ai_semantic" %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-robot"></i>
+                            <strong>AI Semantic Search:</strong> Results are ranked by semantic relevance using advanced AI analysis.
+                        </div>
+                    {% elif search_method == "enhanced_basic" %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-search"></i>
+                            <strong>Enhanced Search:</strong> Results found using comprehensive keyword matching across content, summary, tags, and AI reasoning.
+                        </div>
+                    {% elif search_method == "fuzzy" %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-search"></i>
+                            <strong>Fuzzy Match:</strong> Results found using partial word matching. Try more specific search terms for better results.
+                        </div>
+                    {% elif search_method == "suggestions" %}
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Recent Memories:</strong> No exact matches found. Showing your most recent memories as suggestions.
+                        </div>
+                    {% elif search_method == "contextual_suggestions" %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>AI Contextual Suggestions:</strong> No memories found for your query. Here are some helpful suggestions:
+                        </div>
+                    {% endif %}
                     
                     <!-- AI Search Suggestions -->
                     <div class="alert alert-warning" id="ai-suggestions" style="display: none;">
@@ -173,6 +178,27 @@
                                                            class="btn btn-outline-secondary btn-sm">
                                                             <i class="bi bi-pencil"></i>
                                                         </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if search_method == "contextual_suggestions" %}
+                            <!-- Display contextual suggestions -->
+                            <div class="row">
+                                {% for suggestion in contextual_suggestions %}
+                                    <div class="col-12 mb-3">
+                                        <div class="card border-info">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <p class="card-text mb-0">
+                                                            <i class="bi bi-chat-quote text-info"></i> {{ suggestion }}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>

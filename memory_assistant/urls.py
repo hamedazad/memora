@@ -16,6 +16,12 @@ urlpatterns = [
     path('memories/<int:memory_id>/delete/', views.delete_memory, name='delete_memory'),
     path('memories/<int:memory_id>/archive/', views.archive_memory, name='archive_memory'),
     
+    # Filtered Memory Views
+    path('memories/all/', views.all_memories, name='all_memories'),
+    path('memories/important/', views.important_memories, name='important_memories'),
+    path('memories/scheduled/', views.scheduled_memories, name='scheduled_memories'),
+    path('memories/today/', views.todays_memories, name='todays_memories'),
+    
     # Search
     path('search/', views.search_memories, name='search_memories'),
     

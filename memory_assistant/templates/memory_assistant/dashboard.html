@@ -37,34 +37,52 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="col-md-4 mb-4">
-        <div class="card stats-card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-collection display-4 mb-3"></i>
-                <h3 class="card-title">{{ total_memories }}</h3>
-                <p class="card-text">Total Memories</p>
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'memory_assistant:all_memories' %}" class="text-decoration-none">
+            <div class="card stats-card h-100 clickable-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-collection display-4 mb-3"></i>
+                    <h3 class="card-title">{{ total_memories }}</h3>
+                    <p class="card-text">Total Memories</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     
-    <div class="col-md-4 mb-4">
-        <div class="card stats-card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-star display-4 mb-3"></i>
-                <h3 class="card-title">{{ important_memories }}</h3>
-                <p class="card-text">Important Memories</p>
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'memory_assistant:important_memories' %}" class="text-decoration-none">
+            <div class="card stats-card h-100 clickable-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-star display-4 mb-3"></i>
+                    <h3 class="card-title">{{ important_memories }}</h3>
+                    <p class="card-text">Important Memories</p>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     
-    <div class="col-md-4 mb-4">
-        <div class="card stats-card h-100">
-            <div class="card-body text-center">
-                <i class="bi bi-calendar3 display-4 mb-3"></i>
-                <h3 class="card-title">{{ recent_memories|length }}</h3>
-                <p class="card-text">Recent Memories</p>
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'memory_assistant:scheduled_memories' %}" class="text-decoration-none">
+            <div class="card stats-card h-100 clickable-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar3 display-4 mb-3"></i>
+                    <h3 class="card-title">{{ scheduled_memories_count }}</h3>
+                    <p class="card-text">Scheduled Memories</p>
+                </div>
             </div>
-        </div>
+        </a>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'memory_assistant:todays_memories' %}" class="text-decoration-none">
+            <div class="card stats-card h-100 clickable-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-check display-4 mb-3"></i>
+                    <h3 class="card-title">{{ todays_memories_count }}</h3>
+                    <p class="card-text">Today's Memories</p>
+                </div>
+            </div>
+        </a>
     </div>
 
     <!-- Quick Add Memory -->

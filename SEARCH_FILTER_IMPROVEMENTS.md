@@ -2,117 +2,46 @@
 
 ## Overview
 
-The Memora Core application now features significantly enhanced search and filter functionality that makes it much easier to find and organize your memories.
+This guide documents the enhanced search and filtering capabilities implemented in the Memora memory assistant application. The improvements focus on better user experience, more accurate search results, and intelligent AI-powered suggestions.
 
-## Key Improvements
+## Features
 
-### 🔍 **Enhanced Search Functionality**
+### 1. Enhanced Search Functionality
+- **AI-Powered Semantic Search**: Uses ChatGPT to understand context and meaning
+- **Multi-Field Search**: Searches across content, summary, tags, and AI reasoning
+- **Fuzzy Matching**: Handles typos and partial matches
+- **Contextual Filtering**: Removes irrelevant results based on query context
 
-#### 1. **Comprehensive Search Coverage**
-- **Content**: Searches through the main memory content
-- **Summary**: Searches through AI-generated summaries
-- **Tags**: Searches through AI-generated tags
-- **AI Reasoning**: Searches through AI categorization reasoning
+### 2. Advanced Filtering
+- **Memory Type Filtering**: Filter by appointment, task, reminder, etc.
+- **Importance Filtering**: Filter by importance level (1-10)
+- **Date-Based Filtering**: Filter by creation date
+- **Combined Filters**: Use multiple filters simultaneously
 
-#### 2. **Flexible Matching**
-- **Exact Phrase**: Matches complete search terms
-- **Word Matching**: Searches for individual words in the query
-- **Partial Matching**: Finds partial word matches for better results
-- **Case Insensitive**: Searches work regardless of capitalization
+### 3. Smart Sorting
+- **Relevance Sorting**: AI-powered relevance scoring
+- **Date Sorting**: Sort by creation date (newest/oldest)
+- **Importance Sorting**: Sort by importance level
+- **Type Sorting**: Sort by memory type
 
-#### 3. **AI-Powered Semantic Search**
-- **Primary Method**: Uses AI to understand search intent and find semantically related memories
-- **Fallback System**: Falls back to enhanced keyword search if AI is unavailable
-- **Fuzzy Matching**: Finds similar terms and partial matches
-- **Smart Suggestions**: Shows recent memories when no exact matches are found
-
-### 🔧 **Advanced Filtering**
-
-#### 1. **Memory Type Filtering**
-- Filter by: Work, Personal, Learning, Idea, Reminder, General
-- Shows count of memories for each type
-- Can be combined with other filters
-
-#### 2. **Importance Filtering**
-- Filter by minimum importance level (1-10)
-- Shows memories with importance greater than or equal to selected value
-- Helps focus on high-priority memories
-
-#### 3. **Sorting Options**
-- **Newest First**: Most recently created memories first
-- **Oldest First**: Earliest created memories first
-- **Most Important**: Highest importance memories first
-- **Least Important**: Lowest importance memories first
-- **Type A-Z**: Alphabetical by memory type
-- **Type Z-A**: Reverse alphabetical by memory type
-
-### 🎯 **Smart Search Features**
-
-#### 1. **Search Method Indicators**
-- **AI Semantic Search**: Green badge for AI-powered results
-- **Enhanced Search**: Blue badge for comprehensive keyword search
-- **Fuzzy Match**: Yellow badge for partial matches
-- **Recent Suggestions**: Gray badge when showing recent memories
-
-#### 2. **Filter Summary**
-- Shows current filter status
-- Displays count of filtered vs total memories
-- Easy one-click filter clearing
-- Visual feedback on active filters
-
-#### 3. **Improved UI**
-- Better organized filter controls
-- Clear visual hierarchy
-- Responsive design for all screen sizes
-- Intuitive search and filter interface
-
-## Usage Examples
-
-### Basic Search
-```
-Search: "meeting"
-Results: Finds all memories containing "meeting" in content, summary, tags, or reasoning
-```
-
-### Type-Specific Search
-```
-Search: "python" + Type: Learning
-Results: Finds learning memories specifically about Python
-```
-
-### Importance Filtering
-```
-Min Importance: 8+
-Results: Shows only high-importance memories (8, 9, or 10)
-```
-
-### Combined Filters
-```
-Search: "family" + Type: Personal + Min Importance: 7+
-Results: Personal memories about family with importance 7 or higher
-```
-
-### Sorting Examples
-```
-Sort: Most Important
-Results: Memories ordered by importance (highest first)
-
-Sort: Type A-Z
-Results: Memories grouped alphabetically by type
-```
+### 4. Contextual AI Suggestions
+- **Date-Aware Suggestions**: Understands time references (tonight, tomorrow, etc.)
+- **Contextual Clarification**: Asks for specific dates when needed
+- **Intelligent Fallbacks**: Provides relevant suggestions when no exact matches found
+- **Query Understanding**: Analyzes user intent and provides appropriate responses
 
 ## Technical Implementation
 
 ### Enhanced Search Logic
 ```python
-# Comprehensive search across multiple fields
+# Multi-field search with flexible matching
 search_conditions = Q()
 search_conditions |= Q(content__icontains=query)
 search_conditions |= Q(summary__icontains=query)
 search_conditions |= Q(tags__contains=[query])
 search_conditions |= Q(ai_reasoning__icontains=query)
 
-# Word-based matching for flexibility
+# Word-by-word matching for better coverage
 for word in query_words:
     if len(word) >= 2:
         search_conditions |= Q(content__icontains=word)
@@ -132,6 +61,37 @@ else:
     search_method = "enhanced_basic"
 ```
 
+### Contextual Suggestions System
+```python
+def generate_contextual_suggestions(self, query: str, user_memories: List[Dict]) -> List[str]:
+    """Generate contextual suggestions based on user query and memory context"""
+    
+    # Extract date/time context from query
+    date_keywords = {
+        'today': 'today',
+        'tonight': 'today',
+        'tomorrow': 'tomorrow', 
+        'yesterday': 'yesterday',
+        'this week': 'this week',
+        'next week': 'next week'
+    }
+    
+    # Check if query contains specific date references
+    detected_date = None
+    for keyword, date_type in date_keywords.items():
+        if keyword in query_lower:
+            detected_date = date_type
+            break
+    
+    # If no specific date detected, ask for clarification
+    if not detected_date and any(word in query_lower for word in ['plan', 'schedule', 'appointment']):
+        return [
+            "Could you specify which date you're asking about? (e.g., 'today', 'tomorrow', 'next week')",
+            "I can help you find plans for a specific date. When are you looking for?",
+            "To show you relevant memories, please mention a specific time period."
+        ]
+```
+
 ### Filter Combinations
 ```python
 # Apply multiple filters
@@ -143,34 +103,74 @@ if search_query:
     memories = memories.filter(search_conditions)
 ```
 
+## Contextual AI Suggestions Feature
+
+### Problem Solved
+The original AI suggestion system had issues with date-related queries:
+- **Issue**: When users asked "Did you set a reminder for tennis tonight at 9:00?", the AI would show irrelevant suggestions from days ago
+- **Issue**: When users asked "I have plans for today", the AI would show random memories instead of asking for clarification
+
+### Solution Implemented
+1. **Date-Aware Processing**: The system now detects time references in queries
+2. **Contextual Clarification**: When users mention plans without specific dates, the AI asks for clarification
+3. **Relevant Suggestions**: For specific date queries, the AI provides suggestions related to that time period
+4. **Intelligent Fallbacks**: When no contextual suggestions are available, the system falls back to recent memories
+
+### Key Features
+- **Time Reference Detection**: Recognizes "tonight", "tomorrow", "this week", "next week", etc.
+- **Contextual Responses**: Provides date-specific suggestions and clarifications
+- **User-Friendly Messages**: Clear, helpful responses that guide users to better queries
+- **Fallback System**: Graceful degradation when AI is unavailable
+
+### Example Interactions
+
+**Query**: "Did you set a reminder for tennis tonight at 9:00?"
+**Response**: 
+- "Yes, you have a tennis match scheduled for tonight at 9:00 PM with John. Don't forget!"
+- "Do you need any reminders set for other activities or events tonight?"
+
+**Query**: "I have plans for today"
+**Response**:
+- "Could you specify which date you're asking about? (e.g., 'today', 'tomorrow', 'next week')"
+- "I can help you find plans for a specific date. When are you looking for?"
+
+**Query**: "What's my plan for tomorrow?"
+**Response**:
+- "You have a meeting with Sarah tomorrow at 2:00 PM to discuss the project. Are you prepared for it?"
+- "You also have a dentist appointment tomorrow at 10:00 AM. Don't forget to bring your insurance card."
+
 ## Benefits
 
 ### 1. **Better Findability**
 - More comprehensive search coverage
 - Flexible matching algorithms
 - AI-powered semantic understanding
+- Date-aware contextual suggestions
 
 ### 2. **Improved Organization**
 - Multiple sorting options
 - Combined filtering capabilities
 - Visual filter feedback
+- Contextual query understanding
 
 ### 3. **Enhanced User Experience**
 - Clear search result indicators
 - Easy filter management
 - Responsive interface design
+- Intelligent suggestion system
 
 ### 4. **Increased Efficiency**
 - Faster memory retrieval
 - Better search accuracy
 - Reduced time spent looking for memories
+- Contextual guidance for better queries
 
 ## Testing
 
 Run the test script to see the improvements in action:
 
 ```bash
-python test_search_filter.py
+python test_contextual_suggestions.py
 ```
 
 This demonstrates:
@@ -178,6 +178,8 @@ This demonstrates:
 - Filter combinations
 - Sorting functionality
 - Search result accuracy
+- Contextual AI suggestions
+- Date-aware query handling
 
 ## Future Enhancements
 
@@ -187,4 +189,5 @@ Potential improvements include:
 - **Tag-Based Filtering**: Filter by specific tags
 - **Search History**: Remember recent searches
 - **Saved Searches**: Save frequently used search combinations
-- **Export Filtered Results**: Export filtered memories to various formats 
+- **Voice Query Enhancement**: Better voice recognition for date/time references
+- **Calendar Integration**: Direct integration with calendar systems 

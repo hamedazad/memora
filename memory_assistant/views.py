@@ -27,6 +27,8 @@ def dashboard(request):
     # Get memory statistics
     total_memories = memories.count()
     important_memories = memories.filter(importance__gte=8).count()
+    scheduled_memories_count = memories.exclude(delivery_date__isnull=True).count()
+    todays_memories_count = memories.filter(delivery_date=datetime.now().date()).count()
     
     # Get memory suggestions
     chatgpt_service = ChatGPTService()
@@ -42,6 +44,8 @@ def dashboard(request):
         'recent_memories': recent_memories,
         'total_memories': total_memories,
         'important_memories': important_memories,
+        'scheduled_memories_count': scheduled_memories_count,
+        'todays_memories_count': todays_memories_count,
         'suggestions': suggestions,
         'ai_available': chatgpt_service.is_available(),
     }
@@ -371,10 +375,47 @@ def search_memories(request):
                         search_method = "fuzzy"
                         break
         
-        # If no results found, show recent memories as suggestions
+        # If no results found, use contextual AI suggestions
         if not memories:
-            memories = all_memories.order_by('-created_at')[:5]
-            search_method = "suggestions"
+            # Get user's memories for context
+            user_memories = all_memories.order_by('-created_at')[:10]
+            
+            memory_data = [
+                {
+                    'content': memory.content,
+                    'tags': memory.tags or []
+                } for memory in user_memories
+            ]
+            
+            # Use contextual suggestions
+            chatgpt_service = ChatGPTService()
+            contextual_suggestions = chatgpt_service.generate_contextual_suggestions(query, memory_data)
+            
+            if contextual_suggestions:
+                # Store contextual suggestions in context
+                context = {
+                    'search_results': [],
+                    'results_count': 0,
+                    'query': query,
+                    'search_method': "contextual_suggestions",
+                    'ai_available': chatgpt_service.is_available(),
+                    'contextual_suggestions': contextual_suggestions,
+                    'message': f'No memories found for "{query}". Here are some suggestions:'
+                }
+            else:
+                # Fall back to recent memories
+                memories = user_memories[:5]
+                search_method = "suggestions"
+                context = {
+                    'search_results': memories,
+                    'results_count': len(memories),
+                    'query': query,
+                    'search_method': search_method,
+                    'ai_available': chatgpt_service.is_available(),
+                    'message': f'No memories found for "{query}". Here are your recent memories:'
+                }
+            
+            return render(request, 'memory_assistant/search_results.html', context)
     
     context = {
         'search_results': memories,
@@ -650,41 +691,67 @@ def voice_search_memories(request):
                 memories = filtered_memories
                 print(f"DEBUG: Memories after contextual filtering: {len(memories)}")  # Debug log
             
-            # If still no results, return all recent memories as suggestions
+            # If still no results, use contextual AI suggestions
             if len(memories) == 0:
-                print("DEBUG: No memories found, returning recent memories as suggestions")
-                recent_memories = Memory.objects.filter(
+                print("DEBUG: No memories found, using contextual AI suggestions")
+                
+                # Get user's memories for context
+                user_memories = Memory.objects.filter(
                     user=request.user,
                     is_archived=False
-                ).order_by('-created_at')[:5]
+                ).order_by('-created_at')[:10]
                 
-                suggestions = []
-                for memory in recent_memories:
-                    days_old = (datetime.now() - memory.created_at.replace(tzinfo=None)).days
-                    if days_old == 0:
-                        recency = "Today"
-                    elif days_old == 1:
-                        recency = "Yesterday"
-                    elif days_old <= 7:
-                        recency = f"{days_old} days ago"
-                    else:
-                        recency = memory.created_at.strftime('%Y-%m-%d')
+                memory_data = [
+                    {
+                        'content': memory.content,
+                        'tags': memory.tags or []
+                    } for memory in user_memories
+                ]
+                
+                # Use contextual suggestions
+                chatgpt_service = ChatGPTService()
+                contextual_suggestions = chatgpt_service.generate_contextual_suggestions(query, memory_data)
+                
+                # If no contextual suggestions, fall back to recent memories
+                if not contextual_suggestions:
+                    recent_memories = user_memories[:5]
+                    suggestions = []
+                    for memory in recent_memories:
+                        days_old = (datetime.now() - memory.created_at.replace(tzinfo=None)).days
+                        if days_old == 0:
+                            recency = "Today"
+                        elif days_old == 1:
+                            recency = "Yesterday"
+                        elif days_old <= 7:
+                            recency = f"{days_old} days ago"
+                        else:
+                            recency = memory.created_at.strftime('%Y-%m-%d')
+                        
+                        suggestions.append({
+                            'id': memory.id,
+                            'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                            'summary': memory.summary,
+                            'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
+                            'recency': recency
+                        })
                     
-                    suggestions.append({
-                        'id': memory.id,
-                        'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
-                        'summary': memory.summary,
-                        'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
-                        'recency': recency
+                    return JsonResponse({
+                        'success': True,
+                        'query': query,
+                        'results': [],
+                        'message': f'No memories found for "{query}". Here are your recent memories:',
+                        'suggestions': suggestions
                     })
-                
-                return JsonResponse({
-                    'success': True,
-                    'query': query,
-                    'results': [],
-                    'message': f'No memories found for "{query}". Here are your recent memories:',
-                    'suggestions': suggestions
-                })
+                else:
+                    # Return contextual suggestions
+                    return JsonResponse({
+                        'success': True,
+                        'query': query,
+                        'results': [],
+                        'message': f'No memories found for "{query}". Here are some suggestions:',
+                        'suggestions': contextual_suggestions,
+                        'contextual': True
+                    })
             
             # Score and rank results based on relevance
             scored_memories = []
@@ -955,7 +1022,180 @@ def smart_search_suggestions(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
+@login_required
+def important_memories(request):
+    """Show all important memories (importance >= 8)"""
+    memories = Memory.objects.filter(
+        user=request.user, 
+        is_archived=False,
+        importance__gte=8
+    ).order_by('-created_at')
+    
+    # Get filter parameters
+    search_query = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    # Apply search filter
+    if search_query:
+        search_conditions = Q()
+        search_conditions |= Q(content__icontains=search_query)
+        search_conditions |= Q(summary__icontains=search_query)
+        search_conditions |= Q(tags__contains=[search_query])
+        memories = memories.filter(search_conditions)
+    
+    # Apply sorting
+    if sort_by in ['created_at', '-created_at', 'importance', '-importance', 'updated_at', '-updated_at']:
+        memories = memories.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(memories, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'memories': page_obj,
+        'total_count': memories.count(),
+        'filter_type': 'important',
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'memory_assistant/filtered_memories.html', context)
 
+
+@login_required
+def scheduled_memories(request):
+    """Show all scheduled memories (with delivery_date)"""
+    memories = Memory.objects.filter(
+        user=request.user, 
+        is_archived=False
+    ).exclude(delivery_date__isnull=True).order_by('delivery_date')
+    
+    # Get filter parameters
+    search_query = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort', 'delivery_date')
+    
+    # Apply search filter
+    if search_query:
+        search_conditions = Q()
+        search_conditions |= Q(content__icontains=search_query)
+        search_conditions |= Q(summary__icontains=search_query)
+        search_conditions |= Q(tags__contains=[search_query])
+        memories = memories.filter(search_conditions)
+    
+    # Apply sorting
+    if sort_by in ['delivery_date', '-delivery_date', 'created_at', '-created_at', 'importance', '-importance']:
+        memories = memories.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(memories, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'memories': page_obj,
+        'total_count': memories.count(),
+        'filter_type': 'scheduled',
+        'search_query': search_query,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'memory_assistant/filtered_memories.html', context)
+
+
+@login_required
+def todays_memories(request):
+    """Show memories scheduled for today"""
+    today = datetime.now().date()
+    memories = Memory.objects.filter(
+        user=request.user, 
+        is_archived=False,
+        delivery_date=today
+    ).order_by('delivery_date')
+    
+    # Get filter parameters
+    search_query = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort', 'delivery_date')
+    
+    # Apply search filter
+    if search_query:
+        search_conditions = Q()
+        search_conditions |= Q(content__icontains=search_query)
+        search_conditions |= Q(summary__icontains=search_query)
+        search_conditions |= Q(tags__contains=[search_query])
+        memories = memories.filter(search_conditions)
+    
+    # Apply sorting
+    if sort_by in ['delivery_date', '-delivery_date', 'created_at', '-created_at', 'importance', '-importance']:
+        memories = memories.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(memories, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'memories': page_obj,
+        'total_count': memories.count(),
+        'filter_type': 'today',
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'today_date': today,
+    }
+    
+    return render(request, 'memory_assistant/filtered_memories.html', context)
+
+
+@login_required
+def all_memories(request):
+    """Show all memories (same as memory_list but with different template)"""
+    memories = Memory.objects.filter(user=request.user, is_archived=False)
+    
+    # Get filter parameters
+    memory_type = request.GET.get('type')
+    importance = request.GET.get('importance')
+    search_query = request.GET.get('q', '').strip()
+    sort_by = request.GET.get('sort', '-created_at')
+    
+    # Apply filters
+    if memory_type:
+        memories = memories.filter(memory_type=memory_type)
+    
+    if importance:
+        try:
+            importance_val = int(importance)
+            memories = memories.filter(importance__gte=importance_val)
+        except ValueError:
+            pass
+    
+    # Enhanced search functionality
+    if search_query:
+        search_conditions = Q()
+        search_conditions |= Q(content__icontains=search_query)
+        search_conditions |= Q(summary__icontains=search_query)
+        search_conditions |= Q(tags__contains=[search_query])
+        memories = memories.filter(search_conditions)
+    
+    # Apply sorting
+    if sort_by in ['created_at', '-created_at', 'importance', '-importance', 'updated_at', '-updated_at']:
+        memories = memories.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(memories, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'memories': page_obj,
+        'total_count': memories.count(),
+        'filter_type': 'all',
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'memory_type': memory_type,
+        'importance': importance,
+    }
+    
+    return render(request, 'memory_assistant/filtered_memories.html', context)
 
 
 def register(request):

@@ -321,32 +321,57 @@ function displaySearchResults(data) {
     } else if (data.suggestions && data.suggestions.length > 0) {
         let html = `<h5>${data.message}</h5>`;
         
-        data.suggestions.forEach(memory => {
-            html += `
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <p class="card-text">${memory.content}</p>
-                                ${memory.summary ? `<small class="text-muted">${memory.summary}</small><br>` : ''}
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar"></i> ${memory.recency} 
-                                    (${memory.created_at})
-                                </small>
-                            </div>
-                            <div class="btn-group-vertical ms-2">
-                                <button onclick="readMemory(${memory.id})" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-volume-up"></i> Read Aloud
-                                </button>
-                                <a href="/memora/memories/${memory.id}/" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-eye"></i> View
-                                </a>
+        // Check if these are contextual suggestions (text strings) or memory objects
+        if (data.contextual) {
+            // Contextual suggestions are text strings
+            html += `<div class="alert alert-info">
+                <i class="bi bi-lightbulb"></i> <strong>AI Suggestions:</strong>
+            </div>`;
+            
+            data.suggestions.forEach(suggestion => {
+                html += `
+                    <div class="card mb-3 border-info">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-grow-1">
+                                    <p class="card-text mb-0">
+                                        <i class="bi bi-chat-quote text-info"></i> ${suggestion}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
-        });
+                `;
+            });
+        } else {
+            // These are memory objects (fallback case)
+            data.suggestions.forEach(memory => {
+                html += `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <p class="card-text">${memory.content}</p>
+                                    ${memory.summary ? `<small class="text-muted">${memory.summary}</small><br>` : ''}
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> ${memory.recency} 
+                                        (${memory.created_at})
+                                    </small>
+                                </div>
+                                <div class="btn-group-vertical ms-2">
+                                    <button onclick="readMemory(${memory.id})" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-volume-up"></i> Read Aloud
+                                    </button>
+                                    <a href="/memora/memories/${memory.id}/" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
         
         resultsContainer.innerHTML = html;
         resultsContainer.style.display = 'block'; // Make sure it's visible

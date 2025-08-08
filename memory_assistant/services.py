@@ -182,6 +182,10 @@ class ChatGPTService:
         Generate 3-5 thoughtful questions or prompts that might help the user
         remember related or follow-up information. Make them specific and actionable.
         
+        IMPORTANT: If the user asks about a specific date or time (like "tonight", "tomorrow", "9:00"), 
+        focus on memories related to that specific time period. For general time references without 
+        specific context, ask for clarification rather than showing irrelevant suggestions.
+        
         Return as a JSON array of strings.
         """
         
@@ -200,4 +204,74 @@ class ChatGPTService:
                 "What's the next step for your current projects?",
                 "Any insights from today's experiences?",
                 "What would you like to remember about this week?"
-            ] 
+            ]
+
+    def generate_contextual_suggestions(self, query: str, user_memories: List[Dict]) -> List[str]:
+        """
+        Generate contextual suggestions based on user query and memory context
+        """
+        if not self.is_available():
+            return []
+        
+        # Extract date/time context from query
+        query_lower = query.lower()
+        date_keywords = {
+            'today': 'today',
+            'tonight': 'today',
+            'tomorrow': 'tomorrow', 
+            'yesterday': 'yesterday',
+            'this week': 'this week',
+            'next week': 'next week',
+            'this month': 'this month',
+            'next month': 'next month'
+        }
+        
+        # Check if query contains specific date references
+        detected_date = None
+        for keyword, date_type in date_keywords.items():
+            if keyword in query_lower:
+                detected_date = date_type
+                break
+        
+        # If no specific date detected, ask for clarification
+        if not detected_date and any(word in query_lower for word in ['plan', 'schedule', 'appointment', 'meeting', 'reminder']):
+            return [
+                "Could you specify which date you're asking about? (e.g., 'today', 'tomorrow', 'next week')",
+                "I can help you find plans for a specific date. When are you looking for?",
+                "To show you relevant memories, please mention a specific time period."
+            ]
+        
+        # Create context from memories
+        memory_context = "\n".join([
+            f"Memory: {memory['content'][:150]}... (Tags: {', '.join(memory.get('tags', []))})"
+            for memory in user_memories[:10]
+        ])
+        
+        prompt = f"""
+        User query: "{query}"
+        Detected date context: {detected_date if detected_date else 'None'}
+        
+        User's memories:
+        {memory_context}
+        
+        Based on the user's query and memory context:
+        
+        1. If the query mentions a specific date/time, find memories related to that period
+        2. If the query is about plans/schedules but lacks specific date context, ask for clarification
+        3. Generate 2-3 relevant suggestions or questions
+        
+        Return as a JSON array of strings.
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.5,
+                max_tokens=200
+            )
+            
+            suggestions = json.loads(response.choices[0].message.content)
+            return suggestions
+        except Exception as e:
+            return [] 

@@ -1,0 +1,48 @@
+# Generated manually to fix delivery fields issue
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('memory_assistant', '0006_merge_20250808_1017'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='memory',
+            name='delivery_date',
+            field=models.DateTimeField(blank=True, help_text='When to deliver this memory', null=True),
+        ),
+        migrations.AddField(
+            model_name='memory',
+            name='delivery_type',
+            field=models.CharField(
+                choices=[
+                    ('immediate', 'Immediate'),
+                    ('scheduled', 'Scheduled'),
+                    ('recurring', 'Recurring'),
+                    ('conditional', 'Conditional')
+                ],
+                default='immediate',
+                help_text='How this memory should be delivered',
+                max_length=50
+            ),
+        ),
+        migrations.AddField(
+            model_name='memory',
+            name='encrypted_content',
+            field=models.TextField(default='', help_text='Encrypted version of the content'),
+        ),
+        migrations.AddField(
+            model_name='memory',
+            name='is_delivered',
+            field=models.BooleanField(default=False, help_text='Whether this memory has been delivered'),
+        ),
+        migrations.AddField(
+            model_name='memory',
+            name='is_time_locked',
+            field=models.BooleanField(default=False, help_text='Whether this memory is time-locked'),
+        ),
+    ] 

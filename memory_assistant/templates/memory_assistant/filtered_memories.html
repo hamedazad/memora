@@ -1,0 +1,225 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}
+    {% if filter_type == 'important' %}Important Memories
+    {% elif filter_type == 'scheduled' %}Scheduled Memories
+    {% elif filter_type == 'today' %}Today's Memories
+    {% else %}All Memories{% endif %} - Memora
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-2">
+                        <i class="bi bi-{% if filter_type == 'important' %}star{% elif filter_type == 'scheduled' %}calendar3{% elif filter_type == 'today' %}calendar-check{% else %}collection{% endif %}"></i>
+                        {% if filter_type == 'important' %}Important Memories
+                        {% elif filter_type == 'scheduled' %}Scheduled Memories
+                        {% elif filter_type == 'today' %}Today's Memories ({{ today_date|date:"M j, Y" }})
+                        {% else %}All Memories{% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Showing {{ total_count }} memory{{ total_count|pluralize }}
+                        {% if search_query %} matching "{{ search_query }}"{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'memory_assistant:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> New Memory
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Search Memories</label>
+                            <input type="text" class="form-control" id="search" name="q" 
+                                   value="{{ search_query }}" placeholder="Search in content, summary, or tags...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sort" class="form-label">Sort By</label>
+                            <select class="form-select" id="sort" name="sort">
+                                <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                                <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                                <option value="-importance" {% if sort_by == '-importance' %}selected{% endif %}>Most Important</option>
+                                <option value="importance" {% if sort_by == 'importance' %}selected{% endif %}>Least Important</option>
+                                {% if filter_type == 'scheduled' or filter_type == 'today' %}
+                                <option value="delivery_date" {% if sort_by == 'delivery_date' %}selected{% endif %}>Delivery Date (Earliest)</option>
+                                <option value="-delivery_date" {% if sort_by == '-delivery_date' %}selected{% endif %}>Delivery Date (Latest)</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                            <a href="{% url 'memory_assistant:'|add:filter_type|add:'_memories' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memories Grid -->
+    <div class="row">
+        {% if memories %}
+            {% for memory in memories %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card memory-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-primary importance-badge">
+                                    Importance: {{ memory.importance }}/10
+                                </span>
+                                <span class="badge bg-secondary importance-badge">
+                                    {{ memory.get_memory_type_display }}
+                                </span>
+                            </div>
+                            
+                            <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
+                            
+                            {% if memory.summary %}
+                                <p class="card-text text-muted small">
+                                    {{ memory.summary|truncatewords:20 }}
+                                </p>
+                            {% endif %}
+                            
+                            {% if memory.tags %}
+                                <div class="mb-2">
+                                    {% for tag in memory.tags|slice:":3" %}
+                                        <span class="badge bg-light text-dark tag-badge">{{ tag }}</span>
+                                    {% endfor %}
+                                    {% if memory.tags|length > 3 %}
+                                        <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if memory.delivery_date %}
+                                <div class="mb-2">
+                                    <small class="text-info">
+                                        <i class="bi bi-calendar-event"></i>
+                                        Scheduled for: {{ memory.delivery_date|date:"M j, Y" }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    {{ memory.created_at|date:"M j, Y" }}
+                                </small>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                    <a href="{% url 'memory_assistant:edit_memory' memory.id %}" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">
+                        {% if search_query %}
+                            No memories found matching "{{ search_query }}"
+                        {% else %}
+                            No memories found
+                        {% endif %}
+                    </h5>
+                    <p class="text-muted">
+                        {% if search_query %}
+                            Try adjusting your search terms or <a href="{% url 'memory_assistant:'|add:filter_type|add:'_memories' %}">clear the search</a>
+                        {% else %}
+                            {% if filter_type == 'important' %}
+                                No important memories yet. Create memories with high importance to see them here.
+                            {% elif filter_type == 'scheduled' %}
+                                No scheduled memories yet. Add delivery dates to your memories to see them here.
+                            {% elif filter_type == 'today' %}
+                                No memories scheduled for today. Check your scheduled memories for other dates.
+                            {% else %}
+                                No memories yet. Start by creating your first memory!
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Memory
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if memories.has_other_pages %}
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="Memory pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if memories.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ memories.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in memories.paginator.page_range %}
+                            {% if memories.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > memories.number|add:'-3' and num < memories.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if memories.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ memories.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ memories.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -52,6 +52,20 @@
             color: white;
             border-radius: 15px;
         }
+        .clickable-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .clickable-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .clickable-card .card-body {
+            color: white;
+        }
+        .clickable-card:hover .card-body {
+            color: white;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
