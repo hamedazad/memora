@@ -29,6 +29,13 @@
                 </div>
                 
                 <div class="mb-3">
+                    <button id="toggleAutoSave" class="btn btn-outline-warning btn-sm" onclick="toggleAutoSave()">
+                        🔇 Disable Auto-Save
+                    </button>
+                    <small class="text-muted ms-2">Auto-saves after 3 seconds of silence</small>
+                </div>
+                
+                <div class="mb-3">
                     <small class="text-muted">Or test with text input:</small>
                     <div class="input-group">
                         <input type="text" id="testInput" class="form-control" placeholder="Enter test text here...">
@@ -39,7 +46,8 @@
                 </div>
                 
                 <div id="recordingStatus" class="alert alert-info" style="display: none;">
-                    <i class="bi bi-mic"></i> Listening... Speak now!
+                    <i class="bi bi-mic"></i> <span id="recordingStatusText">Listening... Speak now!</span>
+                    <div class="mt-1"><small id="autoSaveStatus">Auto-save: ON (stops after 3s silence)</small></div>
                 </div>
                 
                 <div id="result" class="mt-4" style="display: none;">
@@ -47,6 +55,18 @@
                     <div class="border rounded p-3 bg-light mb-3">
                         <p id="transcribedText" class="mb-0"></p>
                     </div>
+                    
+                    <div class="mb-3 text-start">
+                        <label for="voiceMemoryImage" class="form-label">Add Image (Optional)</label>
+                        <input type="file" class="form-control" id="voiceMemoryImage" accept="image/*">
+                        <div class="form-text">Upload an optional image to attach to this memory. Supported formats: JPG, PNG, GIF. Max size: 5MB.</div>
+                        
+                        <!-- Image preview -->
+                        <div id="voiceImagePreview" class="mt-2" style="display: none;">
+                            <img id="voicePreviewImg" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" alt="Image preview">
+                        </div>
+                    </div>
+                    
                     <button id="saveMemory" class="btn btn-success">
                         <i class="bi bi-check-circle"></i> Save Memory
                     </button>
@@ -83,6 +103,10 @@
 <script>
 let isRecording = false;
 let recognition = null;
+let silenceTimer = null;
+let lastSpeechTime = null;
+let autoStopDelay = 3000; // 3 seconds of silence before auto-stop and save
+let autoSaveEnabled = true; // Enable auto-save by default
 
 // Check if browser supports speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -121,6 +145,24 @@ document.getElementById('testButton').addEventListener('click', function() {
     }
 });
 
+// Image preview functionality for voice memory
+document.getElementById('voiceMemoryImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const previewDiv = document.getElementById('voiceImagePreview');
+    const previewImg = document.getElementById('voicePreviewImg');
+    
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewDiv.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewDiv.style.display = 'none';
+    }
+});
+
 function startVoiceRecording() {
     if (!recognition) {
         document.getElementById('errorMessage').textContent = 'Speech recognition not available';
@@ -130,6 +172,7 @@ function startVoiceRecording() {
     
     try {
         isRecording = true;
+        lastSpeechTime = Date.now();
         document.getElementById('startRecording').style.display = 'none';
         document.getElementById('stopRecording').style.display = 'inline-block';
         document.getElementById('recordingStatus').style.display = 'block';
@@ -137,23 +180,52 @@ function startVoiceRecording() {
         document.getElementById('error').style.display = 'none';
         
         let finalTranscript = '';
+        let hasSpokenText = false;
         
         recognition.onresult = function(event) {
+            lastSpeechTime = Date.now();
+            clearTimeout(silenceTimer);
+            
             let interimTranscript = '';
             
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
                     finalTranscript += transcript;
+                    hasSpokenText = true;
                 } else {
                     interimTranscript += transcript;
+                    if (transcript.trim().length > 0) {
+                        hasSpokenText = true;
+                    }
                 }
             }
             
             // Show interim results
-            if (interimTranscript) {
-                document.getElementById('transcribedText').textContent = finalTranscript + ' ' + interimTranscript;
+            const fullText = (finalTranscript + ' ' + interimTranscript).trim();
+            if (fullText) {
+                document.getElementById('transcribedText').textContent = fullText;
                 document.getElementById('result').style.display = 'block';
+            }
+            
+            // Start silence detection timer for auto-save
+            if (autoSaveEnabled && hasSpokenText) {
+                silenceTimer = setTimeout(() => {
+                    if (finalTranscript.trim().length > 0) {
+                        // Auto-stop and save after silence
+                        document.getElementById('transcribedText').textContent = finalTranscript.trim();
+                        document.getElementById('result').style.display = 'block';
+                        stopVoiceRecording();
+                        
+                        // Show auto-save message
+                        showAutoSaveMessage();
+                        
+                        // Auto-save the memory
+                        setTimeout(() => {
+                            autoSaveVoiceMemory();
+                        }, 1000);
+                    }
+                }, autoStopDelay);
             }
         };
         
@@ -216,6 +288,8 @@ function startVoiceRecording() {
 
 function stopVoiceRecording() {
     isRecording = false;
+    clearTimeout(silenceTimer);
+    
     if (recognition) {
         recognition.stop();
     }
@@ -228,7 +302,106 @@ function stopVoiceRecording() {
 function saveVoiceMemory() {
     const text = document.getElementById('transcribedText').textContent.trim();
     if (text) {
-        // Create memory via AJAX
+        const imageFile = document.getElementById('voiceMemoryImage').files[0];
+        
+        if (imageFile) {
+            // Use FormData for file upload
+            const formData = new FormData();
+            formData.append('content', text);
+            formData.append('image', imageFile);
+            formData.append('memory_type', 'general');
+            formData.append('importance', '5');
+            
+            // Create memory via form submission to create_memory endpoint
+            fetch('{% url "memory_assistant:create_memory" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    // Handle redirect from form submission
+                    window.location.href = response.url;
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data) {
+                    handleSaveResponse(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving memory with image:', error);
+                document.getElementById('error').className = 'alert alert-danger mt-3';
+                document.getElementById('errorMessage').textContent = 'Error saving memory with image';
+                document.getElementById('error').style.display = 'block';
+            });
+        } else {
+            // No image, use JSON approach
+            fetch('{% url "memory_assistant:quick_add_memory" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: text })
+            })
+            .then(response => response.json())
+            .then(data => {
+                handleSaveResponse(data);
+            })
+            .catch(error => {
+                console.error('Error saving memory:', error);
+                document.getElementById('error').className = 'alert alert-danger mt-3';
+                document.getElementById('errorMessage').textContent = 'Error saving memory';
+                document.getElementById('error').style.display = 'block';
+            });
+        }
+    } else {
+        document.getElementById('error').className = 'alert alert-warning mt-3';
+        document.getElementById('errorMessage').textContent = 'Please record some text before saving';
+        document.getElementById('error').style.display = 'block';
+    }
+}
+
+function handleSaveResponse(data) {
+    if (data.success) {
+        // Show success message before redirecting
+        document.getElementById('error').className = 'alert alert-success mt-3';
+        document.getElementById('errorMessage').textContent = 'Memory saved successfully! Redirecting...';
+        document.getElementById('error').style.display = 'block';
+        
+        setTimeout(() => {
+            window.location.href = '{% url "memory_assistant:memory_list" %}';
+        }, 1500);
+    } else {
+        document.getElementById('error').className = 'alert alert-danger mt-3';
+        document.getElementById('errorMessage').textContent = data.error;
+        document.getElementById('error').style.display = 'block';
+    }
+}
+
+function resetRecording() {
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('transcribedText').textContent = '';
+    document.getElementById('testInput').value = '';
+}
+
+function showAutoSaveMessage() {
+    // Show a brief message that auto-save is happening
+    document.getElementById('error').className = 'alert alert-info mt-3';
+    document.getElementById('errorMessage').textContent = 'Auto-saving memory...';
+    document.getElementById('error').style.display = 'block';
+}
+
+function autoSaveVoiceMemory() {
+    const text = document.getElementById('transcribedText').textContent.trim();
+    if (text) {
+        // Create memory via AJAX (same as manual save but with different messaging)
         fetch('{% url "memory_assistant:quick_add_memory" %}', {
             method: 'POST',
             headers: {
@@ -240,38 +413,44 @@ function saveVoiceMemory() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Show success message before redirecting
+                // Show auto-save success message
                 document.getElementById('error').className = 'alert alert-success mt-3';
-                document.getElementById('errorMessage').textContent = 'Memory saved successfully! Redirecting...';
+                document.getElementById('errorMessage').textContent = '🎤 Memory auto-saved successfully! Recording stopped due to silence.';
                 document.getElementById('error').style.display = 'block';
                 
                 setTimeout(() => {
                     window.location.href = '{% url "memory_assistant:memory_list" %}';
-                }, 1500);
+                }, 2500);
             } else {
                 document.getElementById('error').className = 'alert alert-danger mt-3';
-                document.getElementById('errorMessage').textContent = data.error;
+                document.getElementById('errorMessage').textContent = 'Auto-save failed: ' + data.error;
                 document.getElementById('error').style.display = 'block';
             }
         })
         .catch(error => {
-            console.error('Error saving memory:', error);
+            console.error('Error auto-saving memory:', error);
             document.getElementById('error').className = 'alert alert-danger mt-3';
-            document.getElementById('errorMessage').textContent = 'Error saving memory';
+            document.getElementById('errorMessage').textContent = 'Error auto-saving memory. You can still save manually.';
             document.getElementById('error').style.display = 'block';
         });
-    } else {
-        document.getElementById('error').className = 'alert alert-warning mt-3';
-        document.getElementById('errorMessage').textContent = 'Please record some text before saving';
-        document.getElementById('error').style.display = 'block';
     }
 }
 
-function resetRecording() {
-    document.getElementById('result').style.display = 'none';
-    document.getElementById('error').style.display = 'none';
-    document.getElementById('transcribedText').textContent = '';
-    document.getElementById('testInput').value = '';
+// Add toggle for auto-save feature
+function toggleAutoSave() {
+    autoSaveEnabled = !autoSaveEnabled;
+    const button = document.getElementById('toggleAutoSave');
+    const statusElement = document.getElementById('autoSaveStatus');
+    
+    if (autoSaveEnabled) {
+        button.textContent = '🔇 Disable Auto-Save';
+        button.className = 'btn btn-outline-warning btn-sm';
+        statusElement.textContent = 'Auto-save: ON (stops after 3s silence)';
+    } else {
+        button.textContent = '🎤 Enable Auto-Save';
+        button.className = 'btn btn-outline-success btn-sm';
+        statusElement.textContent = 'Auto-save: OFF (manual save only)';
+    }
 }
 </script>
 {% endblock %} 

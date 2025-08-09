@@ -1,8 +1,9 @@
 {% extends 'memory_assistant/base.html' %}
+{% load memory_extras %}
 
 {% block title %}
     {% if filter_type == 'important' %}Important Memories
-    {% elif filter_type == 'scheduled' %}Scheduled Memories
+    {% elif filter_type == 'scheduled' %}Future Scheduled Memories
     {% elif filter_type == 'today' %}Today's Memories
     {% else %}All Memories{% endif %} - Memora
 {% endblock %}
@@ -17,7 +18,7 @@
                     <h2 class="mb-2">
                         <i class="bi bi-{% if filter_type == 'important' %}star{% elif filter_type == 'scheduled' %}calendar3{% elif filter_type == 'today' %}calendar-check{% else %}collection{% endif %}"></i>
                         {% if filter_type == 'important' %}Important Memories
-                        {% elif filter_type == 'scheduled' %}Scheduled Memories
+                        {% elif filter_type == 'scheduled' %}Future Scheduled Memories
                         {% elif filter_type == 'today' %}Today's Memories ({{ today_date|date:"M j, Y" }})
                         {% else %}All Memories{% endif %}
                     </h2>
@@ -66,7 +67,7 @@
                             <button type="submit" class="btn btn-primary me-2">
                                 <i class="bi bi-search"></i> Search
                             </button>
-                            <a href="{% url 'memory_assistant:'|add:filter_type|add:'_memories' %}" class="btn btn-outline-secondary">
+                            <a href="{% if filter_type == 'today' %}{% url 'memory_assistant:todays_memories' %}{% elif filter_type == 'important' %}{% url 'memory_assistant:important_memories' %}{% elif filter_type == 'scheduled' %}{% url 'memory_assistant:scheduled_memories' %}{% else %}{% url 'memory_assistant:all_memories' %}{% endif %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle"></i> Clear
                             </a>
                         </div>
@@ -81,16 +82,52 @@
         {% if memories %}
             {% for memory in memories %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card memory-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-primary importance-badge">
-                                    Importance: {{ memory.importance }}/10
-                                </span>
-                                <span class="badge bg-secondary importance-badge">
-                                    {{ memory.get_memory_type_display }}
-                                </span>
-                            </div>
+                    {% if memory.id in shared_memory_info %}
+                        <!-- Shared Memory Card -->
+                        <div class="card memory-card shared-memory-card h-100 border-info">
+                            <div class="card-body">
+                                <!-- Shared Memory Header -->
+                                <div class="shared-memory-header mb-2 p-2 bg-light rounded">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-share text-info me-2"></i>
+                                        <small class="text-muted">
+                                            {% with shared_info=shared_memory_info|lookup:memory.id %}
+                                                {% if shared_info.share_type == 'user' %}
+                                                    Shared by <strong>{{ shared_info.shared_by.username }}</strong>
+                                                {% else %}
+                                                    Shared with <strong>{{ shared_info.organization.name }}</strong>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </small>
+                                    </div>
+                                    {% with shared_info=shared_memory_info|lookup:memory.id %}
+                                        {% if shared_info.message %}
+                                            <small class="text-muted d-block">{{ shared_info.message|truncatewords:10 }}</small>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-primary importance-badge">
+                                        Importance: {{ memory.importance }}/10
+                                    </span>
+                                    <span class="badge bg-secondary importance-badge">
+                                        {{ memory.get_memory_type_display }}
+                                    </span>
+                                </div>
+                    {% else %}
+                        <!-- Own Memory Card -->
+                        <div class="card memory-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-primary importance-badge">
+                                        Importance: {{ memory.importance }}/10
+                                    </span>
+                                    <span class="badge bg-secondary importance-badge">
+                                        {{ memory.get_memory_type_display }}
+                                    </span>
+                                </div>
+                    {% endif %}
                             
                             <h6 class="card-title">{{ memory.content|truncatewords:15 }}</h6>
                             
@@ -120,6 +157,8 @@
                                 </div>
                             {% endif %}
                             
+
+                            
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     {{ memory.created_at|date:"M j, Y" }}
@@ -129,10 +168,18 @@
                                        class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-eye"></i> View
                                     </a>
-                                    <a href="{% url 'memory_assistant:edit_memory' memory.id %}" 
-                                       class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-pencil"></i> Edit
-                                    </a>
+                                    {% if memory.id in shared_memory_info %}
+                                        <!-- Shared memory - limited actions -->
+                                        <span class="btn btn-outline-info btn-sm disabled">
+                                            <i class="bi bi-share"></i> Shared
+                                        </span>
+                                    {% else %}
+                                        <!-- Own memory - full actions -->
+                                        <a href="{% url 'memory_assistant:edit_memory' memory.id %}" 
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -222,4 +269,46 @@
         </div>
     {% endif %}
 </div>
+
+<style>
+.shared-memory-card {
+    position: relative;
+    box-shadow: 0 2px 10px rgba(23, 162, 184, 0.15);
+}
+
+.shared-memory-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #17a2b8, #20c997);
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.shared-memory-header {
+    background-color: #f8f9fa !important;
+    border-left: 3px solid #17a2b8;
+}
+
+.shared-memory-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(23, 162, 184, 0.25);
+    transition: all 0.3s ease;
+}
+
+.memory-card {
+    transition: all 0.3s ease;
+}
+
+.memory-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.importance-badge {
+    font-size: 0.75rem;
+}
+</style>
 {% endblock %} 

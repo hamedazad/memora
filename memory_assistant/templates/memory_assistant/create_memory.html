@@ -12,7 +12,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="mb-3">
@@ -30,6 +30,28 @@
                                 {% endfor %}
                             </div>
                         {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">
+                            {{ form.image.label }}
+                        </label>
+                        {{ form.image }}
+                        {% if form.image.help_text %}
+                            <div class="form-text">{{ form.image.help_text }}</div>
+                        {% endif %}
+                        {% if form.image.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.image.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Image preview -->
+                        <div id="image-preview" class="mt-2" style="display: none;">
+                            <img id="preview-img" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" alt="Image preview">
+                        </div>
                     </div>
 
                     <!-- AI Suggestions -->
@@ -83,6 +105,79 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Privacy and Sharing Settings -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-shield-lock"></i> Privacy & Sharing Settings
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ form.privacy_level.id_for_label }}" class="form-label">
+                                            {{ form.privacy_level.label }}
+                                        </label>
+                                        {{ form.privacy_level }}
+                                        {% if form.privacy_level.help_text %}
+                                            <div class="form-text">{{ form.privacy_level.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.privacy_level.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.privacy_level.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.allow_comments }}
+                                            <label class="form-check-label" for="{{ form.allow_comments.id_for_label }}">
+                                                {{ form.allow_comments.label }}
+                                            </label>
+                                        </div>
+                                        {% if form.allow_comments.help_text %}
+                                            <div class="form-text">{{ form.allow_comments.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.allow_comments.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.allow_comments.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.allow_likes }}
+                                            <label class="form-check-label" for="{{ form.allow_likes.id_for_label }}">
+                                                {{ form.allow_likes.label }}
+                                            </label>
+                                        </div>
+                                        {% if form.allow_likes.help_text %}
+                                            <div class="form-text">{{ form.allow_likes.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.allow_likes.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.allow_likes.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
 
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
@@ -151,6 +246,28 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('{{ form.content.id_for_label }}').value = suggestedPrompt;
         localStorage.removeItem('suggestedPrompt');
     }
+    
+    // Image preview functionality
+    const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewDiv = document.getElementById('image-preview');
+            const previewImg = document.getElementById('preview-img');
+            
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewDiv.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+    }
+
 });
 
 function loadAISuggestions() {

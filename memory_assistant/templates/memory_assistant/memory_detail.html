@@ -12,24 +12,50 @@
                     <i class="bi bi-journal-text"></i> Memory Details
                 </h5>
                 <div class="btn-group" role="group">
-                    <a href="{% url 'memory_assistant:edit_memory' memory.id %}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-pencil"></i> Edit
-                    </a>
-                    <a href="{% url 'memory_assistant:delete_memory' memory.id %}" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash"></i> Delete
-                    </a>
+                    {% if memory.user == user %}
+                        <a href="{% url 'memory_assistant:edit_memory' memory.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="{% url 'memory_assistant:share_memory' memory.id %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-share"></i> Share
+                        </a>
+                        <a href="{% url 'memory_assistant:delete_memory' memory.id %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    {% else %}
+                        <a href="{% url 'memory_assistant:profile' memory.user.username %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-person"></i> View Profile
+                        </a>
+                    {% endif %}
                 </div>
             </div>
             <div class="card-body">
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <span class="badge bg-primary importance-badge">
                             Importance: {{ memory.importance }}/10
                         </span>
                     </div>
-                    <div class="col-md-6 text-end">
+                    <div class="col-md-4 text-center">
                         <span class="badge bg-secondary importance-badge">
                             {{ memory.get_memory_type_display }}
+                        </span>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <span class="badge 
+                            {% if memory.privacy_level == 'private' %}bg-dark
+                            {% elif memory.privacy_level == 'friends' %}bg-info
+                            {% elif memory.privacy_level == 'organization' %}bg-warning
+                            {% else %}bg-success{% endif %}">
+                            {% if memory.privacy_level == 'private' %}
+                                <i class="bi bi-lock"></i> Private
+                            {% elif memory.privacy_level == 'friends' %}
+                                <i class="bi bi-people"></i> Friends
+                            {% elif memory.privacy_level == 'organization' %}
+                                <i class="bi bi-building"></i> Organization
+                            {% else %}
+                                <i class="bi bi-globe"></i> Public
+                            {% endif %}
                         </span>
                     </div>
                 </div>
@@ -38,6 +64,15 @@
                 <div class="border rounded p-3 bg-light mb-3">
                     {{ memory.content|linebreaks }}
                 </div>
+                
+                {% if memory.image %}
+                    <h6 class="card-title">Image</h6>
+                    <div class="mb-3">
+                        <img src="{{ memory.image.url }}" class="img-fluid rounded" alt="Memory image" 
+                             style="max-width: 100%; max-height: 400px; cursor: pointer;" 
+                             onclick="openImageModal(this.src)">
+                    </div>
+                {% endif %}
                 
                 {% if memory.summary %}
                     <h6 class="card-title">AI Summary</h6>
@@ -199,6 +234,34 @@ function readMemoryAloud() {
     .catch(error => {
         alert('Error reading memory aloud: ' + error);
     });
+}
+
+function openImageModal(imageSrc) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('imageModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'imageModal';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Memory Image</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="modalImage" class="img-fluid" alt="Memory image">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Set image source and show modal
+    document.getElementById('modalImage').src = imageSrc;
+    new bootstrap.Modal(modal).show();
 }
 </script>
 {% endblock %} 

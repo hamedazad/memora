@@ -1,0 +1,201 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Share Memory - Memora{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <!-- Memory Preview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-journal-text"></i> Memory to Share
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="mb-2">{{ memory.content|truncatewords:50 }}</p>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">{{ memory.importance }}/10</span>
+                            <span class="badge bg-secondary me-2">{{ memory.get_memory_type_display }}</span>
+                            <small class="text-muted">Created {{ memory.created_at|date:"M j, Y" }}</small>
+                        </div>
+                    </div>
+                    {% if memory.image %}
+                        <div class="col-md-4">
+                            <img src="{{ memory.image.url }}" class="img-thumbnail" 
+                                 style="max-width: 100%; max-height: 120px; object-fit: cover;" alt="Memory image">
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Share Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-share"></i> Share This Memory
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.share_type.id_for_label }}" class="form-label">
+                            {{ form.share_type.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.share_type }}
+                        {% if form.share_type.help_text %}
+                            <div class="form-text">{{ form.share_type.help_text }}</div>
+                        {% endif %}
+                        {% if form.share_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.share_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3" id="user-recipient-field">
+                        <label for="{{ form.recipient_user.id_for_label }}" class="form-label">
+                            {{ form.recipient_user.label }}
+                        </label>
+                        {{ form.recipient_user }}
+                        {% if form.recipient_user.help_text %}
+                            <div class="form-text">{{ form.recipient_user.help_text }}</div>
+                        {% endif %}
+                        {% if form.recipient_user.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.recipient_user.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3" id="org-recipient-field" style="display: none;">
+                        <label for="{{ form.recipient_organization.id_for_label }}" class="form-label">
+                            {{ form.recipient_organization.label }}
+                        </label>
+                        {{ form.recipient_organization }}
+                        {% if form.recipient_organization.help_text %}
+                            <div class="form-text">{{ form.recipient_organization.help_text }}</div>
+                        {% endif %}
+                        {% if form.recipient_organization.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.recipient_organization.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.message.id_for_label }}" class="form-label">
+                            {{ form.message.label }}
+                        </label>
+                        {{ form.message }}
+                        {% if form.message.help_text %}
+                            <div class="form-text">{{ form.message.help_text }}</div>
+                        {% endif %}
+                        {% if form.message.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.message.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                {{ form.can_reshare }}
+                                <label class="form-check-label" for="{{ form.can_reshare.id_for_label }}">
+                                    {{ form.can_reshare.label }}
+                                </label>
+                                {% if form.can_reshare.help_text %}
+                                    <div class="form-text">{{ form.can_reshare.help_text }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-share"></i> Share Memory
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sharing Tips -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Sharing Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-person"></i> Personal Sharing</h6>
+                        <ul class="small text-muted">
+                            <li>Share with individual friends</li>
+                            <li>Add a personal message</li>
+                            <li>Control resharing permissions</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-building"></i> Organization Sharing</h6>
+                        <ul class="small text-muted">
+                            <li>Share with entire organizations</li>
+                            <li>Visible to all members</li>
+                            <li>Great for team memories</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide recipient fields based on share type
+document.getElementById('{{ form.share_type.id_for_label }}').addEventListener('change', function() {
+    const shareType = this.value;
+    const userField = document.getElementById('user-recipient-field');
+    const orgField = document.getElementById('org-recipient-field');
+    
+    if (shareType === 'user') {
+        userField.style.display = 'block';
+        orgField.style.display = 'none';
+        // Clear organization field
+        document.getElementById('{{ form.recipient_organization.id_for_label }}').value = '';
+    } else if (shareType === 'organization') {
+        userField.style.display = 'none';
+        orgField.style.display = 'block';
+        // Clear user field
+        document.getElementById('{{ form.recipient_user.id_for_label }}').value = '';
+    } else {
+        userField.style.display = 'none';
+        orgField.style.display = 'none';
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('{{ form.share_type.id_for_label }}').dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}
+
+

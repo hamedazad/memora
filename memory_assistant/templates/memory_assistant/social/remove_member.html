@@ -1,0 +1,136 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Remove Member - {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0 text-danger">
+                    <i class="bi bi-person-dash me-2"></i>
+                    {% if member_to_remove == request.user %}
+                        Leave Organization
+                    {% else %}
+                        Remove Member
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if member_to_remove == request.user %}
+                    <!-- User leaving the organization -->
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle"></i> Confirm Leave Organization
+                        </h6>
+                        <p class="mb-2">
+                            Are you sure you want to leave <strong>{{ organization.name }}</strong>?
+                        </p>
+                        <ul class="mb-0 small">
+                            <li>You will lose access to organization memories</li>
+                            <li>You will no longer receive organization notifications</li>
+                            <li>An admin will need to re-invite you to rejoin</li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <!-- Admin removing another member -->
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle"></i> Confirm Remove Member
+                        </h6>
+                        <p class="mb-2">
+                            Are you sure you want to remove <strong>{{ member_to_remove.get_full_name|default:member_to_remove.username }}</strong> from <strong>{{ organization.name }}</strong>?
+                        </p>
+                        <ul class="mb-0 small">
+                            <li>They will lose access to organization memories</li>
+                            <li>They will receive a notification about being removed</li>
+                            <li>You can re-invite them later if needed</li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <!-- Member Information -->
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                {% if member_to_remove.userprofile.avatar %}
+                                    <img src="{{ member_to_remove.userprofile.avatar.url }}" alt="Avatar" 
+                                         class="rounded-circle" width="50" height="50">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="bi bi-person-fill text-white"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h6 class="mb-1">{{ member_to_remove.get_full_name|default:member_to_remove.username }}</h6>
+                                <small class="text-muted">@{{ member_to_remove.username }}</small>
+                                <br>
+                                <span class="badge bg-{% if member_membership.role == 'admin' %}danger{% elif member_membership.role == 'moderator' %}warning{% elif member_membership.role == 'member' %}primary{% else %}secondary{% endif %}">
+                                    {{ member_membership.role|title }}
+                                </span>
+                                <small class="text-muted ms-2">
+                                    Joined {{ member_membership.joined_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'memory_assistant:organization_members' organization.id %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-{% if member_to_remove == request.user %}warning{% else %}danger{% endif %}">
+                            {% if member_to_remove == request.user %}
+                                <i class="bi bi-box-arrow-right"></i> Leave Organization
+                            {% else %}
+                                <i class="bi bi-person-dash"></i> Remove Member
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> 
+                    {% if member_to_remove == request.user %}
+                        What Happens When You Leave?
+                    {% else %}
+                        What Happens When You Remove a Member?
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if member_to_remove == request.user %}
+                    <ul class="small mb-0">
+                        <li><strong>Immediate:</strong> You lose access to organization content</li>
+                        <li><strong>Memories:</strong> Your shared memories remain, but you can't share new ones</li>
+                        <li><strong>Notifications:</strong> You stop receiving organization notifications</li>
+                        <li><strong>Re-joining:</strong> An admin must send you a new invitation</li>
+                    </ul>
+                {% else %}
+                    <ul class="small mb-0">
+                        <li><strong>Access:</strong> Member immediately loses access to organization</li>
+                        <li><strong>Notification:</strong> They receive a notification about removal</li>
+                        <li><strong>Content:</strong> Their shared memories remain in the organization</li>
+                        <li><strong>Re-adding:</strong> You can invite them again anytime</li>
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

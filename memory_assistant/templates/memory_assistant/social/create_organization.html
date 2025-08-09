@@ -1,0 +1,226 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Create Organization - Memora{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i> Create New Organization
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            {{ form.name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.help_text %}
+                            <div class="form-text">{{ form.name.help_text }}</div>
+                        {% endif %}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                            <div class="form-text">{{ form.description.help_text }}</div>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.org_type.id_for_label }}" class="form-label">
+                                    {{ form.org_type.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.org_type }}
+                                {% if form.org_type.help_text %}
+                                    <div class="form-text">{{ form.org_type.help_text }}</div>
+                                {% endif %}
+                                {% if form.org_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.org_type.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.privacy.id_for_label }}" class="form-label">
+                                    {{ form.privacy.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.privacy }}
+                                {% if form.privacy.help_text %}
+                                    <div class="form-text">{{ form.privacy.help_text }}</div>
+                                {% endif %}
+                                {% if form.privacy.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.privacy.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.logo.id_for_label }}" class="form-label">
+                            {{ form.logo.label }}
+                        </label>
+                        {{ form.logo }}
+                        {% if form.logo.help_text %}
+                            <div class="form-text">{{ form.logo.help_text }}</div>
+                        {% endif %}
+                        {% if form.logo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.logo.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.website.id_for_label }}" class="form-label">
+                            {{ form.website.label }}
+                        </label>
+                        {{ form.website }}
+                        {% if form.website.help_text %}
+                            <div class="form-text">{{ form.website.help_text }}</div>
+                        {% endif %}
+                        {% if form.website.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.website.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'memory_assistant:organizations_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create Organization
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Organization Types Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Organization Types
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-briefcase"></i> Company</h6>
+                        <p class="text-muted small">Business organizations for work-related memories and collaboration.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-mortarboard"></i> Educational</h6>
+                        <p class="text-muted small">Schools, universities, and educational institutions.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-heart"></i> Social</h6>
+                        <p class="text-muted small">Clubs, communities, and social groups.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-hospital"></i> Healthcare</h6>
+                        <p class="text-muted small">Medical institutions and healthcare organizations.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-bank"></i> Government</h6>
+                        <p class="text-muted small">Government agencies and public institutions.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-three-dots"></i> Other</h6>
+                        <p class="text-muted small">Organizations that don't fit other categories.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Privacy Settings Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-shield-lock"></i> Privacy Settings
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-globe"></i> Public</h6>
+                        <p class="text-muted small">Anyone can discover and request to join this organization.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-lock"></i> Private</h6>
+                        <p class="text-muted small">Only invited members can join. Organization is not publicly discoverable.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Logo preview
+document.getElementById('{{ form.logo.id_for_label }}').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Create or update preview
+            let preview = document.getElementById('logo-preview');
+            if (!preview) {
+                preview = document.createElement('div');
+                preview.id = 'logo-preview';
+                preview.className = 'text-center mt-3';
+                preview.innerHTML = `
+                    <p class="text-muted">Logo Preview:</p>
+                    <img class="rounded" style="width: 100px; height: 100px; object-fit: cover;" alt="Preview">
+                `;
+                e.target.parentNode.appendChild(preview);
+            }
+            preview.querySelector('img').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}
+
+

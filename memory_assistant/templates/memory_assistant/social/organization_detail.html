@@ -1,0 +1,252 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}{{ organization.name }} - Memora{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Organization Header -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    {% if organization.logo %}
+                        <img src="{{ organization.logo.url }}" class="rounded me-3" 
+                             style="width: 80px; height: 80px; object-fit: cover;" alt="Organization Logo">
+                    {% else %}
+                        <div class="bg-primary rounded me-3 d-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px;">
+                            <i class="bi bi-building text-white" style="font-size: 2rem;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1">{{ organization.name }}</h4>
+                        <p class="text-muted mb-1">{{ organization.get_org_type_display }} Organization</p>
+                        <div class="d-flex align-items-center">
+                            <span class="badge 
+                                {% if organization.privacy == 'public' %}bg-success
+                                {% else %}bg-warning{% endif %} me-2">
+                                {% if organization.privacy == 'public' %}
+                                    <i class="bi bi-globe"></i> Public
+                                {% else %}
+                                    <i class="bi bi-lock"></i> Private
+                                {% endif %}
+                            </span>
+                            <small class="text-muted">
+                                <i class="bi bi-people"></i> {{ member_count }} member{{ member_count|pluralize }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if organization.description %}
+                    <p class="mb-3">{{ organization.description }}</p>
+                {% endif %}
+                
+                {% if organization.website %}
+                    <p class="mb-3">
+                        <i class="bi bi-link-45deg"></i> 
+                        <a href="{{ organization.website }}" target="_blank" class="text-decoration-none">
+                            {{ organization.website }}
+                        </a>
+                    </p>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Created {{ organization.created_at|timesince }} ago by 
+                        <a href="{% url 'memory_assistant:profile' organization.created_by.username %}" class="text-decoration-none">
+                            {{ organization.created_by.username }}
+                        </a>
+                    </small>
+                    
+                    <div>
+                        {% if user_membership %}
+                            {% if user_membership.role == 'owner' or user_membership.role == 'admin' %}
+                                <a href="#" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="bi bi-gear"></i> Manage
+                                </a>
+                            {% endif %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-check-circle"></i> {{ user_membership.get_role_display }}
+                            </span>
+                        {% elif pending_invitation %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-clock"></i> Invitation Pending
+                            </span>
+                        {% elif organization.privacy == 'public' %}
+                            <form method="post" action="#" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-circle"></i> Join Organization
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted">Private Organization</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Organization Memories -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-journal-text"></i> Organization Memories
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if organization_memories %}
+                    {% for memory in organization_memories %}
+                        <div class="memory-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        {% with memory.user.profile as profile %}
+                                            {% if profile.avatar %}
+                                                <img src="{{ profile.avatar.url }}" class="rounded-circle me-2" 
+                                                     style="width: 30px; height: 30px; object-fit: cover;" alt="Avatar">
+                                            {% else %}
+                                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                                     style="width: 30px; height: 30px;">
+                                                    <i class="bi bi-person text-white" style="font-size: 0.7rem;"></i>
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                        <strong>{{ memory.user.username }}</strong>
+                                        <span class="text-muted ms-2">{{ memory.created_at|timesince }} ago</span>
+                                    </div>
+                                    <p class="mb-2">{{ memory.content|truncatewords:30 }}</p>
+                                    {% if memory.image %}
+                                        <img src="{{ memory.image.url }}" class="img-thumbnail mb-2" 
+                                             style="max-width: 150px; max-height: 100px; object-fit: cover;" alt="Memory image">
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary">{{ memory.importance }}/10</span>
+                                    <br>
+                                    <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                       class="btn btn-outline-primary btn-sm mt-2">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-journal-x display-4"></i>
+                        <h6 class="mt-2">No memories yet</h6>
+                        <p>Members haven't shared any memories with this organization yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Members -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Members ({{ member_count }})
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if members %}
+                    {% for membership in members %}
+                        <div class="d-flex align-items-center mb-3">
+                            {% with membership.user.profile as profile %}
+                                {% if profile.avatar %}
+                                    <img src="{{ profile.avatar.url }}" class="rounded-circle me-2" 
+                                         style="width: 40px; height: 40px; object-fit: cover;" alt="Avatar">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-white" style="font-size: 0.9rem;"></i>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">
+                                    <a href="{% url 'memory_assistant:profile' membership.user.username %}" 
+                                       class="text-decoration-none">
+                                        {{ membership.user.get_full_name|default:membership.user.username }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    <span class="badge bg-light text-dark">{{ membership.get_role_display }}</span>
+                                </small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="text-center">
+                        <a href="{% url 'memory_assistant:organization_members' organization.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-people"></i> View All Members
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-person-x"></i>
+                        <p class="mb-0">No members yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightning"></i> Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if user_membership %}
+                        <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Share Memory
+                        </a>
+                        {% if user_membership.role == 'admin' or user_membership.role == 'moderator' %}
+                            <a href="{% url 'memory_assistant:invite_organization_member' organization.id %}" class="btn btn-outline-success">
+                                <i class="bi bi-person-plus"></i> Invite Members
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                    <a href="{% url 'memory_assistant:organizations_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Organizations
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Organization Stats -->
+        {% if user_membership %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h6 class="mb-1">{{ organization_memories.count }}</h6>
+                        <small class="text-muted">Memories</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="mb-1">{{ member_count }}</h6>
+                        <small class="text-muted">Members</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="mb-1">{{ organization.created_at|date:"M Y" }}</h6>
+                        <small class="text-muted">Created</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

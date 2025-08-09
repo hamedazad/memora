@@ -1,0 +1,135 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}{{ organization.name }} - Members{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- Header -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-people-fill me-2"></i>
+                        {{ organization.name }} - Members
+                    </h5>
+                    <small class="text-muted">{{ members|length }} member{{ members|length|pluralize }}</small>
+                </div>
+                <div>
+                    {% if can_manage %}
+                        <a href="{% url 'memory_assistant:invite_organization_member' organization.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus"></i> Invite Member
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'memory_assistant:organization_detail' organization.id %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to Organization
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Invitations -->
+        {% if pending_invitations and can_manage %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Pending Invitations ({{ pending_invitations|length }})
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for invitation in pending_invitations %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>{{ invitation.to_user.get_full_name|default:invitation.to_user.username }}</strong>
+                        <span class="badge bg-secondary ms-2">{{ invitation.role|title }}</span>
+                        <br>
+                        <small class="text-muted">
+                            Invited by {{ invitation.from_user.get_full_name|default:invitation.from_user.username }} 
+                            on {{ invitation.created_at|date:"M d, Y" }}
+                        </small>
+                        {% if invitation.message %}
+                        <br>
+                        <small class="text-info">"{{ invitation.message }}"</small>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="badge bg-warning">Pending</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Members List -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-people me-2"></i>
+                    Active Members
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for member in members %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            {% if member.user.userprofile.avatar %}
+                                <img src="{{ member.user.userprofile.avatar.url }}" alt="Avatar" 
+                                     class="rounded-circle" width="40" height="40">
+                            {% else %}
+                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="bi bi-person-fill text-white"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
+                            <span class="badge bg-{% if member.role == 'admin' %}danger{% elif member.role == 'moderator' %}warning{% elif member.role == 'member' %}primary{% else %}secondary{% endif %} ms-2">
+                                {{ member.role|title }}
+                            </span>
+                            {% if member.user == request.user %}
+                                <span class="badge bg-info ms-1">You</span>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">
+                                @{{ member.user.username }} • 
+                                Joined {{ member.joined_at|date:"M d, Y" }}
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'memory_assistant:profile' member.user.username %}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-person"></i> Profile
+                            </a>
+                            {% if can_manage and member.user != request.user %}
+                                {% if user_membership.role == 'admin' or member.role in 'member,viewer' %}
+                                    <a href="{% url 'memory_assistant:remove_organization_member' organization.id member.user.id %}" 
+                                       class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-person-dash"></i> Remove
+                                    </a>
+                                {% endif %}
+                            {% elif member.user == request.user %}
+                                <a href="{% url 'memory_assistant:remove_organization_member' organization.id member.user.id %}" 
+                                   class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-box-arrow-right"></i> Leave
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="bi bi-people display-4 text-muted"></i>
+                    <p class="text-muted mt-2">No members found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

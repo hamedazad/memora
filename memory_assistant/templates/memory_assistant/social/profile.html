@@ -1,0 +1,224 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}{{ profile_user.username }}'s Profile - Memora{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <!-- Profile Card -->
+        <div class="card">
+            <div class="card-body text-center">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" class="rounded-circle mb-3" 
+                         style="width: 120px; height: 120px; object-fit: cover;" alt="Profile Picture">
+                {% else %}
+                    <div class="bg-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
+                         style="width: 120px; height: 120px;">
+                        <i class="bi bi-person text-white" style="font-size: 3rem;"></i>
+                    </div>
+                {% endif %}
+                
+                <h5 class="card-title">{{ profile_user.get_full_name|default:profile_user.username }}</h5>
+                <p class="text-muted">@{{ profile_user.username }}</p>
+                
+                {% if profile.bio %}
+                    <p class="card-text">{{ profile.bio }}</p>
+                {% endif %}
+                
+                {% if profile.location %}
+                    <p class="text-muted">
+                        <i class="bi bi-geo-alt"></i> {{ profile.location }}
+                    </p>
+                {% endif %}
+                
+                {% if profile.website %}
+                    <p>
+                        <a href="{{ profile.website }}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-link-45deg"></i> Website
+                        </a>
+                    </p>
+                {% endif %}
+                
+                <div class="row text-center mt-3">
+                    <div class="col-4">
+                        <strong>{{ memories_count }}</strong><br>
+                        <small class="text-muted">Memories</small>
+                    </div>
+                    <div class="col-4">
+                        <strong>{{ organizations.count }}</strong><br>
+                        <small class="text-muted">Organizations</small>
+                    </div>
+                    <div class="col-4">
+                        <strong>0</strong><br>
+                        <small class="text-muted">Friends</small>
+                    </div>
+                </div>
+                
+                {% if not is_own_profile %}
+                    <div class="mt-3">
+                        {% if friendship_status == 'friends' %}
+                            <button class="btn btn-success" disabled>
+                                <i class="bi bi-check-circle"></i> Friends
+                            </button>
+                        {% elif friendship_status == 'request_sent' %}
+                            <button class="btn btn-outline-primary" disabled>
+                                <i class="bi bi-clock"></i> Request Sent
+                            </button>
+                        {% elif friendship_status == 'request_received' %}
+                            <a href="{% url 'memory_assistant:friend_requests' %}" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Respond to Request
+                            </a>
+                        {% else %}
+                            <form method="post" action="{% url 'memory_assistant:send_friend_request' profile_user.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-person-plus"></i> Send Friend Request
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="mt-3">
+                        <a href="{% url 'memory_assistant:edit_profile' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit Profile
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Organizations -->
+        {% if organizations %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-building"></i> Organizations
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for membership in organizations %}
+                    <div class="d-flex align-items-center mb-2">
+                        {% if membership.organization.logo %}
+                            <img src="{{ membership.organization.logo.url }}" class="rounded me-2" 
+                                 style="width: 30px; height: 30px; object-fit: cover;" alt="Org Logo">
+                        {% else %}
+                            <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" 
+                                 style="width: 30px; height: 30px;">
+                                <i class="bi bi-building text-white" style="font-size: 0.8rem;"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <a href="{% url 'memory_assistant:organization_detail' membership.organization.id %}" 
+                               class="text-decoration-none">
+                                {{ membership.organization.name }}
+                            </a>
+                            <br>
+                            <small class="text-muted">{{ membership.get_role_display }}</small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <!-- Recent Memories -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-journal-text"></i> Recent Memories
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if recent_memories %}
+                    {% for memory in recent_memories %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-primary">{{ memory.importance }}/10</span>
+                                    <span class="badge bg-secondary">{{ memory.get_memory_type_display }}</span>
+                                    {% if memory.privacy_level != 'private' %}
+                                        <span class="badge bg-info">
+                                            {% if memory.privacy_level == 'public' %}
+                                                <i class="bi bi-globe"></i> Public
+                                            {% elif memory.privacy_level == 'friends' %}
+                                                <i class="bi bi-people"></i> Friends
+                                            {% elif memory.privacy_level == 'organization' %}
+                                                <i class="bi bi-building"></i> Organization
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ memory.created_at|date:"M j, Y" }}</small>
+                            </div>
+                            
+                            <p class="mb-2">{{ memory.content|truncatewords:30 }}</p>
+                            
+                            {% if memory.image %}
+                                <div class="mb-2">
+                                    <img src="{{ memory.image.url }}" class="img-thumbnail" 
+                                         style="max-width: 150px; max-height: 100px; object-fit: cover;" 
+                                         alt="Memory image">
+                                </div>
+                            {% endif %}
+                            
+                            {% if memory.tags %}
+                                <div class="mb-2">
+                                    {% for tag in memory.tags|slice:":5" %}
+                                        <span class="badge bg-light text-dark">{{ tag }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if memory.allow_likes %}
+                                        <span class="text-muted">
+                                            <i class="bi bi-heart"></i> {{ memory.get_likes_count }}
+                                        </span>
+                                    {% endif %}
+                                    {% if memory.allow_comments %}
+                                        <span class="text-muted ms-2">
+                                            <i class="bi bi-chat"></i> {{ memory.get_comments_count }}
+                                        </span>
+                                    {% endif %}
+                                    {% if memory.shared_count > 0 %}
+                                        <span class="text-muted ms-2">
+                                            <i class="bi bi-share"></i> {{ memory.shared_count }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    {% if is_own_profile %}
+                        <div class="text-center">
+                            <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-list"></i> View All Memories
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-journal-x display-4"></i>
+                        <p class="mt-2">No memories to display</p>
+                        {% if is_own_profile %}
+                            <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Your First Memory
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

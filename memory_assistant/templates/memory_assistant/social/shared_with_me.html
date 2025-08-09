@@ -1,0 +1,211 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Shared Memories - Memora{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-share"></i> Memories Shared with Me
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if page_obj %}
+                    {% for share in page_obj %}
+                        <div class="shared-memory-item border rounded p-4 mb-4">
+                            <!-- Share Info Header -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex align-items-center">
+                                    {% with share.shared_by.profile as profile %}
+                                        {% if profile.avatar %}
+                                            <img src="{{ profile.avatar.url }}" class="rounded-circle me-2" 
+                                                 style="width: 40px; height: 40px; object-fit: cover;" alt="Avatar">
+                                        {% else %}
+                                            <div class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="bi bi-person text-white" style="font-size: 0.9rem;"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                    <div>
+                                        <h6 class="mb-0">{{ share.shared_by.username }}</h6>
+                                        <small class="text-muted">
+                                            {% if share.share_type == 'user' %}
+                                                Shared with you personally
+                                            {% elif share.share_type == 'organization' %}
+                                                Shared with {{ share.shared_with_organization.name }}
+                                            {% endif %}
+                                            • {{ share.created_at|timesince }} ago
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary">{{ share.memory.importance }}/10</span>
+                                    <span class="badge bg-secondary">{{ share.memory.get_memory_type_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Share Message -->
+                            {% if share.message %}
+                                <div class="alert alert-light mb-3">
+                                    <small><strong>{{ share.shared_by.username }} says:</strong> {{ share.message }}</small>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Memory Content -->
+                            <div class="memory-content mb-3">
+                                <p class="mb-2">{{ share.memory.content }}</p>
+                                
+                                {% if share.memory.image %}
+                                    <div class="mb-2">
+                                        <img src="{{ share.memory.image.url }}" class="img-thumbnail" 
+                                             style="max-width: 200px; max-height: 150px; object-fit: cover;" 
+                                             alt="Memory image"
+                                             onclick="openImageModal(this.src)">
+                                    </div>
+                                {% endif %}
+                                
+                                {% if share.memory.tags %}
+                                    <div class="mb-2">
+                                        {% for tag in share.memory.tags|slice:":6" %}
+                                            <span class="badge bg-light text-dark">{{ tag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Memory Interactions -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if share.memory.allow_likes %}
+                                        <span class="text-muted me-3">
+                                            <i class="bi bi-heart"></i> {{ share.memory.get_likes_count }}
+                                        </span>
+                                    {% endif %}
+                                    {% if share.memory.allow_comments %}
+                                        <span class="text-muted me-3">
+                                            <i class="bi bi-chat"></i> {{ share.memory.get_comments_count }}
+                                        </span>
+                                    {% endif %}
+                                    <span class="text-muted">
+                                        <i class="bi bi-calendar"></i> {{ share.memory.created_at|date:"M j, Y" }}
+                                    </span>
+                                </div>
+                                <div>
+                                    {% if share.can_reshare %}
+                                        <a href="{% url 'memory_assistant:share_memory' share.memory.id %}" 
+                                           class="btn btn-outline-primary btn-sm me-2">
+                                            <i class="bi bi-share"></i> Reshare
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'memory_assistant:memory_detail' share.memory.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                        <div class="d-flex justify-content-center mt-4">
+                            <nav aria-label="Shared memories pagination">
+                                <ul class="pagination">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-share display-4"></i>
+                        <h5 class="mt-3">No shared memories yet</h5>
+                        <p>When friends or organizations share memories with you, they'll appear here.</p>
+                        <div class="mt-4">
+                            <a href="{% url 'memory_assistant:find_users' %}" class="btn btn-primary me-2">
+                                <i class="bi bi-person-plus"></i> Find Friends
+                            </a>
+                            <a href="{% url 'memory_assistant:organizations_list' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-building"></i> Join Organizations
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal (reuse from memory detail) -->
+<script>
+function openImageModal(imageSrc) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('imageModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'imageModal';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Memory Image</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="modalImage" class="img-fluid" alt="Memory image">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Set image source and show modal
+    document.getElementById('modalImage').src = imageSrc;
+    new bootstrap.Modal(modal).show();
+}
+</script>
+
+<style>
+.shared-memory-item {
+    transition: background-color 0.3s ease;
+}
+.shared-memory-item:hover {
+    background-color: #f8f9fa;
+}
+.memory-content {
+    border-left: 3px solid #007bff;
+    padding-left: 15px;
+    background-color: #f8f9fa;
+    border-radius: 0 8px 8px 0;
+}
+</style>
+{% endblock %}
+
+

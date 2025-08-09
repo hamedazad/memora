@@ -1,17 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import datetime, timedelta
 import json
 import os
-from datetime import datetime, timedelta
-
+import re
 from .models import Memory, MemorySearch
+from .forms import MemoryForm, QuickMemoryForm, SearchForm, UserRegistrationForm
 from .services import ChatGPTService
-from .forms import MemoryForm, UserRegistrationForm
 from .voice_service import voice_service
 from .recommendation_service import AIRecommendationService
 
@@ -19,16 +21,47 @@ from .recommendation_service import AIRecommendationService
 @login_required
 def dashboard(request):
     """Main dashboard view"""
+    # Get user's own memories
     memories = Memory.objects.filter(user=request.user, is_archived=False)
     
-    # Get recent memories
-    recent_memories = memories[:5]
+    # Get shared memories for dashboard
+    from .models import SharedMemory
+    shared_memory_objects = SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory').values_list('memory', flat=True)
+    
+    # Combine own and shared memories for recent list using Q objects
+    all_memories = Memory.objects.filter(
+        Q(user=request.user) | Q(id__in=shared_memory_objects),
+        is_archived=False
+    ).order_by('-created_at')
+    recent_memories = all_memories[:5]
+    
+    # Create shared memory info for dashboard
+    shared_memory_info = {}
+    for shared in SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory', 'shared_by'):
+        shared_memory_info[shared.memory.id] = {
+            'shared_by': shared.shared_by,
+            'share_type': shared.share_type,
+            'organization': shared.shared_with_organization if shared.share_type == 'organization' else None
+        }
     
     # Get memory statistics
     total_memories = memories.count()
     important_memories = memories.filter(importance__gte=8).count()
-    scheduled_memories_count = memories.exclude(delivery_date__isnull=True).count()
-    todays_memories_count = memories.filter(delivery_date=datetime.now().date()).count()
+    
+    # Only count future scheduled memories
+    from django.utils import timezone
+    now = timezone.now()
+    scheduled_memories_count = memories.filter(delivery_date__gt=now).count()
+    todays_memories_count = memories.filter(delivery_date__date=datetime.now().date()).count()
+
     
     # Get memory suggestions
     chatgpt_service = ChatGPTService()
@@ -44,8 +77,10 @@ def dashboard(request):
         'recent_memories': recent_memories,
         'total_memories': total_memories,
         'important_memories': important_memories,
+        'shared_memory_info': shared_memory_info,
         'scheduled_memories_count': scheduled_memories_count,
         'todays_memories_count': todays_memories_count,
+
         'suggestions': suggestions,
         'ai_available': chatgpt_service.is_available(),
     }
@@ -71,7 +106,19 @@ def safe_delete_file(file_path):
 @login_required
 def memory_list(request):
     """List all memories with enhanced filtering and search"""
-    memories = Memory.objects.filter(user=request.user, is_archived=False)
+    # Get both own and shared memories in a single query
+    from .models import SharedMemory
+    shared_memory_objects = SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory').values_list('memory', flat=True)
+    
+    # Combine own and shared memories using Q objects
+    memories = Memory.objects.filter(
+        Q(user=request.user) | Q(id__in=shared_memory_objects),
+        is_archived=False
+    )
     
     # Get filter parameters
     memory_type = request.GET.get('type')
@@ -131,6 +178,21 @@ def memory_list(request):
     total_memories = Memory.objects.filter(user=request.user, is_archived=False).count()
     filtered_count = memories.count()
     
+    # Create shared memory info for template
+    shared_memory_info = {}
+    for shared in SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory', 'shared_by'):
+        shared_memory_info[shared.memory.id] = {
+            'shared_by': shared.shared_by,
+            'share_type': shared.share_type,
+            'message': shared.message,
+            'created_at': shared.created_at,
+            'organization': shared.shared_with_organization if shared.share_type == 'organization' else None
+        }
+    
     context = {
         'page_obj': page_obj,
         'memory_types': Memory.memory_type.field.choices,
@@ -141,6 +203,7 @@ def memory_list(request):
         'total_memories': total_memories,
         'filtered_count': filtered_count,
         'has_filters': bool(search_query or memory_type or importance),
+        'shared_memory_info': shared_memory_info,
     }
     
     return render(request, 'memory_assistant/memory_list.html', context)
@@ -148,14 +211,14 @@ def memory_list(request):
 
 @login_required
 def create_memory(request):
-    """Create a new memory"""
+    """Create a new memory with date parsing"""
     if request.method == 'POST':
-        form = MemoryForm(request.POST)
+        form = MemoryForm(request.POST, request.FILES)
         if form.is_valid():
             memory = form.save(commit=False)
             memory.user = request.user
             
-            # Process with ChatGPT for auto-categorization
+            # Process with ChatGPT for auto-categorization and date parsing
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(memory.content)
             
@@ -165,9 +228,99 @@ def create_memory(request):
             memory.tags = processed_data.get('tags', [])
             memory.memory_type = processed_data.get('memory_type', 'general')
             memory.importance = processed_data.get('importance', 5)
+            
+            # Apply date parsing results
+            delivery_date = processed_data.get('delivery_date')
+            if delivery_date and delivery_date != "None" and delivery_date is not None:
+                # Handle both string and datetime objects
+                if isinstance(delivery_date, str):
+                    try:
+                        from datetime import datetime
+                        memory.delivery_date = datetime.fromisoformat(delivery_date.replace('Z', '+00:00'))
+                    except (ValueError, TypeError):
+                        # If parsing fails, don't set delivery_date
+                        pass
+                else:
+                    memory.delivery_date = delivery_date
+                memory.delivery_type = processed_data.get('delivery_type', 'scheduled')
+            
+
+            
             memory.save()
             
-            messages.success(request, f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}')
+            # Auto-share with friends if privacy level is set to friends
+            if memory.privacy_level == 'friends':
+                from .models import Friendship, SharedMemory, Notification
+                friends = Friendship.get_user_friends(request.user)
+                for friend in friends:
+                    shared_memory = SharedMemory.objects.create(
+                        memory=memory,
+                        shared_by=request.user,
+                        shared_with_user=friend,
+                        share_type='user',
+                        message=f"Shared a new {memory.get_memory_type_display().lower()} memory",
+                        can_reshare=True
+                    )
+                    # Create notification
+                    Notification.objects.create(
+                        recipient=friend,
+                        sender=request.user,
+                        notification_type='memory_shared',
+                        title='New Memory Shared',
+                        message=f'{request.user.username} shared a {memory.get_memory_type_display().lower()} memory with you',
+                        action_url=f'/memora/memories/{memory.id}/',
+                        related_object_id=memory.id,
+                        related_object_type='memory'
+                    )
+            
+            # Auto-share with organization members if privacy level is organization
+            elif memory.privacy_level == 'organization':
+                from .models import OrganizationMembership, SharedMemory, Notification
+                user_orgs = request.user.organization_memberships.filter(is_active=True)
+                for membership in user_orgs:
+                    shared_memory = SharedMemory.objects.create(
+                        memory=memory,
+                        shared_by=request.user,
+                        shared_with_organization=membership.organization,
+                        share_type='organization',
+                        message=f"Shared a new {memory.get_memory_type_display().lower()} memory with {membership.organization.name}",
+                        can_reshare=True
+                    )
+                    # Create notifications for all organization members
+                    org_members = User.objects.filter(
+                        organization_memberships__organization=membership.organization,
+                        organization_memberships__is_active=True
+                    ).exclude(id=request.user.id)
+                    for member in org_members:
+                        Notification.objects.create(
+                            recipient=member,
+                            sender=request.user,
+                            notification_type='memory_shared',
+                            title='New Memory Shared',
+                            message=f'{request.user.username} shared a {memory.get_memory_type_display().lower()} memory with {membership.organization.name}',
+                            action_url=f'/memora/memories/{memory.id}/',
+                            related_object_id=memory.id,
+                            related_object_type='memory'
+                        )
+            
+            # Create success message with date info
+            success_msg = f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}'
+            if memory.delivery_date:
+                success_msg += f' | Scheduled for: {memory.delivery_date.strftime("%B %d, %Y at %I:%M %p")}'
+            
+            # Add sharing info to success message
+            if memory.privacy_level == 'friends':
+                friends_count = len(Friendship.get_user_friends(request.user))
+                if friends_count > 0:
+                    success_msg += f' | Shared with {friends_count} friend{"s" if friends_count != 1 else ""}'
+            elif memory.privacy_level == 'organization':
+                orgs_count = request.user.organization_memberships.filter(is_active=True).count()
+                if orgs_count > 0:
+                    success_msg += f' | Shared with {orgs_count} organization{"s" if orgs_count != 1 else ""}'
+            
+
+            
+            messages.success(request, success_msg)
             return redirect('memory_assistant:memory_detail', memory_id=memory.id)
     else:
         form = MemoryForm()
@@ -239,7 +392,14 @@ def create_test_memory(request):
 @login_required
 def memory_detail(request, memory_id):
     """View a specific memory"""
-    memory = get_object_or_404(Memory, id=memory_id, user=request.user)
+    memory = get_object_or_404(Memory, id=memory_id)
+    
+    # Check if user can view this memory based on privacy settings
+    if not memory.can_be_viewed_by(request.user):
+        return render(request, 'memory_assistant/memory_not_accessible.html', {
+            'memory_id': memory_id,
+            'reason': 'privacy'
+        }, status=403)
     
     context = {
         'memory': memory,
@@ -254,8 +414,19 @@ def edit_memory(request, memory_id):
     memory = get_object_or_404(Memory, id=memory_id, user=request.user)
     
     if request.method == 'POST':
-        form = MemoryForm(request.POST, instance=memory)
+        form = MemoryForm(request.POST, request.FILES, instance=memory)
         if form.is_valid():
+            # Handle image removal
+            if request.POST.get('clear-image'):
+                if memory.image:
+                    # Delete the old image file
+                    if os.path.isfile(memory.image.path):
+                        os.remove(memory.image.path)
+                    memory.image = None
+            
+            # Get the old privacy level before saving changes
+            old_privacy_level = Memory.objects.get(id=memory.id).privacy_level
+            
             memory = form.save(commit=False)
             
             # Reprocess with ChatGPT if content changed
@@ -265,6 +436,38 @@ def edit_memory(request, memory_id):
             memory.summary = processed_data.get('summary', '')
             memory.tags = processed_data.get('tags', [])
             memory.save()
+            
+            # Handle privacy level changes for sharing
+            if old_privacy_level != memory.privacy_level:
+                from .models import SharedMemory
+                # Remove old shares if privacy changed
+                SharedMemory.objects.filter(memory=memory).delete()
+                
+                # Create new shares based on new privacy level
+                if memory.privacy_level == 'friends':
+                    from .models import Friendship
+                    friends = Friendship.get_user_friends(request.user)
+                    for friend in friends:
+                        SharedMemory.objects.create(
+                            memory=memory,
+                            shared_by=request.user,
+                            shared_with_user=friend,
+                            share_type='user',
+                            message=f"Updated privacy settings - now shared with friends",
+                            can_reshare=True
+                        )
+                elif memory.privacy_level == 'organization':
+                    from .models import OrganizationMembership
+                    user_orgs = request.user.organization_memberships.filter(is_active=True)
+                    for membership in user_orgs:
+                        SharedMemory.objects.create(
+                            memory=memory,
+                            shared_by=request.user,
+                            shared_with_organization=membership.organization,
+                            share_type='organization',
+                            message=f"Updated privacy settings - now shared with {membership.organization.name}",
+                            can_reshare=True
+                        )
             
             messages.success(request, 'Memory updated successfully!')
             return redirect('memory_assistant:memory_detail', memory_id=memory.id)
@@ -282,8 +485,13 @@ def edit_memory(request, memory_id):
 
 @login_required
 def delete_memory(request, memory_id):
-    """Delete a memory"""
-    memory = get_object_or_404(Memory, id=memory_id, user=request.user)
+    """Delete a memory - only the owner can delete"""
+    memory = get_object_or_404(Memory, id=memory_id)
+    
+    # Only the owner of the memory can delete it
+    if memory.user != request.user:
+        messages.error(request, 'You can only delete your own memories.')
+        return redirect('memory_assistant:memory_detail', memory_id=memory_id)
     
     if request.method == 'POST':
         memory.delete()
@@ -322,7 +530,8 @@ def search_memories(request):
                         'content': memory.content,
                         'summary': memory.summary or '',
                         'tags': memory.tags or [],
-                        'memory_type': memory.memory_type
+                        'memory_type': memory.memory_type,
+                        'delivery_date': memory.delivery_date.isoformat() if memory.delivery_date else None
                     }
                     for memory in all_memories
                 ]
@@ -339,6 +548,45 @@ def search_memories(request):
         # If AI search didn't work or returned no results, use enhanced basic search
         if not memories:
             search_conditions = Q()
+            
+            # Check for date-specific queries first
+            query_lower = query.lower()
+            date_keywords = {
+                'today': 'today',
+                'tonight': 'today',
+                'tomorrow': 'tomorrow', 
+                'yesterday': 'yesterday',
+                'this week': 'this week',
+                'next week': 'next week',
+                'this month': 'this month',
+                'next month': 'next month'
+            }
+            
+            # Check if query contains date references
+            detected_date = None
+            for keyword, date_type in date_keywords.items():
+                if keyword in query_lower:
+                    detected_date = date_type
+                    break
+            
+            # If date detected, add delivery date filtering
+            if detected_date:
+                today = datetime.now().date()
+                if detected_date == 'today':
+                    search_conditions |= Q(delivery_date__date=today)
+                elif detected_date == 'tomorrow':
+                    search_conditions |= Q(delivery_date__date=today + timedelta(days=1))
+                elif detected_date == 'yesterday':
+                    search_conditions |= Q(delivery_date__date=today - timedelta(days=1))
+                elif detected_date == 'this week':
+                    # Find memories scheduled for this week (next 7 days)
+                    end_of_week = today + timedelta(days=7)
+                    search_conditions |= Q(delivery_date__date__gte=today, delivery_date__date__lte=end_of_week)
+                elif detected_date == 'next week':
+                    # Find memories scheduled for next week (7-14 days from now)
+                    start_of_next_week = today + timedelta(days=7)
+                    end_of_next_week = today + timedelta(days=14)
+                    search_conditions |= Q(delivery_date__date__gte=start_of_next_week, delivery_date__date__lte=end_of_next_week)
             
             # Search in content and summary
             search_conditions |= Q(content__icontains=query)
@@ -383,7 +631,8 @@ def search_memories(request):
             memory_data = [
                 {
                     'content': memory.content,
-                    'tags': memory.tags or []
+                    'tags': memory.tags or [],
+                    'delivery_date': memory.delivery_date.isoformat() if memory.delivery_date else None
                 } for memory in user_memories
             ]
             
@@ -447,7 +696,19 @@ def quick_add_memory(request):
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(content)
             
-            # Create memory with AI categorization
+            # Handle delivery_date properly
+            delivery_date = processed_data.get('delivery_date')
+            if delivery_date and delivery_date != "None" and delivery_date is not None:
+                if isinstance(delivery_date, str):
+                    try:
+                        from datetime import datetime
+                        delivery_date = datetime.fromisoformat(delivery_date.replace('Z', '+00:00'))
+                    except (ValueError, TypeError):
+                        delivery_date = None
+            else:
+                delivery_date = None
+            
+            # Create memory with AI categorization and date parsing
             memory = Memory.objects.create(
                 user=request.user,
                 content=content,
@@ -455,15 +716,23 @@ def quick_add_memory(request):
                 importance=processed_data.get('importance', 5),
                 summary=processed_data.get('summary', ''),
                 ai_reasoning=processed_data.get('reasoning', ''),
-                tags=processed_data.get('tags', [])
+                tags=processed_data.get('tags', []),
+                delivery_date=delivery_date,
+                delivery_type=processed_data.get('delivery_type', 'immediate')
             )
+            
+            # Create success message with date info
+            success_msg = f'Memory added successfully! Categorized as: {memory.get_memory_type_display()}'
+            if memory.delivery_date:
+                success_msg += f' | Scheduled for: {memory.delivery_date.strftime("%B %d, %Y at %I:%M %p")}'
             
             return JsonResponse({
                 'success': True,
                 'memory_id': memory.id,
-                'message': f'Memory added successfully! Categorized as: {memory.get_memory_type_display()}',
+                'message': success_msg,
                 'category': memory.memory_type,
-                'importance': memory.importance
+                'importance': memory.importance,
+                'scheduled_date': memory.delivery_date.isoformat() if memory.delivery_date else None
             })
             
         except json.JSONDecodeError:
@@ -592,11 +861,20 @@ def voice_search_memories(request):
             
             print(f"DEBUG: Searching for query: '{query}'")  # Debug log
             
-            # Search memories with more flexible matching
+            # Search memories with more flexible matching - include both own and shared memories
+            from .models import SharedMemory
+            
+            # Get shared memory IDs first
+            shared_memory_objects = SharedMemory.objects.filter(
+                Q(shared_with_user=request.user) | 
+                Q(shared_with_organization__memberships__user=request.user, shared_with_organization__memberships__is_active=True)
+            ).select_related('memory').values_list('memory', flat=True)
+            
+            # Create a single query that includes both own and shared memories
             memories = Memory.objects.filter(
-                user=request.user,
+                Q(user=request.user) | Q(id__in=shared_memory_objects),
                 is_archived=False
-            )
+            ).order_by('-created_at')
             
             print(f"DEBUG: Total memories for user: {memories.count()}")  # Debug log
             
@@ -611,26 +889,176 @@ def voice_search_memories(request):
             # Create a more flexible search - try multiple approaches
             search_conditions = Q()
             
-            # First try: exact phrase match
-            search_conditions |= Q(content__icontains=query)
-            search_conditions |= Q(summary__icontains=query)
+            # CHECK FOR DATE FILTERING FIRST (like regular search function)
+            query_lower = query.lower()
+            date_patterns = {
+                r'\b(today|tonight)\b': 'today',
+                r'\b(tomorrow)\b': 'tomorrow',
+                r'\b(yesterday)\b': 'yesterday',
+                r'\b(this week)\b': 'this_week',
+                r'\b(next week)\b': 'next_week'
+            }
             
-            # Second try: individual word matches (more lenient)
-            for word in query_words:
-                if len(word) >= 2:  # Allow shorter words
+            detected_date = None
+            for pattern, date_type in date_patterns.items():
+                if re.search(pattern, query_lower):
+                    detected_date = date_type
+                    print(f"DEBUG: Detected date reference: {detected_date}")
+                    break
+            
+            # If date detected, prioritize DATE FILTERING with content search
+            if detected_date:
+                today = datetime.now().date()
+                date_filter = Q()
+                
+                if detected_date == 'today':
+                    date_filter = Q(delivery_date__date=today)
+                    print(f"DEBUG: Added today filter for date: {today}")
+                elif detected_date == 'tomorrow':
+                    date_filter = Q(delivery_date__date=today + timedelta(days=1))
+                elif detected_date == 'yesterday':
+                    date_filter = Q(delivery_date__date=today - timedelta(days=1))
+                elif detected_date == 'this_week':
+                    # Find memories scheduled for this week (next 7 days)
+                    end_of_week = today + timedelta(days=7)
+                    date_filter = Q(delivery_date__date__gte=today, delivery_date__date__lte=end_of_week)
+                elif detected_date == 'next_week':
+                    # Find memories scheduled for next week (7-14 days from now)
+                    start_of_next_week = today + timedelta(days=7)
+                    end_of_next_week = today + timedelta(days=14)
+                    date_filter = Q(delivery_date__date__gte=start_of_next_week, delivery_date__date__lte=end_of_next_week)
+                
+                # Create content search conditions
+                content_search = Q()
+                content_search |= Q(content__icontains=query)
+                content_search |= Q(summary__icontains=query)
+                content_search |= Q(tags__contains=[query])
+                content_search |= Q(ai_reasoning__icontains=query)
+                
+                # Filter out common stop words that shouldn't be searched individually
+                stop_words = {
+                    'what', 'should', 'i', 'you', 'we', 'they', 'he', 'she', 'it', 'the', 'a', 'an', 
+                    'and', 'or', 'but', 'to', 'for', 'of', 'in', 'on', 'at', 'by', 'with', 'from',
+                    'say', 'tell', 'ask', 'do', 'be', 'is', 'are', 'was', 'were', 'have', 'has', 'had',
+                    'will', 'would', 'could', 'should', 'may', 'might', 'can', 'about', 'how', 'when',
+                    'where', 'why', 'who', 'that', 'this', 'these', 'those', 'my', 'your', 'his', 'her',
+                    'today', 'tomorrow', 'yesterday'  # Include date words
+                }
+                
+                # Individual meaningful word matches
+                meaningful_words = []
+                for word in query_words:
+                    word_clean = word.lower().strip('.,!?;:"()[]{}')
+                    if len(word_clean) >= 3 and word_clean not in stop_words:
+                        meaningful_words.append(word_clean)
+                
+                print(f"DEBUG: Meaningful words for date search: {meaningful_words}")
+                
+                # Only search for meaningful words
+                for word in meaningful_words:
+                    content_search |= Q(content__icontains=word)
+                    content_search |= Q(summary__icontains=word)
+                    content_search |= Q(tags__contains=[word])
+                
+                # Combine date filter AND content search (both must be true)
+                search_conditions = date_filter & content_search
+                print(f"DEBUG: Using date-filtered search for {detected_date}")
+                
+            else:
+                # No date detected, use regular content search
+                search_conditions |= Q(content__icontains=query)
+                search_conditions |= Q(summary__icontains=query)
+                search_conditions |= Q(tags__contains=[query])
+                search_conditions |= Q(ai_reasoning__icontains=query)
+                
+                # Filter out common stop words that shouldn't be searched individually
+                stop_words = {
+                    'what', 'should', 'i', 'you', 'we', 'they', 'he', 'she', 'it', 'the', 'a', 'an', 
+                    'and', 'or', 'but', 'to', 'for', 'of', 'in', 'on', 'at', 'by', 'with', 'from',
+                    'say', 'tell', 'ask', 'do', 'be', 'is', 'are', 'was', 'were', 'have', 'has', 'had',
+                    'will', 'would', 'could', 'should', 'may', 'might', 'can', 'about', 'how', 'when',
+                    'where', 'why', 'who', 'that', 'this', 'these', 'those', 'my', 'your', 'his', 'her'
+                }
+                
+                # Individual word matches (more targeted)
+                meaningful_words = []
+                for word in query_words:
+                    word_clean = word.lower().strip('.,!?;:"()[]{}')
+                    if len(word_clean) >= 3 and word_clean not in stop_words:
+                        meaningful_words.append(word_clean)
+                
+                print(f"DEBUG: Meaningful words for search: {meaningful_words}")
+                
+                # Only search for meaningful words
+                for word in meaningful_words:
                     search_conditions |= Q(content__icontains=word)
                     search_conditions |= Q(summary__icontains=word)
-            
-            # Third try: partial matches for common words
-            common_words = ['plan', 'today', 'meeting', 'work', 'home', 'buy', 'need']
-            for word in common_words:
-                if word in query.lower():
-                    search_conditions |= Q(content__icontains=word)
-                    search_conditions |= Q(summary__icontains=word)
+                    search_conditions |= Q(tags__contains=[word])
+                
+                # Partial matches for common meaningful words
+                common_words = ['plan', 'meeting', 'work', 'home', 'buy', 'need', 'project', 'task']
+                for word in common_words:
+                    if word in query.lower():
+                        search_conditions |= Q(content__icontains=word)
+                        search_conditions |= Q(summary__icontains=word)
             
             memories = memories.filter(search_conditions)
             
             print(f"DEBUG: Memories after filtering: {memories.count()}")  # Debug log
+            
+            # If no memories found with date filter and it was a date-specific query, provide clear feedback
+            if detected_date and memories.count() == 0:
+                print(f"DEBUG: No memories found for {detected_date} with content matching query")
+                # Check if there are any memories scheduled for that date (without content filter)
+                # Include both own and shared memories
+                date_only_memories = Memory.objects.filter(
+                    Q(user=request.user) | Q(id__in=shared_memory_objects),
+                    is_archived=False
+                )
+                if detected_date == 'today':
+                    date_only_memories = date_only_memories.filter(delivery_date__date=datetime.now().date())
+                
+                print(f"DEBUG: Total memories scheduled for {detected_date}: {date_only_memories.count()}")
+                
+                if date_only_memories.count() > 0:
+                    # There are memories for today, but none match the content search
+                    # Show the actual memories scheduled for today as suggestions
+                    suggestions = []
+                    for memory in date_only_memories[:5]:  # Show up to 5 memories
+                        days_old = (datetime.now() - memory.created_at.replace(tzinfo=None)).days
+                        if days_old == 0:
+                            recency = "Today"
+                        elif days_old == 1:
+                            recency = "Yesterday"
+                        elif days_old <= 7:
+                            recency = f"{days_old} days ago"
+                        else:
+                            recency = memory.created_at.strftime('%Y-%m-%d')
+                        
+                        suggestions.append({
+                            'id': memory.id,
+                            'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                            'summary': memory.summary,
+                            'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
+                            'recency': recency
+                        })
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'query': query,
+                        'results': [],
+                        'message': f'No memories found matching "{query}" for {detected_date}. You have {date_only_memories.count()} other memories scheduled for {detected_date}.',
+                        'suggestions': suggestions
+                    })
+                else:
+                    # No memories at all for today
+                    return JsonResponse({
+                        'success': True,
+                        'query': query,
+                        'results': [],
+                        'message': f'No memories scheduled for {detected_date}.',
+                        'suggestions': []
+                    })
             
             # Apply contextual filtering to remove irrelevant results
             if memories.count() > 0:
@@ -695,16 +1123,17 @@ def voice_search_memories(request):
             if len(memories) == 0:
                 print("DEBUG: No memories found, using contextual AI suggestions")
                 
-                # Get user's memories for context
+                # Get user's memories for context (including shared ones)
                 user_memories = Memory.objects.filter(
-                    user=request.user,
+                    Q(user=request.user) | Q(id__in=shared_memory_objects),
                     is_archived=False
                 ).order_by('-created_at')[:10]
                 
                 memory_data = [
                     {
                         'content': memory.content,
-                        'tags': memory.tags or []
+                        'tags': memory.tags or [],
+                        'delivery_date': memory.delivery_date.isoformat() if memory.delivery_date else None
                     } for memory in user_memories
                 ]
                 
@@ -1065,11 +1494,15 @@ def important_memories(request):
 
 @login_required
 def scheduled_memories(request):
-    """Show all scheduled memories (with delivery_date)"""
+    """Show future scheduled memories (with delivery_date in the future)"""
+    from django.utils import timezone
+    now = timezone.now()
+    
     memories = Memory.objects.filter(
         user=request.user, 
-        is_archived=False
-    ).exclude(delivery_date__isnull=True).order_by('delivery_date')
+        is_archived=False,
+        delivery_date__gt=now  # Only show memories scheduled for the future
+    ).order_by('delivery_date')
     
     # Get filter parameters
     search_query = request.GET.get('q', '').strip()
@@ -1110,7 +1543,7 @@ def todays_memories(request):
     memories = Memory.objects.filter(
         user=request.user, 
         is_archived=False,
-        delivery_date=today
+        delivery_date__date=today
     ).order_by('delivery_date')
     
     # Get filter parameters
@@ -1146,10 +1579,25 @@ def todays_memories(request):
     return render(request, 'memory_assistant/filtered_memories.html', context)
 
 
+
+
+
 @login_required
 def all_memories(request):
     """Show all memories (same as memory_list but with different template)"""
-    memories = Memory.objects.filter(user=request.user, is_archived=False)
+    # Get both own and shared memories in a single query
+    from .models import SharedMemory
+    shared_memory_objects = SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory').values_list('memory', flat=True)
+    
+    # Combine own and shared memories using Q objects
+    memories = Memory.objects.filter(
+        Q(user=request.user) | Q(id__in=shared_memory_objects),
+        is_archived=False
+    )
     
     # Get filter parameters
     memory_type = request.GET.get('type')
@@ -1185,6 +1633,21 @@ def all_memories(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Create shared memory info for template
+    shared_memory_info = {}
+    for shared in SharedMemory.objects.filter(
+        Q(shared_with_user=request.user) | 
+        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
+        is_active=True
+    ).select_related('memory', 'shared_by'):
+        shared_memory_info[shared.memory.id] = {
+            'shared_by': shared.shared_by,
+            'share_type': shared.share_type,
+            'message': shared.message,
+            'created_at': shared.created_at,
+            'organization': shared.shared_with_organization if shared.share_type == 'organization' else None
+        }
+    
     context = {
         'memories': page_obj,
         'total_count': memories.count(),
@@ -1193,9 +1656,16 @@ def all_memories(request):
         'sort_by': sort_by,
         'memory_type': memory_type,
         'importance': importance,
+        'shared_memory_info': shared_memory_info,
     }
     
     return render(request, 'memory_assistant/filtered_memories.html', context)
+
+
+
+
+
+
 
 
 def register(request):

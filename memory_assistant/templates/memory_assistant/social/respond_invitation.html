@@ -1,0 +1,151 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Organization Invitation - {{ invitation.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-envelope-open me-2"></i>
+                    Organization Invitation
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Organization Info -->
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            {% if invitation.organization.logo %}
+                                <img src="{{ invitation.organization.logo.url }}" class="rounded me-3" 
+                                     style="width: 60px; height: 60px; object-fit: cover;" alt="Organization Logo">
+                            {% else %}
+                                <div class="bg-primary rounded me-3 d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="bi bi-building text-white" style="font-size: 1.5rem;"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h5 class="mb-1">{{ invitation.organization.name }}</h5>
+                                <p class="text-muted mb-1">{{ invitation.organization.get_org_type_display }} Organization</p>
+                                <span class="badge bg-{% if invitation.organization.privacy == 'public' %}success{% else %}warning{% endif %}">
+                                    {% if invitation.organization.privacy == 'public' %}
+                                        <i class="bi bi-globe"></i> Public
+                                    {% else %}
+                                        <i class="bi bi-lock"></i> Private
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% if invitation.organization.description %}
+                            <p class="mt-3 mb-0">{{ invitation.organization.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Invitation Details -->
+                <div class="mb-3">
+                    <h6><i class="bi bi-person-check"></i> Invitation Details</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Invited by:</span>
+                        <div class="d-flex align-items-center">
+                            {% if invitation.from_user.userprofile.avatar %}
+                                <img src="{{ invitation.from_user.userprofile.avatar.url }}" alt="Avatar" 
+                                     class="rounded-circle me-2" width="24" height="24">
+                            {% else %}
+                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                     style="width: 24px; height: 24px;">
+                                    <i class="bi bi-person text-white" style="font-size: 0.7rem;"></i>
+                                </div>
+                            {% endif %}
+                            <strong>{{ invitation.from_user.get_full_name|default:invitation.from_user.username }}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Your Role:</span>
+                        <span class="badge bg-{% if invitation.role == 'admin' %}danger{% elif invitation.role == 'moderator' %}warning{% elif invitation.role == 'member' %}primary{% else %}secondary{% endif %} text-uppercase">
+                            {{ invitation.role }}
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Invited on:</span>
+                        <span>{{ invitation.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    
+                    {% if invitation.message %}
+                        <div class="mt-3">
+                            <small class="text-muted">Personal Message:</small>
+                            <div class="alert alert-info py-2">
+                                <i class="bi bi-chat-quote"></i> "{{ invitation.message }}"
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Role Description -->
+                <div class="alert alert-light">
+                    <h6 class="mb-2"><i class="bi bi-info-circle"></i> {{ invitation.role|title }} Role Permissions:</h6>
+                    {% if invitation.role == 'admin' %}
+                        <ul class="mb-0 small">
+                            <li>Full access to organization management</li>
+                            <li>Can invite and remove members</li>
+                            <li>Can moderate content and discussions</li>
+                            <li>Can change organization settings</li>
+                        </ul>
+                    {% elif invitation.role == 'moderator' %}
+                        <ul class="mb-0 small">
+                            <li>Can moderate content and discussions</li>
+                            <li>Can invite members (not admins)</li>
+                            <li>Can remove regular members</li>
+                            <li>Can share and manage memories</li>
+                        </ul>
+                    {% elif invitation.role == 'member' %}
+                        <ul class="mb-0 small">
+                            <li>Can share memories with the organization</li>
+                            <li>Can participate in discussions</li>
+                            <li>Can view organization content</li>
+                            <li>Standard member privileges</li>
+                        </ul>
+                    {% else %}
+                        <ul class="mb-0 small">
+                            <li>Can view shared organization content</li>
+                            <li>Read-only access to discussions</li>
+                            <li>Cannot share memories or invite others</li>
+                            <li>Limited participation privileges</li>
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="action" value="decline" class="btn btn-outline-danger">
+                            <i class="bi bi-x-circle"></i> Decline Invitation
+                        </button>
+                        <button type="submit" name="action" value="accept" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Accept & Join
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-3">
+            <a href="{% url 'memory_assistant:notifications' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Notifications
+            </a>
+            <a href="{% url 'memory_assistant:my_organization_invitations' %}" class="btn btn-outline-primary btn-sm ms-2">
+                <i class="bi bi-envelope"></i> All My Invitations
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

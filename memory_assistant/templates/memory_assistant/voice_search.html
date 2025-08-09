@@ -50,6 +50,7 @@
                 
                 <div id="searchStatus" class="alert alert-info" style="display: none;">
                     <i class="bi bi-mic"></i> Listening for search query... Speak now!
+                    <div class="mt-1"><small>Auto-stops after 2 seconds of silence</small></div>
                 </div>
                 
                 <div id="searchResults" class="mt-4" style="display: none;">
@@ -85,12 +86,15 @@
 <script>
 let isSearching = false;
 let recognition = null;
+let silenceTimer = null;
+let lastSpeechTime = null;
+let autoStopDelay = 2000; // 2 seconds of silence before auto-stop
 
 // Check if browser supports speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;  // Changed to true for better silence detection
+    recognition.interimResults = true;  // Changed to true to detect interim results
     recognition.lang = 'en-US';
 } else {
     document.getElementById('errorMessage').textContent = 'Speech recognition is not supported in this browser. Please use Chrome or Edge.';
@@ -170,22 +174,66 @@ function startVoiceSearch() {
     
     try {
         isSearching = true;
+        lastSpeechTime = Date.now();
         document.getElementById('startVoiceSearch').style.display = 'none';
         document.getElementById('stopVoiceSearch').style.display = 'inline-block';
         document.getElementById('searchStatus').style.display = 'block';
         document.getElementById('searchResults').style.display = 'none';
         document.getElementById('searchError').style.display = 'none';
         
+        let finalTranscript = '';
+        let hasSpokenText = false;
+        
         recognition.onresult = function(event) {
-            const query = event.results[0][0].transcript;
-            document.getElementById('testSearchInput').value = query;
-            performSearch(query);
+            lastSpeechTime = Date.now();
+            clearTimeout(silenceTimer);
+            
+            // Clear timeout when speech is detected
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                    hasSpokenText = true;
+                } else {
+                    interimTranscript += transcript;
+                    if (transcript.trim().length > 0) {
+                        hasSpokenText = true;
+                    }
+                }
+            }
+            
+            // Show interim results in search input
+            const fullText = (finalTranscript + ' ' + interimTranscript).trim();
+            if (fullText) {
+                document.getElementById('testSearchInput').value = fullText;
+            }
+            
+            // Start silence detection timer
+            silenceTimer = setTimeout(() => {
+                if (hasSpokenText && finalTranscript.trim()) {
+                    // Auto-perform search after silence
+                    document.getElementById('testSearchInput').value = finalTranscript.trim();
+                    performSearch(finalTranscript.trim());
+                    stopVoiceSearch();
+                }
+            }, autoStopDelay);
         };
         
         recognition.onend = function() {
             if (isSearching) {
-                // Auto-restart if still searching
-                recognition.start();
+                // Auto-restart if still searching and no final transcript yet
+                if (!finalTranscript.trim()) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log('Recognition restart failed:', e);
+                        stopVoiceSearch();
+                    }
+                } else {
+                    stopVoiceSearch();
+                }
             } else {
                 document.getElementById('startVoiceSearch').style.display = 'inline-block';
                 document.getElementById('stopVoiceSearch').style.display = 'none';
@@ -238,6 +286,8 @@ function startVoiceSearch() {
 
 function stopVoiceSearch() {
     isSearching = false;
+    clearTimeout(silenceTimer);
+    
     if (recognition) {
         recognition.stop();
     }
