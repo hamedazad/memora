@@ -2,177 +2,446 @@
 
 {% block title %}Register - Memora{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --accent-color: #f093fb;
+        --text-dark: #2d3748;
+        --text-light: #718096;
+        --bg-light: #f7fafc;
+        --white: #ffffff;
+        --success-color: #48bb78;
+        --error-color: #f56565;
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--bg-light) 0%, #e2e8f0 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .register-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+    
+    .register-card {
+        background: var(--white);
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+        border: none;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .register-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: var(--white);
+        padding: 3rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .register-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+    }
+    
+    .register-header-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .register-logo {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .register-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .register-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .register-body {
+        padding: 3rem 2rem;
+    }
+    
+    .form-floating {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-floating > .form-control {
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 1rem 0.75rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-floating > .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .form-floating > label {
+        padding: 1rem 0.75rem;
+        color: var(--text-light);
+    }
+    
+    .btn-register {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .alert {
+        border-radius: 12px;
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-success {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success-color);
+        border-left: 4px solid var(--success-color);
+    }
+    
+    .alert-danger {
+        background: rgba(245, 101, 101, 0.1);
+        color: var(--error-color);
+        border-left: 4px solid var(--error-color);
+    }
+    
+    .timezone-preview {
+        background: rgba(102, 126, 234, 0.1);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-top: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .features-preview {
+        background: var(--bg-light);
+        padding: 2rem;
+        border-radius: 0 0 24px 24px;
+    }
+    
+    .feature-item {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: var(--white);
+        font-size: 1.5rem;
+    }
+    
+    .feature-title {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .feature-desc {
+        color: var(--text-light);
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+    
+    .login-link {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .login-link a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+    
+    .login-link a:hover {
+        color: var(--secondary-color);
+    }
+    
+    .form-text {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-top: 0.25rem;
+    }
+    
+    .text-danger {
+        color: var(--error-color) !important;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .register-container {
+            padding: 1rem;
+        }
+        
+        .register-header {
+            padding: 2rem 1.5rem;
+        }
+        
+        .register-body {
+            padding: 2rem 1.5rem;
+        }
+        
+        .register-logo {
+            font-size: 2rem;
+        }
+        
+        .register-title {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h1 class="mb-2">
-                        <i class="bi bi-brain me-2"></i>
-                        Memora
-                    </h1>
-                    <h4 class="mb-0">
-                        <i class="bi bi-person-plus me-2"></i>
-                        Create Your Account
-                    </h4>
-                    <p class="mb-0 mt-2">Join Memora and start managing your memories with AI</p>
-                </div>
-                <div class="card-body p-4">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="register-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="register-card">
+                    <!-- Header -->
+                    <div class="register-header">
+                        <div class="register-header-content">
+                            <div class="register-logo">
+                                <i class="bi bi-brain"></i> Memora
                             </div>
-                        {% endfor %}
-                    {% endif %}
+                            <h1 class="register-title">Create Your Account</h1>
+                            <p class="register-subtitle">Join thousands of users managing memories with AI</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Section -->
+                    <div class="register-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
 
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
-                                    <i class="bi bi-person me-1"></i>First Name
-                                </label>
-                                {{ form.first_name }}
-                                {% if form.first_name.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.first_name.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
                             
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
-                                    <i class="bi bi-person me-1"></i>Last Name
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        {{ form.first_name }}
+                                        <label for="{{ form.first_name.id_for_label }}">
+                                            <i class="bi bi-person me-1"></i>First Name
+                                        </label>
+                                        {% if form.first_name.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.first_name.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        {{ form.last_name }}
+                                        <label for="{{ form.last_name.id_for_label }}">
+                                            <i class="bi bi-person me-1"></i>Last Name
+                                        </label>
+                                        {% if form.last_name.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.last_name.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-floating">
+                                {{ form.username }}
+                                <label for="{{ form.username.id_for_label }}">
+                                    <i class="bi bi-at me-1"></i>Username
                                 </label>
-                                {{ form.last_name }}
-                                {% if form.last_name.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.last_name.errors %}
+                                {% if form.username.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.username.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if form.username.help_text %}
+                                    <div class="form-text">{{ form.username.help_text }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-floating">
+                                {{ form.email }}
+                                <label for="{{ form.email.id_for_label }}">
+                                    <i class="bi bi-envelope me-1"></i>Email Address
+                                </label>
+                                {% if form.email.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.email.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">
-                                <i class="bi bi-at me-1"></i>Username
-                            </label>
-                            {{ form.username }}
-                            {% if form.username.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.username.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                            <div class="form-floating">
+                                {{ form.country }}
+                                <label for="{{ form.country.id_for_label }}">
+                                    <i class="bi bi-globe me-1"></i>Country
+                                </label>
+                                {% if form.country.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.country.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if form.country.help_text %}
+                                    <div class="form-text">{{ form.country.help_text }}</div>
+                                {% endif %}
+                                <div id="timezone-preview" class="timezone-preview" style="display: none;">
+                                    <i class="bi bi-clock me-1"></i>
+                                    <strong>Your timezone will be set to:</strong> <span id="timezone-name"></span>
+                                    <br>
+                                    <small>Current time: <span id="timezone-time"></span></small>
                                 </div>
-                            {% endif %}
-                            {% if form.username.help_text %}
-                                <div class="form-text">{{ form.username.help_text }}</div>
-                            {% endif %}
-                        </div>
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.email.id_for_label }}" class="form-label">
-                                <i class="bi bi-envelope me-1"></i>Email Address
-                            </label>
-                            {{ form.email }}
-                            {% if form.email.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.email.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                            <div class="form-floating">
+                                {{ form.password1 }}
+                                <label for="{{ form.password1.id_for_label }}">
+                                    <i class="bi bi-lock me-1"></i>Password
+                                </label>
+                                {% if form.password1.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.password1.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if form.password1.help_text %}
+                                    <div class="form-text">{{ form.password1.help_text }}</div>
+                                {% endif %}
+                            </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.password1.id_for_label }}" class="form-label">
-                                <i class="bi bi-lock me-1"></i>Password
-                            </label>
-                            {{ form.password1 }}
-                            {% if form.password1.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.password1.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            {% if form.password1.help_text %}
-                                <div class="form-text">{{ form.password1.help_text }}</div>
-                            {% endif %}
-                        </div>
+                            <div class="form-floating">
+                                {{ form.password2 }}
+                                <label for="{{ form.password2.id_for_label }}">
+                                    <i class="bi bi-lock me-1"></i>Confirm Password
+                                </label>
+                                {% if form.password2.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.password2.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% if form.password2.help_text %}
+                                    <div class="form-text">{{ form.password2.help_text }}</div>
+                                {% endif %}
+                            </div>
 
-                        <div class="mb-4">
-                            <label for="{{ form.password2.id_for_label }}" class="form-label">
-                                <i class="bi bi-lock me-1"></i>Confirm Password
-                            </label>
-                            {{ form.password2 }}
-                            {% if form.password2.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.password2.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            {% if form.password2.help_text %}
-                                <div class="form-text">{{ form.password2.help_text }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-register">
                                 <i class="bi bi-person-plus me-2"></i>
                                 Create Account
                             </button>
-                        </div>
-                    </form>
+                        </form>
 
-                    <hr class="my-4">
-
-                    <div class="text-center">
-                        <p class="mb-0">
-                            Already have an account? 
-                            <a href="{% url 'login' %}" class="text-decoration-none">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
-                            </a>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Features Preview -->
-            <div class="row mt-4">
-                <div class="col-md-4 text-center">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <i class="bi bi-mic fa-2x text-primary mb-2"></i>
-                            <h6>Voice Input</h6>
-                            <small class="text-muted">Create memories with your voice</small>
+                        <div class="login-link">
+                            <p class="mb-0">
+                                Already have an account? 
+                                <a href="{% url 'login' %}">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                                </a>
+                            </p>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <i class="bi bi-robot fa-2x text-primary mb-2"></i>
-                            <h6>AI Powered</h6>
-                            <small class="text-muted">Smart recommendations and insights</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <i class="bi bi-search fa-2x text-primary mb-2"></i>
-                            <h6>Smart Search</h6>
-                            <small class="text-muted">Find memories instantly</small>
+                    
+                    <!-- Features Preview -->
+                    <div class="features-preview">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="bi bi-mic"></i>
+                                    </div>
+                                    <div class="feature-title">Voice Input</div>
+                                    <div class="feature-desc">Create memories with your voice</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="bi bi-robot"></i>
+                                    </div>
+                                    <div class="feature-title">AI Powered</div>
+                                    <div class="feature-desc">Smart recommendations and insights</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                    <div class="feature-title">Smart Search</div>
+                                    <div class="feature-desc">Find memories instantly</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -180,4 +449,78 @@
         </div>
     </div>
 </div>
+
+<script>
+// Simplified timezone mapping for faster loading
+const countryTimezoneMap = {
+    'US': 'America/New_York', 'CA': 'America/Toronto', 'GB': 'Europe/London',
+    'DE': 'Europe/Berlin', 'FR': 'Europe/Paris', 'IT': 'Europe/Rome',
+    'ES': 'Europe/Madrid', 'AU': 'Australia/Sydney', 'JP': 'Asia/Tokyo',
+    'CN': 'Asia/Shanghai', 'IN': 'Asia/Kolkata', 'BR': 'America/Sao_Paulo'
+};
+
+const timezoneDisplayNames = {
+    'America/New_York': 'Eastern Time (US & Canada)',
+    'America/Toronto': 'Eastern Time (Canada)',
+    'Europe/London': 'London',
+    'Europe/Berlin': 'Berlin',
+    'Europe/Paris': 'Paris',
+    'Europe/Rome': 'Rome',
+    'Europe/Madrid': 'Madrid',
+    'Australia/Sydney': 'Sydney',
+    'Asia/Tokyo': 'Tokyo',
+    'Asia/Shanghai': 'Shanghai',
+    'Asia/Kolkata': 'India',
+    'America/Sao_Paulo': 'Sao Paulo'
+};
+
+function getCurrentTimeInTimezone(timezoneName) {
+    try {
+        const now = new Date();
+        const options = {
+            timeZone: timezoneName,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        };
+        return new Intl.DateTimeFormat('en-US', options).format(now);
+    } catch (error) {
+        return 'Error getting time';
+    }
+}
+
+function updateTimezonePreview() {
+    const countrySelect = document.getElementById('country-select');
+    const timezonePreview = document.getElementById('timezone-preview');
+    const timezoneName = document.getElementById('timezone-name');
+    const timezoneTime = document.getElementById('timezone-time');
+    
+    if (countrySelect && countrySelect.value) {
+        const timezone = countryTimezoneMap[countrySelect.value];
+        if (timezone) {
+            const displayName = timezoneDisplayNames[timezone] || timezone;
+            const currentTime = getCurrentTimeInTimezone(timezone);
+            
+            timezoneName.textContent = displayName;
+            timezoneTime.textContent = currentTime;
+            timezonePreview.style.display = 'block';
+        } else {
+            timezonePreview.style.display = 'none';
+        }
+    } else if (timezonePreview) {
+        timezonePreview.style.display = 'none';
+    }
+}
+
+// Add event listener when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const countrySelect = document.getElementById('country-select');
+    if (countrySelect) {
+        countrySelect.addEventListener('change', updateTimezonePreview);
+    }
+});
+</script>
 {% endblock %} 

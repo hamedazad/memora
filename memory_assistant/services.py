@@ -70,8 +70,13 @@ class ChatGPTService:
             r'\b(in \d+ months?)\b': 'months_ahead',
             r'\b(next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun))\b': 'next_day_of_week',
             r'\b(on \w+)\b': 'day_of_week',
-            r'\b(at \d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:am|pm))?)\b': 'time',
-            r'\b(\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:am|pm))?)\b': 'time',
+            r'\b(at \d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?)\b': 'time',
+            r'\b(for \d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?)\b': 'time',
+            r'\b(\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?)\b': 'time',
+            # Additional patterns without word boundaries to catch AM/PM
+            r'\b(at \d{1,2}:\d{2}(?::\d{2})?)\s+(?:am|pm|a\.m\.|p\.m\.)': 'time',
+            r'\b(for \d{1,2}:\d{2}(?::\d{2})?)\s+(?:am|pm|a\.m\.|p\.m\.)': 'time',
+            r'\b(\d{1,2}:\d{2}(?::\d{2})?)\s+(?:am|pm|a\.m\.|p\.m\.)': 'time',
         }
         
         # Time patterns
@@ -216,18 +221,23 @@ class ChatGPTService:
                                 days_ahead = 7  # Next week
                             delivery_date = (now + timedelta(days=days_ahead)).replace(hour=9, minute=0, second=0, microsecond=0)
                 elif date_type == 'time':
-                    # Extract time
-                    time_match = re.search(r'(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(am|pm))?', match.group(), re.IGNORECASE)
+                    # Extract time - handle both "at" and "for" cases
+                    time_match = re.search(r'(?:at|for)\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(am|pm|a\.m\.|p\.m\.))?', match.group(), re.IGNORECASE)
+                    if not time_match:
+                        # Fallback: try to extract time without "at" or "for"
+                        time_match = re.search(r'(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(am|pm|a\.m\.|p\.m\.))?', match.group(), re.IGNORECASE)
                     if time_match:
                         hour = int(time_match.group(1))
                         minute = int(time_match.group(2))
                         ampm = time_match.group(4)
                         
                         # Handle AM/PM
-                        if ampm and ampm.lower() == 'pm' and hour != 12:
-                            hour += 12
-                        elif ampm and ampm.lower() == 'am' and hour == 12:
-                            hour = 0
+                        if ampm:
+                            ampm_lower = ampm.lower().replace('.', '')  # Remove dots for comparison
+                            if ampm_lower == 'pm' and hour != 12:
+                                hour += 12
+                            elif ampm_lower == 'am' and hour == 12:
+                                hour = 0
                         
                         # If we already have a date, just update the time
                         if delivery_date:
@@ -342,6 +352,11 @@ class ChatGPTService:
                 # Ensure we don't have string "None" values
                 result['delivery_date'] = None
             
+            # Only allow summaries for memories with long content (>= 200 characters)
+            content_length = len((content or '').strip())
+            if content_length < 200:
+                result['summary'] = ''
+            
             return result
             
         except Exception as e:
@@ -365,6 +380,11 @@ class ChatGPTService:
             else:
                 # Ensure we don't have string "None" values
                 fallback_result['delivery_date'] = None
+
+            # Apply the same summary restriction on fallback
+            content_length = len((content or '').strip())
+            if content_length < 200:
+                fallback_result['summary'] = ''
             
             return fallback_result
     
@@ -445,7 +465,7 @@ class ChatGPTService:
                 "What did you learn today?",
                 "Any important meetings or conversations?",
                 "What ideas came to mind?",
-                "Any personal achievements to remember?"
+                "Any personal milestones to remember?"
             ]
         
         if not self.is_available():

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import os
+from datetime import datetime, timedelta
 
 
 def memory_image_path(instance, filename):
@@ -64,6 +65,14 @@ class Memory(models.Model):
     allow_comments = models.BooleanField(default=True, help_text="Allow comments on this memory")
     allow_likes = models.BooleanField(default=True, help_text="Allow likes/reactions on this memory")
     shared_count = models.PositiveIntegerField(default=0, help_text="Number of times this memory has been shared")
+    
+    # Scheduled memory action fields
+    is_completed = models.BooleanField(default=False, help_text="Whether this scheduled memory has been completed")
+    completed_at = models.DateTimeField(null=True, blank=True, help_text="When this memory was completed")
+    declined_at = models.DateTimeField(null=True, blank=True, help_text="When this memory was declined")
+    decline_reason = models.CharField(max_length=200, blank=True, help_text="Reason for declining the memory")
+    snooze_count = models.PositiveIntegerField(default=0, help_text="Number of times this memory has been snoozed")
+    last_snoozed_at = models.DateTimeField(null=True, blank=True, help_text="When this memory was last snoozed")
     
 
     
@@ -156,6 +165,29 @@ class UserProfile(models.Model):
         ],
         default='friends',
         help_text="Default privacy level for memories"
+    )
+    user_timezone = models.CharField(
+        max_length=50,
+        default='America/New_York',
+        choices=[
+            ('UTC', 'UTC'),
+            ('America/New_York', 'Eastern Time (US & Canada)'),
+            ('America/Chicago', 'Central Time (US & Canada)'),
+            ('America/Denver', 'Mountain Time (US & Canada)'),
+            ('America/Los_Angeles', 'Pacific Time (US & Canada)'),
+            ('America/Anchorage', 'Alaska Time'),
+            ('Pacific/Honolulu', 'Hawaii Time'),
+            ('Europe/London', 'London'),
+            ('Europe/Paris', 'Paris'),
+            ('Europe/Berlin', 'Berlin'),
+            ('Europe/Moscow', 'Moscow'),
+            ('Asia/Tokyo', 'Tokyo'),
+            ('Asia/Shanghai', 'Shanghai'),
+            ('Asia/Kolkata', 'India'),
+            ('Australia/Sydney', 'Sydney'),
+            ('Pacific/Auckland', 'Auckland'),
+        ],
+        help_text="User's preferred timezone"
     )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -446,3 +478,114 @@ class Notification(models.Model):
     
     def __str__(self):
         return f"Notification for {self.recipient.username}: {self.title}"
+
+
+class SmartReminder(models.Model):
+    """Smart reminder system for memories"""
+    REMINDER_TYPES = [
+        ('time_based', 'Time Based'),
+        ('date_based', 'Date Based'),
+        ('frequency_based', 'Frequency Based'),
+        ('location_based', 'Location Based'),
+        ('context_based', 'Context Based'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+    
+    memory = models.ForeignKey(Memory, on_delete=models.CASCADE, related_name='smart_reminders')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smart_reminders')
+    reminder_type = models.CharField(max_length=50, choices=REMINDER_TYPES)
+    priority = models.CharField(max_length=20, choices=PRIORITY_LEVELS, default='medium')
+    trigger_conditions = models.JSONField(default=dict)  # Store conditions as JSON
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_triggered = models.DateTimeField(null=True, blank=True)
+    next_trigger = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['memory', 'user', 'reminder_type']
+    
+    def __str__(self):
+        return f"Reminder for {self.memory.content[:50]} - {self.reminder_type}"
+    
+    def should_trigger(self):
+        """Check if reminder should be triggered based on conditions"""
+        if not self.is_active:
+            return False
+            
+        now = timezone.now()
+        
+        if self.reminder_type == 'time_based':
+            return self._check_time_based_trigger(now)
+        elif self.reminder_type == 'date_based':
+            return self._check_date_based_trigger(now)
+        elif self.reminder_type == 'frequency_based':
+            return self._check_frequency_based_trigger(now)
+        
+        return False
+    
+    def _check_time_based_trigger(self, now):
+        """Check time-based trigger conditions"""
+        if not self.next_trigger:
+            return False
+        return now >= self.next_trigger
+    
+    def _check_date_based_trigger(self, now):
+        """Check date-based trigger conditions"""
+        target_date = self.trigger_conditions.get('target_date')
+        if not target_date:
+            return False
+        
+        try:
+            target_date = datetime.fromisoformat(target_date.replace('Z', '+00:00'))
+            return now.date() >= target_date.date()
+        except:
+            return False
+    
+    def _check_frequency_based_trigger(self, now):
+        """Check frequency-based trigger conditions"""
+        if not self.next_trigger:
+            return False
+        return now >= self.next_trigger
+    
+    def calculate_next_trigger(self):
+        """Calculate when the reminder should trigger next"""
+        if self.reminder_type == 'frequency_based':
+            frequency = self.trigger_conditions.get('frequency', 'daily')
+            if frequency == 'daily':
+                self.next_trigger = timezone.now() + timedelta(days=1)
+            elif frequency == 'weekly':
+                self.next_trigger = timezone.now() + timedelta(weeks=1)
+            elif frequency == 'monthly':
+                self.next_trigger = timezone.now() + timedelta(days=30)
+        elif self.reminder_type == 'time_based':
+            # For time-based reminders, the offset_minutes is already calculated
+            # to be 15 minutes before the target time, so we can use it directly
+            offset_minutes = self.trigger_conditions.get('offset_minutes', 0)
+            if offset_minutes > 0:
+                self.next_trigger = timezone.now() + timedelta(minutes=offset_minutes)
+            else:
+                # Fallback: set for 15 minutes from now
+                self.next_trigger = timezone.now() + timedelta(minutes=15)
+
+
+class ReminderTrigger(models.Model):
+    """Track when reminders were triggered"""
+    reminder = models.ForeignKey(SmartReminder, on_delete=models.CASCADE, related_name='triggers')
+    triggered_at = models.DateTimeField(auto_now_add=True)
+    trigger_reason = models.TextField()
+    was_dismissed = models.BooleanField(default=False)
+    was_acted_upon = models.BooleanField(default=False)
+    action_taken = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-triggered_at']
+    
+    def __str__(self):
+        return f"Trigger for {self.reminder.memory.content[:30]} at {self.triggered_at}"

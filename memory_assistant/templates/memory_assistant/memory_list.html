@@ -5,82 +5,197 @@
 
 {% block content %}
 <div class="row">
-    <!-- Filters and Search -->
+    <!-- Modern Filters and Search -->
     <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-funnel"></i> Filters & Search
+        <div class="modern-filters-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div class="filters-header mb-3">
+                <h5 class="mb-0" style="color: #495057; font-weight: 600;">
+                    <i class="bi bi-funnel me-2" style="color: #667eea;"></i> Filters & Search
                 </h5>
+                <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Refine your memories with powerful filters</p>
             </div>
-            <div class="card-body">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-3">
-                        <label for="q" class="form-label">Search</label>
-                        <input type="text" class="form-control" id="q" name="q" 
-                               value="{{ search_query }}" placeholder="Search content, tags, or summary...">
+            
+            <form method="GET" class="modern-filters-form">
+                <div class="row g-3">
+                    <!-- Search Input -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="filter-group">
+                            <label for="q" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-search me-1" style="color: #667eea;"></i>Search
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <input type="text" class="form-control border-0 shadow-none" id="q" name="q" 
+                                       value="{{ search_query }}" placeholder="Search memories..."
+                                       style="border: none; outline: none; padding: 0.75rem 1rem;">
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label for="type" class="form-label">Type</label>
-                        <select class="form-select" id="type" name="type">
-                            <option value="">All Types</option>
-                            {% for value, label in memory_types %}
-                                <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
+                    
+                    <!-- Date Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="filter-group">
+                            <label for="date_filter" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-calendar3 me-1" style="color: #667eea;"></i>Date
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <input type="date" class="form-control border-0 shadow-none" id="date_filter" name="date_filter" 
+                                       value="{{ selected_date }}"
+                                       style="border: none; outline: none; padding: 0.75rem 1rem;">
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label for="importance" class="form-label">Min Importance</label>
-                        <select class="form-select" id="importance" name="importance">
-                            <option value="">All</option>
-                            {% for i in "12345678910" %}
-                                <option value="{{ i }}" {% if selected_importance == i %}selected{% endif %}>
-                                    {{ i }}+
-                                </option>
-                            {% endfor %}
-                        </select>
+                    
+                    <!-- Type Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="filter-group">
+                            <label for="type" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-tag me-1" style="color: #667eea;"></i>Type
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <select class="form-select border-0 shadow-none" id="type" name="type"
+                                        style="border: none; outline: none; padding: 0.75rem 1rem;">
+                                    <option value="">All Types</option>
+                                    {% for value, label in memory_types %}
+                                        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <label for="sort" class="form-label">Sort By</label>
-                        <select class="form-select" id="sort" name="sort">
-                            <option value="-created_at" {% if selected_sort == '-created_at' %}selected{% endif %}>Newest First</option>
-                            <option value="created_at" {% if selected_sort == 'created_at' %}selected{% endif %}>Oldest First</option>
-                            <option value="-importance" {% if selected_sort == '-importance' %}selected{% endif %}>Most Important</option>
-                            <option value="importance" {% if selected_sort == 'importance' %}selected{% endif %}>Least Important</option>
-                            <option value="memory_type" {% if selected_sort == 'memory_type' %}selected{% endif %}>Type A-Z</option>
-                            <option value="-memory_type" {% if selected_sort == '-memory_type' %}selected{% endif %}>Type Z-A</option>
-                        </select>
+                    
+                    <!-- Importance Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="filter-group">
+                            <label for="importance" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-star me-1" style="color: #667eea;"></i>Importance
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <select class="form-select border-0 shadow-none" id="importance" name="importance"
+                                        style="border: none; outline: none; padding: 0.75rem 1rem;">
+                                    <option value="">All</option>
+                                    {% for i in "12345678910" %}
+                                        <option value="{{ i }}" {% if selected_importance == i %}selected{% endif %}>
+                                            {{ i }}+
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                        <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle"></i> Clear
-                        </a>
+                    
+                    <!-- Sort Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="filter-group">
+                            <label for="sort" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-sort-down me-1" style="color: #667eea;"></i>Sort
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <select class="form-select border-0 shadow-none" id="sort" name="sort"
+                                        style="border: none; outline: none; padding: 0.75rem 1rem;">
+                                    <option value="-created_at" {% if selected_sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                                    <option value="created_at" {% if selected_sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                                    <option value="-importance" {% if selected_sort == '-importance' %}selected{% endif %}>Most Important</option>
+                                    <option value="importance" {% if selected_sort == 'importance' %}selected{% endif %}>Least Important</option>
+                                    <option value="memory_type" {% if selected_sort == 'memory_type' %}selected{% endif %}>Type A-Z</option>
+                                    <option value="-memory_type" {% if selected_sort == '-memory_type' %}selected{% endif %}>Type Z-A</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </form>
-            </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="col-lg-1 col-md-6">
+                        <div class="filter-group d-flex flex-column gap-2" style="margin-top: 1.8rem;">
+                            <button type="submit" class="btn btn-primary" 
+                                    style="background: #667eea; border: none; border-radius: 12px; padding: 0.75rem; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary"
+                               style="border-radius: 12px; padding: 0.75rem; font-weight: 600;">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Filter Summary -->
+    <style>
+    .modern-filters-container {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .modern-filters-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+        pointer-events: none;
+    }
+    
+    .modern-filters-form {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .filter-group .input-wrapper:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        transition: all 0.3s ease;
+    }
+    
+    .filter-group .form-control:focus,
+    .filter-group .form-select:focus {
+        box-shadow: none;
+        border: none;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        transition: all 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        .modern-filters-container {
+            padding: 1.5rem;
+        }
+        
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+    }
+    </style>
+
+    <!-- Modern Filter Summary -->
     {% if has_filters %}
     <div class="col-12 mb-3">
-        <div class="alert alert-info d-flex justify-content-between align-items-center">
-            <div>
-                <i class="bi bi-info-circle"></i>
-                <strong>Filtered Results:</strong> 
-                Showing {{ filtered_count }} of {{ total_memories }} memories
-                {% if search_query %} • Searching for "{{ search_query }}"{% endif %}
-                {% if selected_type %} • Type: {{ selected_type|title }}{% endif %}
-                {% if selected_importance %} • Min Importance: {{ selected_importance }}+{% endif %}
+        <div class="modern-filter-summary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 1.5rem; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div style="color: white;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-funnel-fill me-2" style="font-size: 1.2rem;"></i>
+                        <strong style="font-size: 1.1rem;">Active Filters</strong>
+                    </div>
+                    <div style="font-size: 0.95rem; opacity: 0.9;">
+                        Showing <strong>{{ filtered_count }}</strong> of <strong>{{ total_memories }}</strong> memories
+                        {% if search_query %} • <span class="badge bg-white text-primary me-1">"{{ search_query }}"</span>{% endif %}
+                        {% if selected_date %} • <span class="badge bg-white text-primary me-1">{{ selected_date }}</span>{% endif %}
+                        {% if selected_type %} • <span class="badge bg-white text-primary me-1">{{ selected_type|title }}</span>{% endif %}
+                        {% if selected_importance %} • <span class="badge bg-white text-primary me-1">{{ selected_importance }}+</span>{% endif %}
+                    </div>
+                </div>
+                <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-light" 
+                   style="border-radius: 10px; padding: 0.5rem 1rem; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <i class="bi bi-x-circle me-1"></i> Clear All
+                </a>
             </div>
-            <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-sm btn-outline-info">
-                <i class="bi bi-x-circle"></i> Clear All Filters
-            </a>
         </div>
     </div>
     {% endif %}
@@ -204,79 +319,21 @@
                                                         <i class="bi bi-trash"></i>
                                                     </a>
                                                 {% endif %}
-                                            </div>
+                                                                                        </div>
+                                            
+                                            <!-- Scheduled Memory Actions - REMOVED -->
+
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         {% endfor %}
                     </div>
-
-                    <!-- Pagination -->
-                    {% if page_obj.has_other_pages %}
-                        <nav aria-label="Memory pagination" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                {% if page_obj.has_previous %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                            <i class="bi bi-chevron-double-left"></i>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                            <i class="bi bi-chevron-left"></i>
-                                        </a>
-                                    </li>
-                                {% endif %}
-
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                        <li class="page-item active">
-                                            <span class="page-link">{{ num }}</span>
-                                        </li>
-                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                                {{ num }}
-                                            </a>
-                                        </li>
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if page_obj.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}">
-                                            <i class="bi bi-chevron-double-right"></i>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                    {% endif %}
-
                 {% else %}
                     <div class="text-center py-5">
                         <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                        <h5 class="text-muted">
-                            {% if search_query or selected_type or selected_importance %}
-                                No memories found matching your criteria
-                            {% else %}
-                                No memories yet
-                            {% endif %}
-                        </h5>
-                        <p class="text-muted">
-                            {% if search_query or selected_type or selected_importance %}
-                                Try adjusting your search criteria or 
-                                <a href="{% url 'memory_assistant:memory_list' %}">view all memories</a>
-                            {% else %}
-                                Start by adding your first memory!
-                            {% endif %}
-                        </p>
+                        <h5 class="text-muted">No memories found</h5>
+                        <p class="text-muted">Try adjusting your filters or create a new memory.</p>
                         <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-primary">
                             <i class="bi bi-plus-circle"></i> Create Memory
                         </a>
@@ -287,50 +344,52 @@
     </div>
 </div>
 
-<style>
-.shared-memory-card {
-    position: relative;
-    box-shadow: 0 2px 10px rgba(23, 162, 184, 0.15);
-}
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="Memory pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_date %}&date_filter={{ selected_date }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_date %}&date_filter={{ selected_date }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
 
-.shared-memory-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #17a2b8, #20c997);
-    border-radius: 0.375rem 0.375rem 0 0;
-}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_date %}&date_filter={{ selected_date }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
 
-.shared-memory-header {
-    background-color: #f8f9fa !important;
-    border-left: 3px solid #17a2b8;
-}
-
-.shared-memory-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(23, 162, 184, 0.25);
-    transition: all 0.3s ease;
-}
-
-.memory-card {
-    transition: all 0.3s ease;
-}
-
-.memory-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.tag-badge {
-    margin-right: 0.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.importance-badge {
-    font-size: 0.75rem;
-}
-</style>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_date %}&date_filter={{ selected_date }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_date %}&date_filter={{ selected_date }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_importance %}&importance={{ selected_importance }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
 {% endblock %} 

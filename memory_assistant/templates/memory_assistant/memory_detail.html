@@ -110,6 +110,183 @@
                 </div>
             </div>
         </div>
+
+        <!-- Memory Interactions Section - Show for Shared Memories and Own Memories with Comments -->
+        <!-- DEBUG: Memory owner: {{ memory.user.username }} -->
+        <!-- DEBUG: Current user: {{ user.username }} -->
+        <!-- DEBUG: Should show interactions: {% if memory.user != user or memory.comments.count > 0 %}True{% else %}False{% endif %} -->
+        {% if memory.user != user or memory.comments.count > 0 %}
+            {% if memory.allow_likes or memory.allow_comments %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-chat-heart"></i> Interactions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Like/Reaction Section -->
+                    {% if memory.allow_likes %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-heart"></i> Reactions
+                                <span class="badge bg-primary ms-2" id="likes-count">{{ memory.get_likes_count }}</span>
+                            </h6>
+                            
+                            <!-- Reaction Buttons -->
+                            <div class="reaction-buttons mb-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2 reaction-btn" 
+                                        data-reaction="like" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-hand-thumbs-up"></i> Like
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm me-2 reaction-btn" 
+                                        data-reaction="love" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-heart"></i> Love
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm me-2 reaction-btn" 
+                                        data-reaction="laugh" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-emoji-laughing"></i> Funny
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm me-2 reaction-btn" 
+                                        data-reaction="wow" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-emoji-surprise"></i> Wow
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm me-2 reaction-btn" 
+                                        data-reaction="sad" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-emoji-frown"></i> Sad
+                                </button>
+                                <button type="button" class="btn btn-outline-dark btn-sm reaction-btn" 
+                                        data-reaction="angry" data-memory-id="{{ memory.id }}">
+                                    <i class="bi bi-emoji-angry"></i> Angry
+                                </button>
+                            </div>
+                            
+                            <!-- Current User's Reaction -->
+                            <div class="current-reaction mb-2">
+                                {% if memory.is_liked_by %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-check-circle text-success"></i> 
+                                        You reacted with: 
+                                        <span class="badge bg-success" id="user-reaction">
+                                            {% if memory.get_user_reaction == 'like' %}👍 Like
+                                            {% elif memory.get_user_reaction == 'love' %}❤️ Love
+                                            {% elif memory.get_user_reaction == 'laugh' %}😂 Funny
+                                            {% elif memory.get_user_reaction == 'wow' %}😮 Wow
+                                            {% elif memory.get_user_reaction == 'sad' %}😢 Sad
+                                            {% elif memory.get_user_reaction == 'angry' %}😠 Angry
+                                            {% endif %}
+                                        </span>
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Comments Section -->
+                    {% if memory.allow_comments %}
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-chat"></i> Comments
+                                <span class="badge bg-info ms-2" id="comments-count">{{ memory.get_comments_count }}</span>
+                            </h6>
+                            
+                            <!-- Add Comment Form - Only for Shared Memories -->
+                            {% if memory.user != user %}
+                                <form method="POST" action="{% url 'memory_assistant:add_comment' memory.id %}" class="mb-4">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <textarea name="content" class="form-control" rows="3" 
+                                                  placeholder="Add a comment..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-send"></i> Post Comment
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            <!-- Comments List -->
+                            <div class="comments-list">
+                                <!-- DEBUG: Current user: {{ user.username }} -->
+                                <!-- DEBUG: Memory owner: {{ memory.user.username }} -->
+                                <!-- DEBUG: Is shared memory: {% if memory.user != user %}True{% else %}False{% endif %} -->
+                                <!-- DEBUG: Comments count: {{ memory.comments.count }} -->
+                                {% for comment in memory.comments.all %}
+                                    <div class="comment-item border rounded p-3 mb-3">
+                                        <div class="d-flex align-items-start">
+                                            <div class="flex-shrink-0 me-3">
+                                                {% with comment.user.profile as profile %}
+                                                    {% if profile.avatar %}
+                                                        <img src="{{ profile.avatar.url }}" class="rounded-circle" 
+                                                             style="width: 40px; height: 40px; object-fit: cover;" alt="Avatar">
+                                                    {% else %}
+                                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="bi bi-person text-white"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                    <h6 class="mb-0">{{ comment.user.username }}</h6>
+                                                    <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                                                </div>
+                                                <p class="mb-0">{{ comment.content }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="bi bi-chat-dots"></i>
+                                        <p class="mb-0">No comments yet. Be the first to comment!</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+        
+        <!-- Smart Reminders Section -->
+        {% if memory.smart_reminders.exists %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-bell"></i> Smart Reminders
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for reminder in memory.smart_reminders.all %}
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                    <div>
+                        <small class="text-muted">{{ reminder.get_reminder_type_display }}</small>
+                        <div class="fw-bold">{{ reminder.trigger_conditions.reason|default:"Reminder" }}</div>
+                        {% if reminder.next_trigger %}
+                        <small class="text-muted">Next: {{ reminder.next_trigger|date:"M j, Y H:i" }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-1">
+                        {% if reminder.priority == 'critical' %}
+                            <span class="badge bg-danger">Critical</span>
+                        {% elif reminder.priority == 'high' %}
+                            <span class="badge bg-warning">High</span>
+                        {% elif reminder.priority == 'medium' %}
+                            <span class="badge bg-primary">Medium</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Low</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="text-center mt-2">
+                    <a href="{% url 'memory_assistant:smart_reminders' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list"></i> View All Reminders
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <div class="col-md-4">
@@ -122,22 +299,29 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{% url 'memory_assistant:edit_memory' memory.id %}" class="btn btn-primary">
-                        <i class="bi bi-pencil"></i> Edit Memory
-                    </a>
+                    {% if memory.user == user %}
+                        <a href="{% url 'memory_assistant:edit_memory' memory.id %}" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Memory
+                        </a>
+                    {% endif %}
                     <button type="button" class="btn btn-outline-info" onclick="readMemoryAloud()">
                         <i class="bi bi-volume-up"></i> Read Aloud
                     </button>
-                    <form method="POST" action="{% url 'memory_assistant:archive_memory' memory.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-warning w-100">
-                            <i class="bi bi-archive"></i> 
-                            {% if memory.is_archived %}Unarchive{% else %}Archive{% endif %}
-                        </button>
-                    </form>
-                    <a href="{% url 'memory_assistant:delete_memory' memory.id %}" class="btn btn-outline-danger">
-                        <i class="bi bi-trash"></i> Delete Memory
+                    <a href="{% url 'memory_assistant:create_smart_reminder' memory.id %}" class="btn btn-outline-success">
+                        <i class="bi bi-bell-plus"></i> Create Reminder
                     </a>
+                    {% if memory.user == user %}
+                        <form method="POST" action="{% url 'memory_assistant:archive_memory' memory.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-archive"></i> 
+                                {% if memory.is_archived %}Unarchive{% else %}Archive{% endif %}
+                            </button>
+                        </form>
+                        <a href="{% url 'memory_assistant:delete_memory' memory.id %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete Memory
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -170,6 +354,12 @@
                     <dd class="col-sm-6">
                         {% if memory.is_archived %}
                             <span class="badge bg-warning">Archived</span>
+                        {% elif memory.is_completed %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif memory.declined_at %}
+                            <span class="badge bg-danger">Declined</span>
+                        {% elif memory.delivery_date and memory.delivery_date > now %}
+                            <span class="badge bg-info">Scheduled</span>
                         {% else %}
                             <span class="badge bg-success">Active</span>
                         {% endif %}
@@ -177,11 +367,55 @@
                     
                     <dt class="col-sm-6">Tags Count:</dt>
                     <dd class="col-sm-6">{{ memory.tags|length }}</dd>
+                    
+                                        {% if memory.allow_likes and memory.get_likes_count > 0 %}
+                        <dt class="col-sm-6">Likes:</dt>
+                        <dd class="col-sm-6">{{ memory.get_likes_count }}</dd>
+                    {% endif %}
+
+                    {% if memory.allow_comments and memory.get_comments_count > 0 %}
+                        <dt class="col-sm-6">Comments:</dt>
+                        <dd class="col-sm-6">{{ memory.get_comments_count }}</dd>
+                    {% endif %}
+                    
+                    <!-- DEBUG: Memory owner: {{ memory.user.username }} -->
+                    <!-- DEBUG: Current user: {{ user.username }} -->
+                    <!-- DEBUG: Should show counts: {% if memory.user != user %}True{% else %}False{% endif %} -->
                 </dl>
             </div>
-        </div>
+                </div>
         
-        <!-- Navigation -->
+          
+          <!-- Scheduled Memory Actions -->
+          {% if memory.delivery_date and memory.delivery_date > now and not memory.is_completed and not memory.declined_at %}
+          <div class="card">
+              <div class="card-header">
+                  <h6 class="card-title mb-0">
+                      <i class="bi bi-clock"></i> Scheduled Memory Actions
+                  </h6>
+              </div>
+              <div class="card-body">
+                  <p class="text-muted mb-3">
+                      <i class="bi bi-calendar-event"></i> 
+                      Scheduled for: <strong>{{ memory.delivery_date|date:"F d, Y g:i A" }}</strong>
+                  </p>
+                  
+                  <div class="d-grid gap-2 d-md-flex">
+                      <button class="btn btn-success" onclick="markMemoryDone({{ memory.id }})">
+                          <i class="bi bi-check-circle"></i> Done
+                      </button>
+                      <button class="btn btn-warning" onclick="showSnoozeOptions({{ memory.id }})">
+                          <i class="bi bi-clock"></i> Snooze
+                      </button>
+                      <button class="btn btn-danger" onclick="showDeclineOptions({{ memory.id }})">
+                          <i class="bi bi-x-circle"></i> Decline
+                      </button>
+                  </div>
+              </div>
+          </div>
+          {% endif %}
+          
+          <!-- Navigation -->
         <div class="card">
             <div class="card-header">
                 <h6 class="card-title mb-0">
@@ -263,5 +497,398 @@ function openImageModal(imageSrc) {
     document.getElementById('modalImage').src = imageSrc;
     new bootstrap.Modal(modal).show();
 }
+
+// Like/Reaction functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const reactionButtons = document.querySelectorAll('.reaction-btn');
+    
+    reactionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const memoryId = this.dataset.memoryId;
+            const reactionType = this.dataset.reaction;
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            // Send AJAX request
+            fetch(`/memora/social/like/${memoryId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `reaction_type=${reactionType}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Update likes count
+                const likesCountElement = document.getElementById('likes-count');
+                if (likesCountElement) {
+                    likesCountElement.textContent = data.likes_count;
+                }
+                
+                // Update user reaction display
+                const userReactionElement = document.getElementById('user-reaction');
+                const currentReactionElement = document.querySelector('.current-reaction');
+                
+                if (data.liked) {
+                    // Show user's reaction
+                    if (!userReactionElement) {
+                        const reactionText = getReactionText(data.user_reaction);
+                        currentReactionElement.innerHTML = `
+                            <small class="text-muted">
+                                <i class="bi bi-check-circle text-success"></i> 
+                                You reacted with: 
+                                <span class="badge bg-success" id="user-reaction">${reactionText}</span>
+                            </small>
+                        `;
+                    } else {
+                        userReactionElement.textContent = getReactionText(data.user_reaction);
+                    }
+                } else {
+                    // Remove user's reaction
+                    if (currentReactionElement) {
+                        currentReactionElement.innerHTML = '';
+                    }
+                }
+                
+                // Update button states
+                updateReactionButtonStates(data.user_reaction);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating reaction. Please try again.');
+            });
+        });
+    });
+    
+    function getReactionText(reactionType) {
+        const reactions = {
+            'like': '👍 Like',
+            'love': '❤️ Love',
+            'laugh': '😂 Funny',
+            'wow': '😮 Wow',
+            'sad': '😢 Sad',
+            'angry': '😠 Angry'
+        };
+        return reactions[reactionType] || '👍 Like';
+    }
+    
+    function updateReactionButtonStates(userReaction) {
+        // Reset all buttons to outline style
+        reactionButtons.forEach(btn => {
+            btn.classList.remove('btn-primary', 'btn-danger', 'btn-warning', 'btn-info', 'btn-secondary', 'btn-dark');
+            btn.classList.add('btn-outline-primary', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-secondary', 'btn-outline-dark');
+        });
+        
+        // Highlight the active reaction button
+        if (userReaction) {
+            const activeButton = document.querySelector(`[data-reaction="${userReaction}"]`);
+            if (activeButton) {
+                activeButton.classList.remove('btn-outline-primary', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-secondary', 'btn-outline-dark');
+                
+                const buttonClasses = {
+                    'like': 'btn-primary',
+                    'love': 'btn-danger',
+                    'laugh': 'btn-warning',
+                    'wow': 'btn-info',
+                    'sad': 'btn-secondary',
+                    'angry': 'btn-dark'
+                };
+                
+                activeButton.classList.add(buttonClasses[userReaction] || 'btn-primary');
+            }
+        }
+    }
+    
+    // Initialize button states
+    const userReaction = '{{ memory.get_user_reaction|default:"" }}';
+    if (userReaction) {
+        updateReactionButtonStates(userReaction);
+    }
+});
+
+// Scheduled Memory Actions
+function markMemoryDone(memoryId) {
+    if (confirm('Mark this memory as completed?')) {
+        fetch(`/memora/memories/${memoryId}/mark-done/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+function showSnoozeOptions(memoryId) {
+    const snoozeOptions = `
+        <div class="modal fade" id="snoozeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">⏰ Snooze Memory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>When would you like to be reminded?</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, '1_hour')">
+                                🕐 1 hour later
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, '3_hours')">
+                                🕐 3 hours later
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, 'tomorrow_morning')">
+                                🌅 Tomorrow morning (9 AM)
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, 'next_week')">
+                                📅 Next week
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="showCustomSnooze(${memoryId})">
+                                📅 Custom date/time...
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('snoozeModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', snoozeOptions);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('snoozeModal'));
+    modal.show();
+}
+
+function showCustomSnooze(memoryId) {
+    const customSnooze = `
+        <div class="modal fade" id="customSnoozeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">📅 Custom Snooze</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="customDate" class="form-label">Date and Time:</label>
+                            <input type="datetime-local" class="form-control" id="customDate" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="snoozeMemoryCustom(${memoryId})">Snooze</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modals
+    const existingModals = document.querySelectorAll('#snoozeModal, #customSnoozeModal');
+    existingModals.forEach(modal => modal.remove());
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', customSnooze);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('customSnoozeModal'));
+    modal.show();
+}
+
+function snoozeMemory(memoryId, option) {
+    fetch(`/memora/memories/${memoryId}/snooze/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            snooze_option: option
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function snoozeMemoryCustom(memoryId) {
+    const customDate = document.getElementById('customDate').value;
+    if (!customDate) {
+        alert('Please select a date and time.');
+        return;
+    }
+    
+    fetch(`/memora/memories/${memoryId}/snooze/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            snooze_option: 'custom',
+            custom_date: customDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function showDeclineOptions(memoryId) {
+    const declineOptions = `
+        <div class="modal fade" id="declineModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">❌ Decline Memory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Why are you declining this memory?</p>
+                        <div class="mb-3">
+                            <select class="form-select" id="declineReason">
+                                <option value="">Select a reason...</option>
+                                <option value="Already done">✅ Already done</option>
+                                <option value="No longer needed">❌ No longer needed</option>
+                                <option value="Wrong time">⏰ Wrong time</option>
+                                <option value="Not important">📝 Not important</option>
+                                <option value="Other">🔍 Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="customReasonDiv" style="display: none;">
+                            <label for="customReason" class="form-label">Custom reason:</label>
+                            <input type="text" class="form-control" id="customReason" placeholder="Enter your reason...">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="declineMemory(${memoryId})">Decline</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('declineModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', declineOptions);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('declineModal'));
+    modal.show();
+    
+    // Handle custom reason input
+    document.getElementById('declineReason').addEventListener('change', function() {
+        const customDiv = document.getElementById('customReasonDiv');
+        if (this.value === 'Other') {
+            customDiv.style.display = 'block';
+        } else {
+            customDiv.style.display = 'none';
+        }
+    });
+}
+
+function declineMemory(memoryId) {
+    const reasonSelect = document.getElementById('declineReason');
+    const customReason = document.getElementById('customReason');
+    
+    let reason = reasonSelect.value;
+    if (reason === 'Other' && customReason.value.trim()) {
+        reason = customReason.value.trim();
+    }
+    
+    if (!reason) {
+        alert('Please select a reason for declining.');
+        return;
+    }
+    
+    fetch(`/memora/memories/${memoryId}/decline/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            decline_reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
 </script>
+
+<style>
+.reaction-btn {
+    transition: all 0.2s ease;
+}
+.reaction-btn:hover {
+    transform: scale(1.05);
+}
+.comment-item {
+    transition: background-color 0.2s ease;
+}
+.comment-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
 {% endblock %} 

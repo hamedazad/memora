@@ -159,6 +159,8 @@
                             
 
                             
+                            <!-- Scheduled Memory Actions - REMOVED -->
+                            
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     {{ memory.created_at|date:"M j, Y" }}
@@ -311,4 +313,174 @@
     font-size: 0.75rem;
 }
 </style>
+
+<script>
+// Scheduled Memory Actions
+function markMemoryDone(memoryId) {
+    if (confirm('Mark this memory as completed?')) {
+        fetch(`/memora/memories/${memoryId}/mark-done/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+function showSnoozeOptions(memoryId) {
+    const snoozeOptions = `
+        <div class="modal fade" id="snoozeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">⏰ Snooze Memory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>When would you like to be reminded?</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, '1_hour')">
+                                🕐 1 hour later
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, '3_hours')">
+                                🕐 3 hours later
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, 'tomorrow_morning')">
+                                🌅 Tomorrow morning (9 AM)
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="snoozeMemory(${memoryId}, 'next_week')">
+                                📅 Next week
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="showCustomSnooze(${memoryId})">
+                                📅 Custom date/time...
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('snoozeModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', snoozeOptions);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('snoozeModal'));
+    modal.show();
+}
+
+function showCustomSnooze(memoryId) {
+    const customSnooze = `
+        <div class="modal fade" id="customSnoozeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">📅 Custom Snooze</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="customDate" class="form-label">Date and Time:</label>
+                            <input type="datetime-local" class="form-control" id="customDate" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="snoozeMemoryCustom(${memoryId})">Snooze</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modals
+    const existingModals = document.querySelectorAll('#snoozeModal, #customSnoozeModal');
+    existingModals.forEach(modal => modal.remove());
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', customSnooze);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('customSnoozeModal'));
+    modal.show();
+}
+
+function snoozeMemory(memoryId, option) {
+    fetch(`/memora/memories/${memoryId}/snooze/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            snooze_option: option
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function snoozeMemoryCustom(memoryId) {
+    const customDate = document.getElementById('customDate').value;
+    if (!customDate) {
+        alert('Please select a date and time.');
+        return;
+    }
+    
+    fetch(`/memora/memories/${memoryId}/snooze/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            snooze_option: 'custom',
+            custom_date: customDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+// showDeclineOptions and declineMemory functions removed
+</script>
 {% endblock %} 

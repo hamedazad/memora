@@ -6,6 +6,7 @@ from .models import (
     Memory, UserProfile, FriendRequest, Organization, 
     OrganizationInvitation, MemoryComment, SharedMemory
 )
+from .timezone_utils import get_country_choices, get_timezone_for_country
 
 
 class MemoryForm(forms.ModelForm):
@@ -150,6 +151,15 @@ class UserRegistrationForm(UserCreationForm):
             'placeholder': 'Enter your last name'
         })
     )
+    country = forms.ChoiceField(
+        choices=get_country_choices(),
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'country-select'
+        }),
+        help_text='Select your country to set your local timezone automatically'
+    )
     
     class Meta:
         model = User
@@ -177,7 +187,7 @@ class UserRegistrationForm(UserCreationForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['bio', 'avatar', 'location', 'website', 'privacy_level']
+        fields = ['bio', 'avatar', 'location', 'website', 'privacy_level', 'user_timezone']
         widgets = {
             'bio': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -197,6 +207,7 @@ class UserProfileForm(forms.ModelForm):
                 'placeholder': 'https://your-website.com'
             }),
             'privacy_level': forms.Select(attrs={'class': 'form-control'}),
+            'user_timezone': forms.Select(attrs={'class': 'form-control'}),
         }
     
     def clean_avatar(self):

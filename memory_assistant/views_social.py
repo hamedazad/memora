@@ -450,7 +450,10 @@ def shared_with_me(request):
     user_shares = SharedMemory.objects.filter(
         shared_with_user=request.user,
         is_active=True
-    ).select_related('memory', 'shared_by').order_by('-created_at')
+    ).select_related('memory', 'shared_by').prefetch_related(
+        'memory__comments__user__profile',
+        'memory__likes__user'
+    ).order_by('-created_at')
     
     # Memories shared with user's organizations
     user_orgs = request.user.organization_memberships.filter(
@@ -460,7 +463,10 @@ def shared_with_me(request):
     org_shares = SharedMemory.objects.filter(
         shared_with_organization__in=user_orgs,
         is_active=True
-    ).select_related('memory', 'shared_by', 'shared_with_organization').order_by('-created_at')
+    ).select_related('memory', 'shared_by', 'shared_with_organization').prefetch_related(
+        'memory__comments__user__profile',
+        'memory__likes__user'
+    ).order_by('-created_at')
     
     # Combine and paginate
     all_shares = list(user_shares) + list(org_shares)

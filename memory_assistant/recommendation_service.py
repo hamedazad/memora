@@ -217,7 +217,7 @@ class AIRecommendationService:
                 suggestions.append({
                     'type': 'work',
                     'title': 'Work Progress Update',
-                    'description': 'Track your current work projects and achievements'
+                    'description': 'Track your current work projects and milestones'
                 })
             elif memory_type == 'learning':
                 suggestions.append({

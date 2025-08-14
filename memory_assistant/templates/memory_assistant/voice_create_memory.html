@@ -369,14 +369,23 @@ function saveVoiceMemory() {
 
 function handleSaveResponse(data) {
     if (data.success) {
-        // Show success message before redirecting
+        // Show success message with reminder info before redirecting
+        let successMessage = 'Memory saved successfully!';
+        
+        // Add reminder creation info if available
+        if (data.reminders_created && data.reminders_created > 0) {
+            successMessage += ` ${data.reminders_created} smart reminder${data.reminders_created !== 1 ? 's' : ''} created!`;
+        }
+        
+        successMessage += ' Redirecting...';
+        
         document.getElementById('error').className = 'alert alert-success mt-3';
-        document.getElementById('errorMessage').textContent = 'Memory saved successfully! Redirecting...';
+        document.getElementById('errorMessage').textContent = successMessage;
         document.getElementById('error').style.display = 'block';
         
         setTimeout(() => {
             window.location.href = '{% url "memory_assistant:memory_list" %}';
-        }, 1500);
+        }, 2000); // Give more time to read the reminder info
     } else {
         document.getElementById('error').className = 'alert alert-danger mt-3';
         document.getElementById('errorMessage').textContent = data.error;

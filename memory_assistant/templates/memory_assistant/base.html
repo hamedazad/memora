@@ -109,6 +109,11 @@
                                 <i class="bi bi-search"></i> Voice Search
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'memory_assistant:smart_reminders' %}">
+                                <i class="bi bi-bell"></i> Smart Reminders
+                            </a>
+                        </li>
                         
                         <!-- Social Features -->
                         <li class="nav-item dropdown">
@@ -140,15 +145,6 @@
                             </ul>
                         </li>
                     </ul>
-                    
-                    <!-- Search Form -->
-                    <form class="d-flex me-3" method="GET" action="{% url 'memory_assistant:search_memories' %}">
-                        <input class="form-control me-2" type="search" name="q" placeholder="Search memories..." 
-                               aria-label="Search" value="{{ request.GET.q }}">
-                        <button class="btn btn-outline-light" type="submit">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </form>
                 {% endif %}
                 
                 <!-- User Menu -->
@@ -234,6 +230,34 @@
             </p>
         </div>
     </footer>
+
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
+    
+    <!-- Smart Reminder Notification Modal -->
+    <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="reminderModalLabel">
+                        <i class="bi bi-bell-fill"></i> Smart Reminder
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="reminderContent">
+                        <!-- Reminder content will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Done and Snooze buttons removed -->
+                    <button type="button" class="btn btn-danger" onclick="dismissReminder()">
+                        <i class="bi bi-x"></i> Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -327,7 +351,162 @@
                     }
                 }, 1000); // 1 second delay to allow page navigation
             });
+
+            // Initialize smart reminder notifications
+            initializeSmartReminders();
         });
+
+        // Smart Reminder Notification System
+        let currentReminderId = null;
+        let reminderCheckInterval = null;
+
+        function initializeSmartReminders() {
+            console.log('🚀 Initializing Smart Reminders...');
+            // Check for reminders every 30 seconds
+            reminderCheckInterval = setInterval(checkForReminders, 30000);
+            console.log('⏰ Set reminder check interval to 30 seconds');
+            
+            // Also check immediately when page loads
+            console.log('🔍 Checking reminders immediately...');
+            checkForReminders();
+        }
+
+        function checkForReminders() {
+            {% if user.is_authenticated %}
+            console.log('🔍 Checking for reminders...');
+            $.ajax({
+                url: '{% url "memory_assistant:check_reminders" %}',
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    console.log('📡 Reminder check response:', response);
+                    if (response.has_reminders) {
+                        console.log('🔔 Found reminder:', response.reminder);
+                        showReminderNotification(response.reminder);
+                    } else {
+                        console.log('✅ No reminders to show');
+                    }
+                },
+                error: function(xhr) {
+                    console.log('❌ Error checking reminders:', xhr);
+                    console.log('Error details:', xhr.responseText);
+                }
+            });
+            {% else %}
+            console.log('👤 User not authenticated, skipping reminder check');
+            {% endif %}
+        }
+
+        function showReminderNotification(reminder) {
+            currentReminderId = reminder.id;
+            
+            // Update modal content
+            $('#reminderContent').html(`
+                <div class="text-center mb-3">
+                    <i class="bi bi-bell-fill text-primary" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="text-center mb-3">${reminder.memory_content}</h5>
+                <p class="text-muted text-center mb-3">${reminder.reason}</p>
+                <div class="text-center">
+                    <span class="badge bg-${getPriorityColor(reminder.priority)}">${reminder.priority}</span>
+                </div>
+            `);
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('reminderModal'));
+            modal.show();
+            
+            // Play notification sound if supported
+            playNotificationSound();
+        }
+
+        function getPriorityColor(priority) {
+            switch(priority.toLowerCase()) {
+                case 'critical': return 'danger';
+                case 'high': return 'warning';
+                case 'medium': return 'primary';
+                default: return 'secondary';
+            }
+        }
+
+        function playNotificationSound() {
+            // Create a simple notification sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function markReminderAsDone() {
+            if (currentReminderId) {
+                $.ajax({
+                    url: `/memora/reminders/${currentReminderId}/mark-done/`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        $('#reminderModal').modal('hide');
+                        currentReminderId = null;
+                    },
+                    error: function(xhr) {
+                        alert('Error marking reminder as done');
+                    }
+                });
+            }
+        }
+
+        function snoozeReminder() {
+            if (currentReminderId) {
+                $.ajax({
+                    url: `/memora/reminders/${currentReminderId}/snooze/`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        $('#reminderModal').modal('hide');
+                        currentReminderId = null;
+                    },
+                    error: function(xhr) {
+                        alert('Error snoozing reminder');
+                    }
+                });
+            }
+        }
+
+        function dismissReminder() {
+            if (currentReminderId) {
+                $.ajax({
+                    url: `/memora/reminders/${currentReminderId}/dismiss/`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        $('#reminderModal').modal('hide');
+                        currentReminderId = null;
+                    },
+                    error: function(xhr) {
+                        alert('Error dismissing reminder');
+                    }
+                });
+            }
+        }
     </script>
     
     {% block extra_js %}{% endblock %}

@@ -17,6 +17,11 @@ urlpatterns = [
     path('memories/<int:memory_id>/delete/', views.delete_memory, name='delete_memory'),
     path('memories/<int:memory_id>/archive/', views.archive_memory, name='archive_memory'),
     
+    # Scheduled memory actions
+    path('memories/<int:memory_id>/mark-done/', views.mark_memory_done, name='mark_memory_done'),
+    path('memories/<int:memory_id>/snooze/', views.snooze_memory, name='snooze_memory'),
+    path('memories/<int:memory_id>/decline/', views.decline_memory, name='decline_memory'),
+    
 
     
     # Filtered Memory Views
@@ -37,8 +42,12 @@ urlpatterns = [
     # Test memory (for demonstration)
     path('create-test-memory/', views.create_test_memory, name='create_test_memory'),
     
-    # Debug endpoint
+    # Timezone test
+    path('timezone-test/', views.timezone_test, name='timezone_test'),
+    
+    # Debug endpoints
     path('debug-memories/', views.debug_memories, name='debug_memories'),
+    path('debug-comments/<int:memory_id>/', views.debug_comments, name='debug_comments'),
     
     # Voice features
     path('voice/create/', views.voice_create_memory, name='voice_create_memory'),
@@ -102,4 +111,16 @@ urlpatterns = [
     # Notifications
     path('social/notifications/', views_social.notifications, name='notifications'),
     path('social/notifications/count/', views_social.notifications_count, name='notifications_count'),
+
+    # Smart Reminders
+    path('smart-reminders/', views.smart_reminders, name='smart_reminders'),
+    path('memories/<int:memory_id>/create-reminder/', views.create_smart_reminder, name='create_smart_reminder'),
+    path('memories/<int:memory_id>/auto-create-reminders/', views.auto_create_reminders, name='auto_create_reminders'),
+    path('reminders/<int:reminder_id>/actions/', views.reminder_actions, name='reminder_actions'),
+    
+    # Smart Reminder Notifications
+    path('reminders/check/', views.check_reminders, name='check_reminders'),
+    path('reminders/<int:reminder_id>/mark-done/', views.mark_reminder_done, name='mark_reminder_done'),
+    path('reminders/<int:reminder_id>/snooze/', views.snooze_reminder, name='snooze_reminder'),
+    path('reminders/<int:reminder_id>/dismiss/', views.dismiss_reminder, name='dismiss_reminder'),
 ] 

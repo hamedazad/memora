@@ -59,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'memory_assistant.middleware.TimezoneMiddleware',  # Add custom timezone middleware
 ]
 
 ROOT_URLCONF = 'memora_project.urls'
@@ -121,7 +122,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Use a more user-friendly default timezone - can be overridden per user
+TIME_ZONE = 'America/New_York'  # Changed from 'UTC' to a more common timezone
 
 USE_I18N = True
 

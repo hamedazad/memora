@@ -109,15 +109,61 @@
                         </div>
                     </div>
 
+                    <!-- Privacy Settings -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.privacy_level.id_for_label }}" class="form-label">
+                                    {{ form.privacy_level.label }}
+                                </label>
+                                {{ form.privacy_level }}
+                                {% if form.privacy_level.help_text %}
+                                    <div class="form-text">{{ form.privacy_level.help_text }}</div>
+                                {% endif %}
+                                {% if form.privacy_level.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.privacy_level.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.allow_comments }}
+                                    <label class="form-check-label" for="{{ form.allow_comments.id_for_label }}">
+                                        {{ form.allow_comments.label }}
+                                    </label>
+                                    {% if form.allow_comments.help_text %}
+                                        <div class="form-text">{{ form.allow_comments.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-check">
+                                    {{ form.allow_likes }}
+                                    <label class="form-check-label" for="{{ form.allow_likes.id_for_label }}">
+                                        {{ form.allow_likes.label }}
+                                    </label>
+                                    {% if form.allow_likes.help_text %}
+                                        <div class="form-text">{{ form.allow_likes.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
                         <strong>AI Reprocessing:</strong> If you change the content, our AI will automatically:
                         <ul class="mb-0 mt-2">
-                            <li>Update the summary</li>
+                            <li>Update the summary (for content 200+ characters)</li>
                             <li>Regenerate relevant tags</li>
-                            <li>Reassess the importance level</li>
-                            <li>Recategorize the memory type</li>
+                            <li>Update AI reasoning</li>
                         </ul>
+                        <small class="text-muted mt-2 d-block">
+                            <strong>Note:</strong> Your manual selections for Type and Importance will be preserved.
+                        </small>
                     </div>
 
                     <div class="d-flex justify-content-between">

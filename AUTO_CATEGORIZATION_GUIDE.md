@@ -16,7 +16,7 @@ The system categorizes memories into the following categories:
 ### 👨‍👩‍👧‍👦 Personal
 - Family, friends, relationships
 - Hobbies, personal life events
-- Social activities, personal achievements
+- Social activities, personal milestones
 
 ### 🏥 Health
 - Exercise, fitness routines

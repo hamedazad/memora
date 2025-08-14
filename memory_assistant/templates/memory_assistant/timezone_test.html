@@ -1,0 +1,62 @@
+{% extends 'memory_assistant/base.html' %}
+
+{% block title %}Timezone Test - Memora{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-clock"></i> Timezone Test</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Your Current Timezone:</strong> {{ user_timezone }}<br>
+                        <strong>Current Time (Server):</strong> {{ current_time }}
+                    </div>
+                    
+                    <h5>Current Time in Different Timezones:</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Timezone</th>
+                                    <th>Current Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tz_name, tz_time in timezone_times.items %}
+                                <tr>
+                                    <td><strong>{{ tz_name }}</strong></td>
+                                    <td>{{ tz_time }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>How to Set Your Timezone:</h5>
+                        <ol>
+                            <li>Go to your <a href="{% url 'memory_assistant:edit_profile' %}">Profile Settings</a></li>
+                            <li>Select your preferred timezone from the dropdown</li>
+                            <li>Save your profile</li>
+                            <li>All dates and times will now display in your local timezone</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'memory_assistant:edit_profile' %}" class="btn btn-primary">
+                            <i class="bi bi-gear"></i> Edit Profile & Set Timezone
+                        </a>
+                        <a href="{% url 'memory_assistant:dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-house"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

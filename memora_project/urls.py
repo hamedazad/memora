@@ -21,10 +21,12 @@ from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from memory_assistant.forms import UserLoginForm
+from memory_assistant import views as memory_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', lambda request: redirect('login') if not request.user.is_authenticated else redirect('memory_assistant:dashboard'), name='home'),
+    path('', lambda request: redirect('home') if not request.user.is_authenticated else redirect('memory_assistant:dashboard'), name='root'),
+    path('home/', memory_views.home, name='home'),
     path('memora/', include('memory_assistant.urls')),
     
     # Authentication URLs

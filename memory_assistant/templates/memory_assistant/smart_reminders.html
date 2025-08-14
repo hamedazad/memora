@@ -1,0 +1,227 @@
+{% extends 'memory_assistant/base.html' %}
+{% load static %}
+
+{% block title %}Smart Reminders - Memora{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-bell"></i> Smart Reminders</h2>
+                <a href="{% url 'memory_assistant:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Triggered Reminders -->
+            {% if triggered_reminders %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <h5><i class="bi bi-exclamation-triangle"></i> Active Reminders</h5>
+                <div class="row">
+                    {% for item in triggered_reminders %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ item.reminder.memory.content|truncatechars:50 }}</h6>
+                                <p class="card-text text-muted">{{ item.trigger.trigger_reason }}</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-success" onclick="markAsDone({{ item.reminder.id }})">
+                                        <i class="bi bi-check"></i> Done
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" onclick="snoozeReminder({{ item.reminder.id }})">
+                                        <i class="bi bi-clock"></i> Snooze
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="dismissReminder({{ item.reminder.id }})">
+                                        <i class="bi bi-x"></i> Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- All Reminders -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check"></i> All Reminders ({{ reminders.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if reminders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Memory</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Next Trigger</th>
+                                    <th>Last Triggered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reminder in reminders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'memory_assistant:memory_detail' reminder.memory.id %}">
+                                            {{ reminder.memory.content|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ reminder.get_reminder_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if reminder.priority == 'critical' %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif reminder.priority == 'high' %}
+                                            <span class="badge bg-warning">High</span>
+                                        {% elif reminder.priority == 'medium' %}
+                                            <span class="badge bg-primary">Medium</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reminder.next_trigger %}
+                                            {{ reminder.next_trigger|date:"M j, Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">Not scheduled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reminder.last_triggered %}
+                                            {{ reminder.last_triggered|date:"M j, Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-warning" onclick="snoozeReminder({{ reminder.id }})">
+                                                <i class="bi bi-clock"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" onclick="dismissReminder({{ reminder.id }})">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-bell-slash display-4"></i>
+                        <h5 class="mt-3">No smart reminders yet</h5>
+                        <p>Create your first smart reminder by visiting a memory and using the AI suggestions!</p>
+                        <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-primary">
+                            <i class="bi bi-list"></i> View Memories
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Snooze Modal -->
+<div class="modal fade" id="snoozeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Snooze Reminder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>How long would you like to snooze this reminder?</p>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="snoozeHours" id="snooze1" value="1" checked>
+                    <label class="btn btn-outline-primary" for="snooze1">1 Hour</label>
+                    
+                    <input type="radio" class="btn-check" name="snoozeHours" id="snooze3" value="3">
+                    <label class="btn btn-outline-primary" for="snooze3">3 Hours</label>
+                    
+                    <input type="radio" class="btn-check" name="snoozeHours" id="snooze6" value="6">
+                    <label class="btn btn-outline-primary" for="snooze6">6 Hours</label>
+                    
+                    <input type="radio" class="btn-check" name="snoozeHours" id="snooze24" value="24">
+                    <label class="btn btn-outline-primary" for="snooze24">1 Day</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSnooze()">Snooze</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentReminderId = null;
+
+function dismissReminder(reminderId) {
+    if (confirm('Are you sure you want to dismiss this reminder?')) {
+        fetch(`/memora/reminders/${reminderId}/actions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: `action=dismiss`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function snoozeReminder(reminderId) {
+    currentReminderId = reminderId;
+    new bootstrap.Modal(document.getElementById('snoozeModal')).show();
+}
+
+function confirmSnooze() {
+    const hours = document.querySelector('input[name="snoozeHours"]:checked').value;
+    
+    fetch(`/memora/reminders/${currentReminderId}/actions/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `action=snooze&hours=${hours}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('snoozeModal')).hide();
+}
+
+function markAsDone(reminderId) {
+    // For now, just dismiss the reminder
+    dismissReminder(reminderId);
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}
+

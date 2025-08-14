@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memora - AI-Powered Memory Assistant</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-light: #f7fafc;
+            --white: #ffffff;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            overflow-x: hidden;
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            color: var(--white);
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            font-weight: 400;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-hero {
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .btn-hero-primary {
+            background: var(--white);
+            color: var(--primary-color);
+        }
+        
+        .btn-hero-primary:hover {
+            background: #f8f9fa;
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .btn-hero-secondary {
+            background: transparent;
+            color: var(--white);
+            border: 2px solid var(--white);
+        }
+        
+        .btn-hero-secondary:hover {
+            background: var(--white);
+            color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        /* Floating Elements */
+        .floating-element {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-element:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            right: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            right: 20%;
+            animation-delay: 2s;
+        }
+        
+        .floating-element:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            top: 80%;
+            right: 5%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        /* Features Section */
+        .features-section {
+            padding: 5rem 0;
+            background: var(--bg-light);
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .feature-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            height: 100%;
+            border: none;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: var(--white);
+            font-size: 2rem;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-description {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            padding: 5rem 0;
+            color: var(--white);
+        }
+        
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .cta-description {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--text-dark);
+            color: var(--white);
+            padding: 3rem 0 1rem;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--white);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            opacity: 1;
+            color: var(--white);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn-hero {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .cta-title {
+                font-size: 2rem;
+            }
+        }
+        
+        /* Navigation */
+        .navbar-home {
+            background: transparent;
+            transition: all 0.3s ease;
+            padding: 1rem 0;
+        }
+        
+        .navbar-home.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand-home {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+        }
+        
+        .navbar-home.scrolled .navbar-brand-home {
+            color: var(--primary-color);
+        }
+        
+        .nav-link-home {
+            color: var(--white) !important;
+            font-weight: 500;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-home.scrolled .nav-link-home {
+            color: var(--text-dark) !important;
+        }
+        
+        .nav-link-home:hover {
+            opacity: 0.8;
+        }
+        
+        .btn-nav {
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-nav-outline {
+            border: 2px solid var(--white);
+            color: var(--white);
+            background: transparent;
+        }
+        
+        .btn-nav-outline:hover {
+            background: var(--white);
+            color: var(--primary-color);
+        }
+        
+        .navbar-home.scrolled .btn-nav-outline {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .navbar-home.scrolled .btn-nav-outline:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-home fixed-top" id="navbar">
+        <div class="container">
+            <a class="navbar-brand-home" href="#">
+                <i class="bi bi-brain"></i> Memora
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link-home" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link-home" href="#about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-nav btn-nav-outline me-2" href="{% url 'login' %}">Sign In</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-nav btn-hero-primary" href="{% url 'memory_assistant:register' %}">Get Started</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6" data-aos="fade-right">
+                    <div class="hero-content">
+                        <h1 class="hero-title">Your AI-Powered Memory Assistant</h1>
+                        <p class="hero-subtitle">
+                            Never forget important moments again. Memora uses advanced AI to help you capture, 
+                            organize, and recall your memories with intelligent suggestions and voice commands.
+                        </p>
+                        <div class="hero-buttons">
+                            <a href="{% url 'memory_assistant:register' %}" class="btn btn-hero btn-hero-primary">
+                                <i class="bi bi-rocket-takeoff"></i> Start Free Trial
+                            </a>
+                            <a href="#features" class="btn btn-hero btn-hero-secondary">
+                                <i class="bi bi-play-circle"></i> Learn More
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6" data-aos="fade-left">
+                    <div class="text-center">
+                        <div class="position-relative">
+                            <div class="bg-white rounded-4 p-4 shadow-lg" style="transform: rotate(-2deg);">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-primary rounded-circle p-2 me-3">
+                                        <i class="bi bi-mic text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-dark">Voice Memory</h6>
+                                        <small class="text-muted">Just speak to create memories</small>
+                                    </div>
+                                </div>
+                                <p class="text-dark mb-0">"Meeting with John tomorrow at 2 PM to discuss the new project timeline and deliverables."</p>
+                            </div>
+                            
+                            <div class="bg-light rounded-4 p-3 shadow-lg position-absolute" style="top: -20px; right: -20px; transform: rotate(3deg);">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-bell text-warning me-2"></i>
+                                    <small class="text-muted">Smart reminder set</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="row">
+                <div class="col-12" data-aos="fade-up">
+                    <h2 class="section-title">Why Choose Memora?</h2>
+                    <p class="section-subtitle">Powerful features designed to make memory management effortless</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-mic"></i>
+                        </div>
+                        <h3 class="feature-title">Voice Commands</h3>
+                        <p class="feature-description">
+                            Create memories hands-free with natural voice commands. 
+                            Just speak and let AI transcribe and organize your thoughts.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-brain"></i>
+                        </div>
+                        <h3 class="feature-title">AI-Powered Insights</h3>
+                        <p class="feature-description">
+                            Get intelligent suggestions, automatic categorization, 
+                            and smart reminders based on your memory patterns.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <h3 class="feature-title">Smart Search</h3>
+                        <p class="feature-description">
+                            Find any memory instantly with natural language search. 
+                            Ask questions and get relevant results instantly.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                        <h3 class="feature-title">Smart Reminders</h3>
+                        <p class="feature-description">
+                            Never miss important tasks or events with intelligent 
+                            reminders that adapt to your schedule and priorities.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <h3 class="feature-title">Social Sharing</h3>
+                        <p class="feature-description">
+                            Share memories with friends, family, or team members. 
+                            Collaborate and stay connected through shared experiences.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h3 class="feature-title">Privacy First</h3>
+                        <p class="feature-description">
+                            Your memories are encrypted and secure. Full control 
+                            over who sees what, with enterprise-grade security.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="about">
+        <div class="container">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-8" data-aos="fade-up">
+                    <h2 class="cta-title">Ready to Transform Your Memory Management?</h2>
+                    <p class="cta-description">
+                        Join thousands of users who are already using Memora to capture, 
+                        organize, and recall their most important memories with ease.
+                    </p>
+                    <div class="hero-buttons justify-content-center">
+                        <a href="{% url 'memory_assistant:register' %}" class="btn btn-hero btn-hero-primary">
+                            <i class="bi bi-person-plus"></i> Create Free Account
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-hero btn-hero-secondary">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="#features" class="footer-link">Features</a>
+                    <a href="#about" class="footer-link">About</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
+                <p class="mb-0">
+                    <i class="bi bi-heart-fill text-danger"></i> 
+                    Made with love by the Memora team
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // Initialize AOS animations
+        AOS.init({
+            duration: 1000,
+            once: true,
+            offset: 100
+        });
+        
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

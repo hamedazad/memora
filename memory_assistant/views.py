@@ -11,11 +11,19 @@ from datetime import datetime, timedelta
 import json
 import os
 import re
-from .models import Memory, MemorySearch
+from .models import Memory, MemorySearch, UserProfile
 from .forms import MemoryForm, QuickMemoryForm, SearchForm, UserRegistrationForm
 from .services import ChatGPTService
 from .voice_service import voice_service
 from .recommendation_service import AIRecommendationService
+from .smart_reminder_service import SmartReminderService
+
+
+def home(request):
+    """Landing page for non-authenticated users"""
+    if request.user.is_authenticated:
+        return redirect('memory_assistant:dashboard')
+    return render(request, 'memory_assistant/home.html')
 
 
 @login_required
@@ -73,6 +81,25 @@ def dashboard(request):
     ]
     suggestions = chatgpt_service.generate_memory_suggestions(recent_memory_data)
     
+    # Check for triggered reminders
+    reminder_service = SmartReminderService()
+    triggered_reminders = reminder_service.check_and_trigger_reminders(request.user)
+    
+    # Format triggered reminders for display
+    reminder_notifications = []
+    for item in triggered_reminders:
+        reminder = item['reminder']
+        trigger = item['trigger']
+        reminder_notifications.append({
+            'id': reminder.id,
+            'memory_id': reminder.memory.id,
+            'title': f"Reminder: {reminder.memory.content[:50]}...",
+            'message': trigger.trigger_reason,
+            'memory_content': reminder.memory.content,
+            'triggered_at': trigger.triggered_at,
+            'priority': reminder.priority
+        })
+    
     context = {
         'recent_memories': recent_memories,
         'total_memories': total_memories,
@@ -80,9 +107,9 @@ def dashboard(request):
         'shared_memory_info': shared_memory_info,
         'scheduled_memories_count': scheduled_memories_count,
         'todays_memories_count': todays_memories_count,
-
         'suggestions': suggestions,
         'ai_available': chatgpt_service.is_available(),
+        'reminder_notifications': reminder_notifications,
     }
     
     return render(request, 'memory_assistant/dashboard.html', context)
@@ -124,6 +151,7 @@ def memory_list(request):
     memory_type = request.GET.get('type')
     importance = request.GET.get('importance')
     search_query = request.GET.get('q', '').strip()
+    date_filter = request.GET.get('date_filter', '').strip()
     sort_by = request.GET.get('sort', '-created_at')
     
     # Apply filters
@@ -136,6 +164,16 @@ def memory_list(request):
             memories = memories.filter(importance__gte=importance_val)
         except ValueError:
             pass  # Ignore invalid importance values
+    
+    # Apply date filter
+    if date_filter:
+        try:
+            from datetime import datetime
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            # Filter memories created on the specified date
+            memories = memories.filter(created_at__date=filter_date)
+        except ValueError:
+            pass  # Ignore invalid date values
     
     # Enhanced search functionality
     if search_query:
@@ -169,6 +207,9 @@ def memory_list(request):
     else:
         memories = memories.order_by('-created_at')  # Default sort
     
+    # Add prefetching for comments and likes
+    memories = memories.prefetch_related('comments__user__profile', 'likes__user')
+    
     # Pagination
     paginator = Paginator(memories, 12)  # Show more items per page
     page_number = request.GET.get('page')
@@ -197,13 +238,15 @@ def memory_list(request):
         'page_obj': page_obj,
         'memory_types': Memory.memory_type.field.choices,
         'search_query': search_query,
+        'selected_date': date_filter,
         'selected_type': memory_type,
         'selected_importance': importance,
         'selected_sort': sort_by,
         'total_memories': total_memories,
         'filtered_count': filtered_count,
-        'has_filters': bool(search_query or memory_type or importance),
+        'has_filters': bool(search_query or date_filter or memory_type or importance),
         'shared_memory_info': shared_memory_info,
+        'now': timezone.now(),
     }
     
     return render(request, 'memory_assistant/memory_list.html', context)
@@ -247,6 +290,28 @@ def create_memory(request):
 
             
             memory.save()
+            
+            # Auto-create smart reminders based on memory content
+            try:
+                reminder_service = SmartReminderService()
+                suggestions = reminder_service.analyze_memory_for_reminders(memory)
+                
+                # Create smart reminders for time-based suggestions
+                reminders_created = 0
+                for suggestion in suggestions:
+                    if suggestion['type'] == 'time_based':
+                        reminder = reminder_service.create_smart_reminder(memory, request.user, suggestion)
+                        if reminder:  # Only count if reminder was actually created
+                            reminders_created += 1
+                
+                # Add reminder info to success message if reminders were created
+                if reminders_created > 0:
+                    success_msg = f'Memory created successfully! Categorized as: {memory.get_memory_type_display()} | {reminders_created} smart reminder{"s" if reminders_created != 1 else ""} created'
+                else:
+                    success_msg = f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}'
+            except Exception as e:
+                # If smart reminder creation fails, don't break the memory creation
+                success_msg = f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}'
             
             # Auto-share with friends if privacy level is set to friends
             if memory.privacy_level == 'friends':
@@ -303,8 +368,7 @@ def create_memory(request):
                             related_object_type='memory'
                         )
             
-            # Create success message with date info
-            success_msg = f'Memory created successfully! Categorized as: {memory.get_memory_type_display()}'
+            # Add date info to success message if delivery date exists
             if memory.delivery_date:
                 success_msg += f' | Scheduled for: {memory.delivery_date.strftime("%B %d, %Y at %I:%M %p")}'
             
@@ -392,7 +456,14 @@ def create_test_memory(request):
 @login_required
 def memory_detail(request, memory_id):
     """View a specific memory"""
-    memory = get_object_or_404(Memory, id=memory_id)
+    memory = get_object_or_404(
+        Memory.objects.prefetch_related(
+            'comments__user__profile',
+            'likes__user',
+            'user__profile'
+        ), 
+        id=memory_id
+    )
     
     # Check if user can view this memory based on privacy settings
     if not memory.can_be_viewed_by(request.user):
@@ -401,8 +472,13 @@ def memory_detail(request, memory_id):
             'reason': 'privacy'
         }, status=403)
     
+    # Get smart reminders for this memory
+    smart_reminders = memory.smart_reminders.filter(is_active=True).order_by('-created_at')
+    
     context = {
         'memory': memory,
+        'smart_reminders': smart_reminders,
+        'now': timezone.now(),
     }
     
     return render(request, 'memory_assistant/memory_detail.html', context)
@@ -429,12 +505,19 @@ def edit_memory(request, memory_id):
             
             memory = form.save(commit=False)
             
-            # Reprocess with ChatGPT if content changed
+            # Reprocess with ChatGPT if content changed to update AI-generated fields
+            # but preserve user's manual selections for memory_type and importance
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(memory.content)
             
+            # Only update AI-generated fields, preserve user's manual selections
             memory.summary = processed_data.get('summary', '')
             memory.tags = processed_data.get('tags', [])
+            memory.ai_reasoning = processed_data.get('reasoning', '')
+            
+            # Don't override user's manual selections for memory_type and importance
+            # These are handled by the form and should be preserved
+            
             memory.save()
             
             # Handle privacy level changes for sharing
@@ -506,18 +589,181 @@ def delete_memory(request, memory_id):
 
 
 @login_required
+@csrf_exempt
+def mark_memory_done(request, memory_id):
+    """Mark a scheduled memory as completed"""
+    if request.method == 'POST':
+        try:
+            memory = get_object_or_404(Memory, id=memory_id, user=request.user)
+            
+            # Only allow marking scheduled memories as done
+            if memory.delivery_date and memory.delivery_date > timezone.now():
+                memory.is_completed = True
+                memory.completed_at = timezone.now()
+                memory.is_delivered = True  # Mark as delivered since it's done
+                memory.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Memory marked as completed!'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Only scheduled memories can be marked as done.'
+                })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method.'})
+
+
+@login_required
+@csrf_exempt
+def snooze_memory(request, memory_id):
+    """Snooze a scheduled memory"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            snooze_option = data.get('snooze_option')
+            custom_date = data.get('custom_date')
+            
+            memory = get_object_or_404(Memory, id=memory_id, user=request.user)
+            
+            # Only allow snoozing scheduled memories
+            if not (memory.delivery_date and memory.delivery_date > timezone.now()):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Only scheduled memories can be snoozed.'
+                })
+            
+            # Calculate new delivery date based on snooze option
+            now = timezone.now()
+            if snooze_option == '1_hour':
+                new_date = now + timedelta(hours=1)
+            elif snooze_option == '3_hours':
+                new_date = now + timedelta(hours=3)
+            elif snooze_option == 'tomorrow_morning':
+                new_date = (now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+            elif snooze_option == 'next_week':
+                new_date = now + timedelta(weeks=1)
+            elif snooze_option == 'custom' and custom_date:
+                try:
+                    new_date = timezone.make_aware(datetime.fromisoformat(custom_date.replace('Z', '+00:00')))
+                except:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Invalid custom date format.'
+                    })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid snooze option.'
+                })
+            
+            # Update memory
+            memory.delivery_date = new_date
+            memory.snooze_count += 1
+            memory.last_snoozed_at = now
+            memory.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Memory snoozed until {new_date.strftime("%B %d, %Y at %I:%M %p")}',
+                'new_date': new_date.isoformat()
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data.'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method.'})
+
+
+@login_required
+@csrf_exempt
+def decline_memory(request, memory_id):
+    """Decline a scheduled memory"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            decline_reason = data.get('decline_reason', '')
+            
+            memory = get_object_or_404(Memory, id=memory_id, user=request.user)
+            
+            # Only allow declining scheduled memories
+            if not (memory.delivery_date and memory.delivery_date > timezone.now()):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Only scheduled memories can be declined.'
+                })
+            
+            # Update memory
+            memory.declined_at = timezone.now()
+            memory.decline_reason = decline_reason
+            memory.is_delivered = True  # Mark as delivered since it's handled
+            memory.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Memory declined successfully!'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data.'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method.'})
+
+
+@login_required
 def search_memories(request):
     """Enhanced search memories with AI-powered semantic search"""
     query = request.GET.get('q', '').strip()
+    date_filter = request.GET.get('date_filter', '').strip()
     memories = []
     search_method = "basic"
     
-    if query:
-        # Get all memories for the user
-        all_memories = Memory.objects.filter(
-            user=request.user,
-            is_archived=False
-        )
+    # Get all memories for the user
+    all_memories = Memory.objects.filter(
+        user=request.user,
+        is_archived=False
+    )
+    
+    # Apply date filter if specified (works independently of search query)
+    if date_filter:
+        try:
+            from datetime import datetime
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            # Filter memories created on the specified date
+            all_memories = all_memories.filter(created_at__date=filter_date)
+        except ValueError:
+            pass  # Ignore invalid date values
+    
+    # If only date filter is provided (no search query), return all memories for that date
+    if not query and date_filter:
+        memories = all_memories
+        search_method = "date_filter_only"
+    
+    # If search query is provided
+    elif query:
         
         # Try AI-powered semantic search first
         try:
@@ -646,6 +892,7 @@ def search_memories(request):
                     'search_results': [],
                     'results_count': 0,
                     'query': query,
+                    'date_filter': date_filter,
                     'search_method': "contextual_suggestions",
                     'ai_available': chatgpt_service.is_available(),
                     'contextual_suggestions': contextual_suggestions,
@@ -659,6 +906,7 @@ def search_memories(request):
                     'search_results': memories,
                     'results_count': len(memories),
                     'query': query,
+                    'date_filter': date_filter,
                     'search_method': search_method,
                     'ai_available': chatgpt_service.is_available(),
                     'message': f'No memories found for "{query}". Here are your recent memories:'
@@ -670,6 +918,7 @@ def search_memories(request):
         'search_results': memories,
         'results_count': len(memories),
         'query': query,
+        'date_filter': date_filter,
         'search_method': search_method,
         'ai_available': ChatGPTService().is_available(),
     }
@@ -714,6 +963,7 @@ def quick_add_memory(request):
                 content=content,
                 memory_type=processed_data.get('memory_type', 'general'),
                 importance=processed_data.get('importance', 5),
+                # Only keep summary if it's Work and long content (service already enforces this)
                 summary=processed_data.get('summary', ''),
                 ai_reasoning=processed_data.get('reasoning', ''),
                 tags=processed_data.get('tags', []),
@@ -721,10 +971,28 @@ def quick_add_memory(request):
                 delivery_type=processed_data.get('delivery_type', 'immediate')
             )
             
+            # Auto-create smart reminders based on memory content
+            reminder_count = 0
+            try:
+                reminder_service = SmartReminderService()
+                suggestions = reminder_service.analyze_memory_for_reminders(memory)
+                
+                # Create smart reminders for time-based suggestions
+                for suggestion in suggestions:
+                    if suggestion['type'] == 'time_based':
+                        reminder = reminder_service.create_smart_reminder(memory, request.user, suggestion)
+                        if reminder:  # Only count if reminder was actually created
+                            reminder_count += 1
+            except Exception as e:
+                # If smart reminder creation fails, don't break the memory creation
+                pass
+            
             # Create success message with date info
             success_msg = f'Memory added successfully! Categorized as: {memory.get_memory_type_display()}'
             if memory.delivery_date:
                 success_msg += f' | Scheduled for: {memory.delivery_date.strftime("%B %d, %Y at %I:%M %p")}'
+            if reminder_count > 0:
+                success_msg += f' | {reminder_count} smart reminder{"s" if reminder_count != 1 else ""} created'
             
             return JsonResponse({
                 'success': True,
@@ -792,6 +1060,22 @@ def voice_create_memory(request):
                     importance=categorization.get('importance', 5)
                 )
                 
+                # Auto-create smart reminders based on memory content
+                reminder_count = 0
+                try:
+                    reminder_service = SmartReminderService()
+                    suggestions = reminder_service.analyze_memory_for_reminders(memory)
+                    
+                    # Create smart reminders for time-based suggestions
+                    for suggestion in suggestions:
+                        if suggestion['type'] == 'time_based':
+                            reminder = reminder_service.create_smart_reminder(memory, request.user, suggestion)
+                            if reminder:  # Only count if reminder was actually created
+                                reminder_count += 1
+                except Exception as e:
+                    # If smart reminder creation fails, don't break the memory creation
+                    pass
+                
                 return JsonResponse({
                     'success': True,
                     'content': text,
@@ -800,7 +1084,8 @@ def voice_create_memory(request):
                     'confidence': categorization.get('confidence', 50),
                     'summary': categorization.get('summary', ''),
                     'tags': categorization.get('tags', []),
-                    'importance': categorization.get('importance', 5)
+                    'importance': categorization.get('importance', 5),
+                    'reminders_created': reminder_count
                 })
             else:
                 return JsonResponse({
@@ -898,6 +1183,71 @@ def voice_search_memories(request):
                 r'\b(this week)\b': 'this_week',
                 r'\b(next week)\b': 'next_week'
             }
+            
+            # Special handling for "plan for today" queries
+            if 'plan' in query_lower and 'today' in query_lower:
+                print(f"DEBUG: Detected 'plan for today' query")
+                # First, try to find memories scheduled for today
+                today = datetime.now().date()
+                today_scheduled = memories.filter(delivery_date__date=today)
+                print(f"DEBUG: Found {today_scheduled.count()} memories scheduled for today")
+                
+                if today_scheduled.count() > 0:
+                    # Return today's scheduled memories as the primary results
+                    results = []
+                    for memory in today_scheduled.order_by('delivery_date'):
+                        results.append({
+                            'id': memory.id,
+                            'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                            'summary': memory.summary,
+                            'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
+                            'recency': 'Today',
+                            'scheduled_time': memory.delivery_date.strftime('%I:%M %p') if memory.delivery_date else None
+                        })
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'query': query,
+                        'results': results,
+                        'message': f'Here are your plans for today ({today.strftime("%B %d, %Y")}):'
+                    })
+                else:
+                    # No scheduled memories for today, but user asked for plans
+                    # Look for recent memories that might be plans or tasks
+                    recent_plan_memories = memories.filter(
+                        Q(content__icontains='plan') | 
+                        Q(content__icontains='task') | 
+                        Q(content__icontains='todo') | 
+                        Q(content__icontains='meeting') | 
+                        Q(content__icontains='appointment') |
+                        Q(memory_type='reminder')
+                    ).order_by('-created_at')[:5]
+                    
+                    if recent_plan_memories.count() > 0:
+                        results = []
+                        for memory in recent_plan_memories:
+                            results.append({
+                                'id': memory.id,
+                                'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                                'summary': memory.summary,
+                                'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
+                                'recency': 'Recent',
+                                'note': 'No specific plans scheduled for today, but here are recent planning-related memories:'
+                            })
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'query': query,
+                            'results': results,
+                            'message': f'No specific plans scheduled for today ({today.strftime("%B %d, %Y")}). Here are recent planning-related memories:'
+                        })
+                    else:
+                        return JsonResponse({
+                            'success': True,
+                            'query': query,
+                            'results': [],
+                            'message': f'No plans found for today ({today.strftime("%B %d, %Y")}). You can create new memories and schedule them for today!'
+                        })
             
             detected_date = None
             for pattern, date_type in date_patterns.items():
@@ -1095,11 +1445,21 @@ def voice_search_memories(request):
                         if not any(indicator in content_lower for indicator in call_indicators):
                             is_relevant = False
                     
-                    # For "plan" related queries, ensure it's about planning or scheduling
+                    # For "plan" related queries, be more flexible - include memories that might be plans even without explicit plan words
                     elif 'plan' in query_lower:
-                        plan_indicators = ['plan', 'schedule', 'arrange', 'organize', 'prepare']
+                        plan_indicators = ['plan', 'schedule', 'arrange', 'organize', 'prepare', 'meeting', 'appointment', 'task', 'todo', 'reminder']
+                        # Also include memories that are scheduled for today/tomorrow as they might be plans
                         if not any(indicator in content_lower for indicator in plan_indicators):
-                            is_relevant = False
+                            # Check if this memory is scheduled for today/tomorrow (which could be a plan)
+                            if memory.delivery_date:
+                                today = datetime.now().date()
+                                tomorrow = today + timedelta(days=1)
+                                if memory.delivery_date.date() in [today, tomorrow]:
+                                    is_relevant = True
+                                else:
+                                    is_relevant = False
+                            else:
+                                is_relevant = False
                     
                     # For "buy" or "shopping" related queries
                     elif any(word in query_lower for word in ['buy', 'purchase', 'shop', 'shopping']):
@@ -1232,6 +1592,13 @@ def voice_search_memories(request):
                     # Penalize old memories more heavily
                     elif days_old > 30:
                         score -= 50
+                    
+                    # Special boost for "plan for today" queries - prioritize memories scheduled for today
+                    if 'plan' in query.lower() and 'today' in query.lower():
+                        if memory.delivery_date and memory.delivery_date.date() == datetime.now().date():
+                            score += 100  # Significant boost for today's scheduled memories
+                        elif memory.delivery_date and memory.delivery_date.date() == datetime.now().date() + timedelta(days=1):
+                            score += 50   # Moderate boost for tomorrow's scheduled memories
                 
                 # Shopping-related queries
                 shopping_words = ['buy', 'purchase', 'shop', 'shopping', 'list', 'need', 'want']
@@ -1331,6 +1698,53 @@ def debug_memories(request):
                     'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
                     'memory_type': memory.memory_type,
                     'importance': memory.importance
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'debug_info': debug_info
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def debug_comments(request, memory_id):
+    """Debug endpoint to check comments for a specific memory"""
+    if request.method == 'GET':
+        try:
+            memory = get_object_or_404(Memory, id=memory_id)
+            
+            # Check if user can view this memory
+            if not memory.can_be_viewed_by(request.user):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Permission denied'
+                })
+            
+            comments = memory.comments.all()
+            
+            debug_info = {
+                'memory_id': memory.id,
+                'memory_content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                'allow_comments': memory.allow_comments,
+                'total_comments': comments.count(),
+                'comments': []
+            }
+            
+            for comment in comments:
+                debug_info['comments'].append({
+                    'id': comment.id,
+                    'user': comment.user.username,
+                    'content': comment.content,
+                    'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'is_edited': comment.is_edited
                 })
             
             return JsonResponse({
@@ -1531,6 +1945,7 @@ def scheduled_memories(request):
         'filter_type': 'scheduled',
         'search_query': search_query,
         'sort_by': sort_by,
+        'now': now,
     }
     
     return render(request, 'memory_assistant/filtered_memories.html', context)
@@ -1628,6 +2043,9 @@ def all_memories(request):
     if sort_by in ['created_at', '-created_at', 'importance', '-importance', 'updated_at', '-updated_at']:
         memories = memories.order_by(sort_by)
     
+    # Add prefetching for comments and likes
+    memories = memories.prefetch_related('comments__user__profile', 'likes__user')
+    
     # Pagination
     paginator = Paginator(memories, 12)
     page_number = request.GET.get('page')
@@ -1674,9 +2092,316 @@ def register(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            messages.success(request, f'Account created successfully for {user.username}! You can now log in.')
+            
+            # Get the selected country and set the user's timezone
+            country_code = form.cleaned_data.get('country')
+            if country_code:
+                from .timezone_utils import get_timezone_for_country
+                timezone_name = get_timezone_for_country(country_code)
+                
+                # Create or update user profile with timezone
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.user_timezone = timezone_name
+                profile.save()
+                
+                messages.success(
+                    request, 
+                    f'Account created successfully for {user.username}! '
+                    f'Your timezone has been set to {timezone_name}. You can now log in.'
+                )
+            else:
+                messages.success(request, f'Account created successfully for {user.username}! You can now log in.')
+            
             return redirect('login')
     else:
         form = UserRegistrationForm()
     
     return render(request, 'memory_assistant/register.html', {'form': form}) 
+
+
+@login_required
+def smart_reminders(request):
+    """View and manage smart reminders"""
+    reminder_service = SmartReminderService()
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        reminder_id = request.POST.get('reminder_id')
+        
+        if action == 'dismiss' and reminder_id:
+            reminder_service.dismiss_reminder(reminder_id, request.user)
+            messages.success(request, 'Reminder dismissed successfully!')
+        elif action == 'snooze' and reminder_id:
+            hours = int(request.POST.get('hours', 1))
+            reminder_service.snooze_reminder(reminder_id, request.user, hours)
+            messages.success(request, f'Reminder snoozed for {hours} hour(s)!')
+    
+    # Get user's reminders
+    reminders = reminder_service.get_user_reminders(request.user)
+    
+    # Check for triggered reminders for this user only
+    triggered_reminders = reminder_service.check_and_trigger_reminders(request.user)
+    
+    context = {
+        'reminders': reminders,
+        'triggered_reminders': triggered_reminders,
+    }
+    
+    return render(request, 'memory_assistant/smart_reminders.html', context)
+
+
+@login_required
+def create_smart_reminder(request, memory_id):
+    """Create a smart reminder for a specific memory"""
+    memory = get_object_or_404(Memory, id=memory_id)
+    
+    # Check if user can view this memory
+    if not memory.can_be_viewed_by(request.user):
+        messages.error(request, "You don't have permission to create reminders for this memory.")
+        return redirect('memory_assistant:dashboard')
+    
+    reminder_service = SmartReminderService()
+    
+    if request.method == 'POST':
+        reminder_type = request.POST.get('reminder_type')
+        priority = request.POST.get('priority', 'medium')
+        
+        # Create reminder based on type
+        if reminder_type == 'time_based':
+            offset_minutes = int(request.POST.get('offset_minutes', 15))
+            suggestion = {
+                'type': 'time_based',
+                'priority': priority,
+                'description': f"Reminder in {offset_minutes} minutes",
+                'trigger_conditions': {
+                    'offset_minutes': offset_minutes,
+                    'reason': f"Manual time-based reminder"
+                }
+            }
+        elif reminder_type == 'date_based':
+            target_date = request.POST.get('target_date')
+            suggestion = {
+                'type': 'date_based',
+                'priority': priority,
+                'description': f"Reminder on {target_date}",
+                'trigger_conditions': {
+                    'target_date': target_date,
+                    'reason': f"Manual date-based reminder"
+                }
+            }
+        elif reminder_type == 'frequency_based':
+            frequency = request.POST.get('frequency', 'daily')
+            suggestion = {
+                'type': 'frequency_based',
+                'priority': priority,
+                'description': f"Recurring reminder ({frequency})",
+                'trigger_conditions': {
+                    'frequency': frequency,
+                    'reason': f"Manual frequency-based reminder"
+                }
+            }
+        else:
+            messages.error(request, "Invalid reminder type.")
+            return redirect('memory_assistant:memory_detail', memory_id=memory.id)
+        
+        # Create the reminder
+        reminder = reminder_service.create_smart_reminder(memory, request.user, suggestion)
+        messages.success(request, 'Smart reminder created successfully!')
+        
+        return redirect('memory_assistant:memory_detail', memory_id=memory.id)
+    
+    # Get AI suggestions for this memory
+    suggestions = reminder_service.analyze_memory_for_reminders(memory)
+    
+    context = {
+        'memory': memory,
+        'suggestions': suggestions,
+    }
+    
+    return render(request, 'memory_assistant/create_smart_reminder.html', context)
+
+
+@login_required
+def auto_create_reminders(request, memory_id):
+    """Automatically create smart reminders based on AI analysis"""
+    memory = get_object_or_404(Memory, id=memory_id)
+    
+    # Check if user can view this memory
+    if not memory.can_be_viewed_by(request.user):
+        messages.error(request, "You don't have permission to create reminders for this memory.")
+        return redirect('memory_assistant:dashboard')
+    
+    reminder_service = SmartReminderService()
+    
+    # Get AI suggestions
+    suggestions = reminder_service.analyze_memory_for_reminders(memory)
+    
+    created_reminders = []
+    for suggestion in suggestions:
+        reminder = reminder_service.create_smart_reminder(memory, request.user, suggestion)
+        created_reminders.append(reminder)
+    
+    if created_reminders:
+        messages.success(request, f'Created {len(created_reminders)} smart reminder(s)!')
+    else:
+        messages.info(request, 'No smart reminders were suggested for this memory.')
+    
+    return redirect('memory_assistant:memory_detail', memory_id=memory.id)
+
+
+@login_required
+def reminder_actions(request, reminder_id):
+    """Handle reminder actions (dismiss, snooze, etc.) via AJAX"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        reminder_service = SmartReminderService()
+        
+        if action == 'dismiss':
+            success = reminder_service.dismiss_reminder(reminder_id, request.user)
+            if success:
+                return JsonResponse({'success': True, 'message': 'Reminder dismissed'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Reminder not found'})
+        
+        elif action == 'snooze':
+            hours = int(request.POST.get('hours', 1))
+            success = reminder_service.snooze_reminder(reminder_id, request.user, hours)
+            if success:
+                return JsonResponse({'success': True, 'message': f'Reminder snoozed for {hours} hour(s)'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Reminder not found'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid action'}) 
+
+# Smart Reminder Notification Views
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+from .models import SmartReminder
+
+def check_reminders(request):
+    """Check for active reminders that should be shown to the user"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'has_reminders': False})
+    
+    now = timezone.now()
+    
+    # Find reminders that should be triggered now
+    active_reminders = SmartReminder.objects.filter(
+        user=request.user,
+        is_active=True,
+        next_trigger__lte=now,
+        last_triggered__isnull=True  # Only show if not already triggered
+    ).select_related('memory').order_by('priority', 'next_trigger')[:1]  # Get the most important one
+    
+    if active_reminders.exists():
+        reminder = active_reminders.first()
+        
+        # Mark as triggered
+        reminder.last_triggered = now
+        reminder.save()
+        
+        return JsonResponse({
+            'has_reminders': True,
+            'reminder': {
+                'id': reminder.id,
+                'memory_content': reminder.memory.content[:100] + '...' if len(reminder.memory.content) > 100 else reminder.memory.content,
+                'reason': reminder.trigger_conditions.get('reason', 'Time-based reminder'),
+                'priority': reminder.get_priority_display(),
+                'memory_id': reminder.memory.id
+            }
+        })
+    
+    return JsonResponse({'has_reminders': False})
+
+def mark_reminder_done(request, reminder_id):
+    """Mark a reminder as done"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    try:
+        reminder = SmartReminder.objects.get(
+            id=reminder_id,
+            user=request.user
+        )
+        reminder.is_active = False
+        reminder.save()
+        return JsonResponse({'success': True})
+    except SmartReminder.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Reminder not found'})
+
+def snooze_reminder(request, reminder_id):
+    """Snooze a reminder for 1 hour"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    try:
+        reminder = SmartReminder.objects.get(
+            id=reminder_id,
+            user=request.user
+        )
+        reminder.next_trigger = timezone.now() + timedelta(hours=1)
+        reminder.last_triggered = None  # Reset so it can be triggered again
+        reminder.save()
+        return JsonResponse({'success': True})
+    except SmartReminder.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Reminder not found'})
+
+def dismiss_reminder(request, reminder_id):
+    """Dismiss a reminder permanently"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Not authenticated'})
+    
+    try:
+        reminder = SmartReminder.objects.get(
+            id=reminder_id,
+            user=request.user
+        )
+        reminder.is_active = False
+        reminder.save()
+        return JsonResponse({'success': True})
+    except SmartReminder.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Reminder not found'})
+
+@login_required
+def timezone_test(request):
+    """Test view to demonstrate timezone functionality"""
+    from django.utils import timezone
+    import pytz
+    
+    # Get current time in different timezones
+    now = timezone.now()
+    
+    timezone_times = {}
+    common_timezones = [
+        'UTC',
+        'America/New_York',
+        'America/Chicago', 
+        'America/Denver',
+        'America/Los_Angeles',
+        'Europe/London',
+        'Europe/Paris',
+        'Asia/Tokyo',
+        'Australia/Sydney'
+    ]
+    
+    for tz_name in common_timezones:
+        try:
+            tz = pytz.timezone(tz_name)
+            local_time = now.astimezone(tz)
+            timezone_times[tz_name] = local_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+        except:
+            timezone_times[tz_name] = 'Error'
+    
+    # Get user's current timezone
+    user_timezone = 'UTC'
+    if hasattr(request.user, 'profile') and request.user.profile.user_timezone:
+        user_timezone = request.user.profile.user_timezone
+    
+    context = {
+        'timezone_times': timezone_times,
+        'user_timezone': user_timezone,
+        'current_time': now.strftime('%Y-%m-%d %H:%M:%S %Z'),
+    }
+    
+    return render(request, 'memory_assistant/timezone_test.html', context)

@@ -14,15 +14,21 @@
                             <i class="bi bi-search"></i> Search Results
                         </h4>
                         <p class="text-muted mb-0">
-                            Found {{ results_count }} memory{{ results_count|pluralize }} for "{{ query }}"
-                            {% if search_method == "ai_semantic" %}
-                                <span class="badge bg-success ms-2">AI Semantic Search</span>
-                            {% elif search_method == "enhanced_basic" %}
-                                <span class="badge bg-info ms-2">Enhanced Search</span>
-                            {% elif search_method == "fuzzy" %}
-                                <span class="badge bg-warning ms-2">Fuzzy Match</span>
-                            {% elif search_method == "suggestions" %}
-                                <span class="badge bg-secondary ms-2">Recent Suggestions</span>
+                            {% if search_method == "date_filter_only" %}
+                                Found {{ results_count }} memory{{ results_count|pluralize }} from {{ date_filter }}
+                                <span class="badge bg-primary ms-2">Date Filter</span>
+                            {% else %}
+                                Found {{ results_count }} memory{{ results_count|pluralize }} for "{{ query }}"
+                                {% if date_filter %} on {{ date_filter }}{% endif %}
+                                {% if search_method == "ai_semantic" %}
+                                    <span class="badge bg-success ms-2">AI Semantic Search</span>
+                                {% elif search_method == "enhanced_basic" %}
+                                    <span class="badge bg-info ms-2">Enhanced Search</span>
+                                {% elif search_method == "fuzzy" %}
+                                    <span class="badge bg-warning ms-2">Fuzzy Match</span>
+                                {% elif search_method == "suggestions" %}
+                                    <span class="badge bg-secondary ms-2">Recent Suggestions</span>
+                                {% endif %}
                             {% endif %}
                         </p>
                     </div>
@@ -36,6 +42,119 @@
         </div>
     </div>
 
+    <!-- Modern Refine Search -->
+    <div class="col-12 mb-4">
+        <div class="modern-refine-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div class="refine-header mb-3">
+                <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                    <i class="bi bi-funnel me-2" style="color: #667eea;"></i> Refine Search
+                </h6>
+                <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Modify your search criteria</p>
+            </div>
+            
+            <form method="GET" action="{% url 'memory_assistant:search_memories' %}" class="modern-refine-form">
+                <div class="row g-3">
+                    <!-- Search Query -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="refine-group">
+                            <label for="q" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-search me-1" style="color: #667eea;"></i>Search Query
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <input type="text" class="form-control border-0 shadow-none" id="q" name="q" 
+                                       value="{{ query }}" placeholder="Search content, tags, or summary..."
+                                       style="border: none; outline: none; padding: 0.75rem 1rem;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Filter -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="refine-group">
+                            <label for="date_filter" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                                <i class="bi bi-calendar3 me-1" style="color: #667eea;"></i>Date Filter
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <input type="date" class="form-control border-0 shadow-none" id="date_filter" name="date_filter" 
+                                       value="{{ date_filter }}"
+                                       style="border: none; outline: none; padding: 0.75rem 1rem;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="refine-group d-flex flex-column" style="margin-top: 1.8rem;">
+                            <button type="submit" class="btn btn-primary" 
+                                    style="background: #667eea; border: none; border-radius: 12px; padding: 0.75rem 1rem; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                                <i class="bi bi-search me-2"></i>Search
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Clear Button -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="refine-group d-flex flex-column" style="margin-top: 1.8rem;">
+                            <a href="{% url 'memory_assistant:search_memories' %}" class="btn btn-outline-secondary"
+                               style="border-radius: 12px; padding: 0.75rem 1rem; font-weight: 600;">
+                                <i class="bi bi-x-circle me-2"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+    .modern-refine-container {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .modern-refine-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+        pointer-events: none;
+    }
+    
+    .modern-refine-form {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .refine-group .input-wrapper:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        transition: all 0.3s ease;
+    }
+    
+    .refine-group .form-control:focus {
+        box-shadow: none;
+        border: none;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        transition: all 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+        .modern-refine-container {
+            padding: 1.5rem;
+        }
+        
+        .refine-group {
+            margin-bottom: 1rem;
+        }
+    }
+    </style>
+
     <!-- Search Results -->
     <div class="col-12">
         <div class="card">
@@ -46,7 +165,12 @@
             </div>
             <div class="card-body">
                 {% if search_results %}
-                    {% if search_method == "ai_semantic" %}
+                    {% if search_method == "date_filter_only" %}
+                        <div class="alert alert-primary">
+                            <i class="bi bi-calendar"></i>
+                            <strong>Date Filter:</strong> Showing all memories created on {{ date_filter }}.
+                        </div>
+                    {% elif search_method == "ai_semantic" %}
                         <div class="alert alert-success">
                             <i class="bi bi-robot"></i>
                             <strong>AI Semantic Search:</strong> Results are ranked by semantic relevance using advanced AI analysis.
