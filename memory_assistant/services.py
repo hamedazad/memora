@@ -5,6 +5,7 @@ from openai import OpenAI
 from django.conf import settings
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from django.utils import timezone
 import re
 from dateutil import parser as date_parser
 from dateutil.relativedelta import relativedelta
