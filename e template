@@ -1,35 +1,3 @@
-  feature/v2.1.0-database-fixes[m
-* [32mmaster[m
-  v2.1.0-final[m
-  v2.1.0-secure[m
-  v3.0.0-release[m
-  v3.1.0-clean[m
-  v3.1.0-release[m
-  v3.2.0-release[m
-  v3.3.0-release[m
-  v3.5.0-release[m
-  [31mremotes/origin/HEAD[m -> origin/master
-  [31mremotes/origin/master[m
-  [31mremotes/origin/v3.0.0-release[m
-  [31mremotes/origin/v3.1.0-clean[m
-  [31mremotes/origin/v3.1.0-release[m
-  [31mremotes/origin/v3.2.0-release[m
-  [31mremotes/origin/v3.3.0-release[m
-  [31mremotes/origin/v3.5.0-release[m
-[33m516f253[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m fix: Remove API key from setup file and clean up temporary files
-[33m7e9f345[m Merge branch 'v3.1.0-release'
-[33m5789220[m[33m ([m[1;33mtag: v3.1.0[m[33m, [m[1;31morigin/v3.1.0-release[m[33m, [m[1;32mv3.1.0-release[m[33m)[m v3.1.0: Enhanced AI memory type recognition and improved search/filter functionality
-[33m02bd1be[m Merge v3.0.0-release: Resolve version conflict
-[33m75d9033[m[33m ([m[1;33mtag: v3.0.0[m[33m, [m[1;31morigin/v3.0.0-release[m[33m, [m[1;32mv3.0.0-release[m[33m, [m[1;32mv2.1.0-final[m[33m)[m v3.0.0: Major release with advanced AI features and improved database architecture
-[33m3b5a524[m[33m ([m[1;33mtag: v2.1.0[m[33m, [m[1;32mv2.1.0-secure[m[33m)[m v2.1.0: Remove hardcoded API key for security
-[33m66828bc[m Merge feature/v2.1.0-database-fixes: Resolve API key conflict
-[33md2db5da[m[33m ([m[1;32mfeature/v2.1.0-database-fixes[m[33m)[m v2.1.0: Fix database constraints and integrate OpenAI API key
-[33m144428f[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: Remove API key from documentation for security
-[33m5d87387[m feat: Add AI-powered features to Memora v2.0.0
-[33m22070c9[m 🔒 Security fix: Remove API keys from public files - Use placeholders for sensitive data
-[33mf68f5ed[m[33m ([m[1;33mtag: v2.0.0[m[33m)[m 🚀 Release v2.0.0: AI-Powered Memory Assistant - Complete AI integration with OpenAI GPT-3.5, PostgreSQL migration, and advanced features
-[33maf481c2[m[33m ([m[1;33mtag: v1.2.0[m[33m)[m Release v1.2.0: Add user registration and authentication system
-[33m5eee89f[m[33m ([m[1;33mtag: v1.0.0[m[33m)[m Initial release v1.0.0 - Memora Memory Assistant with voice features
 
                    SSUUMMMMAARRYY OOFF LLEESSSS CCOOMMMMAANNDDSS
 

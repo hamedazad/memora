@@ -4,97 +4,589 @@
 
 {% block content %}
 {% csrf_token %}
+
+<style>
+/* Modern Voice Card */
+.modern-voice-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.voice-header {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.voice-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.voice-title i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+}
+
+.voice-title h4 {
+    margin: 0;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.voice-title p {
+    margin: 0.25rem 0 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.voice-content {
+    padding: 2rem;
+}
+
+/* Voice Recorder */
+.voice-recorder {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.recorder-circle {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+    position: relative;
+}
+
+.recorder-btn {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.recorder-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.recorder-btn.recording {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    animation: pulse 2s infinite;
+}
+
+.recording-waves {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+}
+
+.recording-waves::before,
+.recording-waves::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: wave 2s infinite;
+}
+
+.recording-waves::after {
+    animation-delay: 0.5s;
+}
+
+@keyframes wave {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.recorder-status {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Recording Status */
+.recording-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.status-indicator {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-indicator i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    z-index: 1;
+}
+
+.pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.2);
+    animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.7);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(0.7);
+        opacity: 1;
+    }
+}
+
+.status-text {
+    flex: 1;
+}
+
+.status-text span {
+    display: block;
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.status-text small {
+    color: var(--text-light);
+}
+
+/* Voice Result */
+.voice-result {
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.result-header i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.result-header h5 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.transcribed-text {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.transcribed-text p {
+    margin: 0;
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+/* Image Upload */
+.image-upload {
+    margin-bottom: 1.5rem;
+}
+
+.upload-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+.upload-label i {
+    color: var(--primary-color);
+}
+
+.upload-input {
+    display: none;
+}
+
+.upload-info {
+    color: var(--text-light);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.image-preview {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.remove-image:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
+
+/* Result Actions */
+.result-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Voice Error */
+.voice-error {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    margin-top: 1.5rem;
+}
+
+.voice-error i {
+    font-size: 1.2rem;
+}
+
+/* Modern Tips Card */
+.modern-tips-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.tips-header {
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.tips-header i {
+    font-size: 1.5rem;
+    color: #f59e0b;
+    margin-top: 0.25rem;
+}
+
+.tips-header h5 {
+    margin: 0;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.tips-header p {
+    margin: 0.25rem 0 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.tips-content {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.tip-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
+}
+
+.tip-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.tip-text h6 {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.tip-text p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .voice-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .voice-content {
+        padding: 1.5rem;
+    }
+
+    .recorder-circle {
+        width: 100px;
+        height: 100px;
+    }
+
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .test-input {
+        flex-direction: column;
+    }
+
+    .tips-content {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-mic"></i> Create Memory with Voice
-                </h5>
+        <div class="modern-voice-card">
+            <div class="voice-header">
+                <div class="voice-title">
+                    <i class="bi bi-mic-fill"></i>
+                    <div>
+                        <h4>Voice Memory Creation</h4>
+                        <p>Create memories effortlessly with your voice</p>
+                    </div>
+                </div>
+                <div class="voice-settings">
+                    <button id="toggleAutoSave" class="btn-modern btn-modern-outline" onclick="toggleAutoSave()">
+                        <i class="bi bi-mic-mute"></i>
+                        <span>Disable Auto-Save</span>
+                    </button>
+                </div>
             </div>
-            <div class="card-body text-center">
-                <div class="mb-4">
-                    <i class="bi bi-mic-fill display-1 text-primary"></i>
-                    <h4 class="mt-3">Voice Memory Creation</h4>
-                    <p class="text-muted">Click the button below and speak your memory clearly</p>
+
+            <div class="voice-content">
+                <div class="voice-recorder">
+                    <div class="recorder-circle">
+                        <button id="startRecording" class="recorder-btn">
+                            <i class="bi bi-mic-fill"></i>
+                        </button>
+                        <button id="stopRecording" class="recorder-btn recording" style="display: none;">
+                            <i class="bi bi-stop-fill"></i>
+                            <div class="recording-waves"></div>
+                        </button>
+                    </div>
+                    <p class="recorder-status">Click to start recording</p>
                 </div>
-                
-                <div class="mb-4">
-                    <button id="startRecording" class="btn btn-primary btn-lg">
-                        <i class="bi bi-mic"></i> Start Recording
-                    </button>
-                    <button id="stopRecording" class="btn btn-danger btn-lg" style="display: none;">
-                        <i class="bi bi-stop-circle"></i> Stop Recording
-                    </button>
+
+                <div id="recordingStatus" class="recording-status" style="display: none;">
+                    <div class="status-indicator">
+                        <div class="pulse-ring"></div>
+                        <i class="bi bi-mic-fill"></i>
+                    </div>
+                    <div class="status-text">
+                        <span id="recordingStatusText">Listening... Speak now!</span>
+                        <small id="autoSaveStatus">Auto-save: ON (stops after 3s silence)</small>
+                    </div>
                 </div>
-                
-                <div class="mb-3">
-                    <button id="toggleAutoSave" class="btn btn-outline-warning btn-sm" onclick="toggleAutoSave()">
-                        🔇 Disable Auto-Save
-                    </button>
-                    <small class="text-muted ms-2">Auto-saves after 3 seconds of silence</small>
-                </div>
-                
-                <div class="mb-3">
-                    <small class="text-muted">Or test with text input:</small>
-                    <div class="input-group">
-                        <input type="text" id="testInput" class="form-control" placeholder="Enter test text here...">
-                        <button id="testButton" class="btn btn-outline-secondary">
-                            <i class="bi bi-play"></i> Test
+
+                <div id="result" class="voice-result" style="display: none;">
+                    <div class="result-header">
+                        <i class="bi bi-chat-square-quote-fill"></i>
+                        <h5>Transcribed Memory</h5>
+                    </div>
+                    <div class="transcribed-text">
+                        <p id="transcribedText"></p>
+                    </div>
+
+                    <div class="image-upload">
+                        <label for="voiceMemoryImage" class="upload-label">
+                            <i class="bi bi-image"></i>
+                            <span>Add Image (Optional)</span>
+                        </label>
+                        <input type="file" class="upload-input" id="voiceMemoryImage" accept="image/*">
+                        <small class="upload-info">Supported: JPG, PNG, GIF. Max: 5MB</small>
+
+                        <div id="voiceImagePreview" class="image-preview" style="display: none;">
+                            <img id="voicePreviewImg" alt="Image preview">
+                            <button class="remove-image" onclick="removeImage()">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button id="saveMemory" class="btn-modern btn-modern-primary">
+                            <i class="bi bi-check-circle"></i>
+                            <span>Save Memory</span>
+                        </button>
+                        <button id="tryAgain" class="btn-modern btn-modern-outline">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            <span>Try Again</span>
                         </button>
                     </div>
                 </div>
-                
-                <div id="recordingStatus" class="alert alert-info" style="display: none;">
-                    <i class="bi bi-mic"></i> <span id="recordingStatusText">Listening... Speak now!</span>
-                    <div class="mt-1"><small id="autoSaveStatus">Auto-save: ON (stops after 3s silence)</small></div>
-                </div>
-                
-                <div id="result" class="mt-4" style="display: none;">
-                    <h6>Transcribed Text:</h6>
-                    <div class="border rounded p-3 bg-light mb-3">
-                        <p id="transcribedText" class="mb-0"></p>
-                    </div>
-                    
-                    <div class="mb-3 text-start">
-                        <label for="voiceMemoryImage" class="form-label">Add Image (Optional)</label>
-                        <input type="file" class="form-control" id="voiceMemoryImage" accept="image/*">
-                        <div class="form-text">Upload an optional image to attach to this memory. Supported formats: JPG, PNG, GIF. Max size: 5MB.</div>
-                        
-                        <!-- Image preview -->
-                        <div id="voiceImagePreview" class="mt-2" style="display: none;">
-                            <img id="voicePreviewImg" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" alt="Image preview">
-                        </div>
-                    </div>
-                    
-                    <button id="saveMemory" class="btn btn-success">
-                        <i class="bi bi-check-circle"></i> Save Memory
-                    </button>
-                    <button id="tryAgain" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-clockwise"></i> Try Again
-                    </button>
-                </div>
-                
-                <div id="error" class="alert alert-danger mt-3" style="display: none;">
-                    <i class="bi bi-exclamation-triangle"></i> <span id="errorMessage"></span>
+
+                <div id="error" class="voice-error" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span id="errorMessage"></span>
                 </div>
             </div>
         </div>
         
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-info-circle"></i> Tips for Better Voice Recognition
-                </h6>
+        <div class="modern-tips-card">
+            <div class="tips-header">
+                <i class="bi bi-lightbulb-fill"></i>
+                <div>
+                    <h5>Tips for Better Voice Recognition</h5>
+                    <p>Follow these tips for the best results</p>
+                </div>
             </div>
-            <div class="card-body">
-                <ul class="mb-0">
-                    <li>Speak clearly and at a normal pace</li>
-                    <li>Ensure your microphone is working properly</li>
-                    <li>Minimize background noise</li>
-                    <li>Speak for at least 2-3 seconds</li>
-                    <li>Be specific and descriptive for better AI processing</li>
-                </ul>
+            <div class="tips-content">
+                <div class="tip-item">
+                    <div class="tip-icon">
+                        <i class="bi bi-mic-fill"></i>
+                    </div>
+                    <div class="tip-text">
+                        <h6>Speak Clearly</h6>
+                        <p>Use a normal pace and clear pronunciation</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <div class="tip-text">
+                        <h6>Check Microphone</h6>
+                        <p>Ensure your microphone is working properly</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">
+                        <i class="bi bi-volume-mute"></i>
+                    </div>
+                    <div class="tip-text">
+                        <h6>Quiet Environment</h6>
+                        <p>Minimize background noise for better results</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="tip-text">
+                        <h6>Duration</h6>
+                        <p>Speak for at least 2-3 seconds</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="tip-text">
+                        <h6>Be Descriptive</h6>
+                        <p>Use specific details for better AI processing</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -136,14 +628,7 @@ document.getElementById('tryAgain').addEventListener('click', function() {
     resetRecording();
 });
 
-document.getElementById('testButton').addEventListener('click', function() {
-    const testText = document.getElementById('testInput').value.trim();
-    if (testText) {
-        document.getElementById('transcribedText').textContent = testText;
-        document.getElementById('result').style.display = 'block';
-        document.getElementById('error').style.display = 'none';
-    }
-});
+
 
 // Image preview functionality for voice memory
 document.getElementById('voiceMemoryImage').addEventListener('change', function(e) {
@@ -397,7 +882,6 @@ function resetRecording() {
     document.getElementById('result').style.display = 'none';
     document.getElementById('error').style.display = 'none';
     document.getElementById('transcribedText').textContent = '';
-    document.getElementById('testInput').value = '';
 }
 
 function showAutoSaveMessage() {
@@ -452,14 +936,24 @@ function toggleAutoSave() {
     const statusElement = document.getElementById('autoSaveStatus');
     
     if (autoSaveEnabled) {
-        button.textContent = '🔇 Disable Auto-Save';
-        button.className = 'btn btn-outline-warning btn-sm';
+        button.innerHTML = '<i class="bi bi-mic-mute"></i><span>Disable Auto-Save</span>';
+        button.className = 'btn-modern btn-modern-outline';
         statusElement.textContent = 'Auto-save: ON (stops after 3s silence)';
     } else {
-        button.textContent = '🎤 Enable Auto-Save';
-        button.className = 'btn btn-outline-success btn-sm';
+        button.innerHTML = '<i class="bi bi-mic"></i><span>Enable Auto-Save</span>';
+        button.className = 'btn-modern btn-modern-outline';
         statusElement.textContent = 'Auto-save: OFF (manual save only)';
     }
+}
+
+function removeImage() {
+    const input = document.getElementById('voiceMemoryImage');
+    const preview = document.getElementById('voiceImagePreview');
+    const previewImg = document.getElementById('voicePreviewImg');
+    
+    input.value = '';
+    preview.style.display = 'none';
+    previewImg.src = '';
 }
 </script>
 {% endblock %} 

@@ -48,6 +48,8 @@ urlpatterns = [
     # Debug endpoints
     path('debug-memories/', views.debug_memories, name='debug_memories'),
     path('debug-comments/<int:memory_id>/', views.debug_comments, name='debug_comments'),
+    path('debug-ai-suggestions/', views.debug_ai_suggestions, name='debug_ai_suggestions'),
+
     
     # Voice features
     path('voice/create/', views.voice_create_memory, name='voice_create_memory'),
@@ -123,4 +125,6 @@ urlpatterns = [
     path('reminders/<int:reminder_id>/mark-done/', views.mark_reminder_done, name='mark_reminder_done'),
     path('reminders/<int:reminder_id>/snooze/', views.snooze_reminder, name='snooze_reminder'),
     path('reminders/<int:reminder_id>/dismiss/', views.dismiss_reminder, name='dismiss_reminder'),
+    
+
 ] 

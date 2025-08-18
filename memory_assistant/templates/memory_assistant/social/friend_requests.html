@@ -6,70 +6,77 @@
 <div class="row">
     <div class="col-md-6">
         <!-- Received Requests -->
-        <div class="card">
+        <div class="social-card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-inbox"></i> Received Requests ({{ received_requests.count }})
+                    <i class="bi bi-inbox-fill"></i> Received Requests ({{ received_requests.count }})
                 </h5>
             </div>
             <div class="card-body">
                 {% if received_requests %}
                     {% for request in received_requests %}
-                        <div class="request-item border rounded p-3 mb-3">
-                            <div class="d-flex align-items-center mb-3">
-                                {% with request.from_user.profile as profile %}
-                                    {% if profile.avatar %}
-                                        <img src="{{ profile.avatar.url }}" class="rounded-circle me-3" 
-                                             style="width: 50px; height: 50px; object-fit: cover;" alt="Avatar">
-                                    {% else %}
-                                        <div class="bg-primary rounded-circle me-3 d-flex align-items-center justify-content-center" 
-                                             style="width: 50px; height: 50px;">
-                                            <i class="bi bi-person text-white"></i>
-                                        </div>
-                                    {% endif %}
-                                {% endwith %}
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ request.from_user.get_full_name|default:request.from_user.username }}</h6>
-                                    <p class="text-muted mb-1">@{{ request.from_user.username }}</p>
-                                    <small class="text-muted">{{ request.created_at|timesince }} ago</small>
+                        <div class="social-card mb-3" style="transform: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    {% with request.from_user.profile as profile %}
+                                        {% if profile.avatar %}
+                                            <img src="{{ profile.avatar.url }}" class="rounded-circle me-3" 
+                                                 style="width: 60px; height: 60px; object-fit: cover; border: 3px solid var(--primary-color);" alt="Avatar">
+                                        {% else %}
+                                            <div class="bg-primary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;">
+                                                <i class="bi bi-person-fill text-white fs-4"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-bold">{{ request.from_user.get_full_name|default:request.from_user.username }}</h6>
+                                        <p class="text-muted mb-1">@{{ request.from_user.username }}</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> {{ request.created_at|timesince }} ago
+                                        </small>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            {% if request.message %}
-                                <div class="alert alert-light mb-3">
-                                    <small><strong>Message:</strong> {{ request.message }}</small>
-                                </div>
-                            {% endif %}
-                            
-                            <div class="d-flex justify-content-between align-items-center">
-                                <a href="{% url 'memory_assistant:profile' request.from_user.username %}" 
-                                   class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-person"></i> View Profile
-                                </a>
-                                <div>
-                                    <form method="post" action="{% url 'memory_assistant:respond_friend_request' request.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="decline">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm me-2">
-                                            <i class="bi bi-x-circle"></i> Decline
-                                        </button>
-                                    </form>
-                                    <form method="post" action="{% url 'memory_assistant:respond_friend_request' request.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="accept">
-                                        <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="bi bi-check-circle"></i> Accept
-                                        </button>
-                                    </form>
+                                
+                                {% if request.message %}
+                                    <div class="alert alert-light mb-3" style="background: var(--bg-light); border-left: 4px solid var(--primary-color);">
+                                        <small><strong>Message:</strong> {{ request.message }}</small>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'memory_assistant:profile' request.from_user.username %}" 
+                                       class="btn-modern btn-modern-outline">
+                                        <i class="bi bi-person"></i> View Profile
+                                    </a>
+                                    <div class="d-flex gap-2">
+                                        <form method="post" action="{% url 'memory_assistant:respond_friend_request' request.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="decline">
+                                            <button type="submit" class="social-action-btn danger">
+                                                <i class="bi bi-x-circle"></i> Decline
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'memory_assistant:respond_friend_request' request.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="accept">
+                                            <button type="submit" class="social-action-btn success">
+                                                <i class="bi bi-check-circle"></i> Accept
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center text-muted py-4">
-                        <i class="bi bi-inbox display-4"></i>
-                        <h6 class="mt-2">No friend requests</h6>
-                        <p>You don't have any pending friend requests.</p>
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h5 class="mt-3 fw-bold">No friend requests</h5>
+                        <p class="text-muted">You don't have any pending friend requests.</p>
+                        <a href="{% url 'memory_assistant:find_users' %}" class="btn-modern btn-modern-primary">
+                            <i class="bi bi-person-plus"></i> Find Friends
+                        </a>
                     </div>
                 {% endif %}
             </div>
@@ -78,57 +85,65 @@
     
     <div class="col-md-6">
         <!-- Sent Requests -->
-        <div class="card">
+        <div class="social-card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-send"></i> Sent Requests ({{ sent_requests.count }})
+                    <i class="bi bi-send-fill"></i> Sent Requests ({{ sent_requests.count }})
                 </h5>
             </div>
             <div class="card-body">
                 {% if sent_requests %}
                     {% for request in sent_requests %}
-                        <div class="request-item border rounded p-3 mb-3">
-                            <div class="d-flex align-items-center mb-3">
-                                {% with request.to_user.profile as profile %}
-                                    {% if profile.avatar %}
-                                        <img src="{{ profile.avatar.url }}" class="rounded-circle me-3" 
-                                             style="width: 50px; height: 50px; object-fit: cover;" alt="Avatar">
-                                    {% else %}
-                                        <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
-                                             style="width: 50px; height: 50px;">
-                                            <i class="bi bi-person text-white"></i>
-                                        </div>
-                                    {% endif %}
-                                {% endwith %}
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ request.to_user.get_full_name|default:request.to_user.username }}</h6>
-                                    <p class="text-muted mb-1">@{{ request.to_user.username }}</p>
-                                    <small class="text-muted">Sent {{ request.created_at|timesince }} ago</small>
+                        <div class="social-card mb-3" style="transform: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    {% with request.to_user.profile as profile %}
+                                        {% if profile.avatar %}
+                                            <img src="{{ profile.avatar.url }}" class="rounded-circle me-3" 
+                                                 style="width: 60px; height: 60px; object-fit: cover; border: 3px solid var(--secondary-color);" alt="Avatar">
+                                        {% else %}
+                                            <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%) !important;">
+                                                <i class="bi bi-person-fill text-white fs-4"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-bold">{{ request.to_user.get_full_name|default:request.to_user.username }}</h6>
+                                        <p class="text-muted mb-1">@{{ request.to_user.username }}</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> Sent {{ request.created_at|timesince }} ago
+                                        </small>
+                                    </div>
                                 </div>
-                                <span class="badge bg-warning">Pending</span>
-                            </div>
-                            
-                            {% if request.message %}
-                                <div class="alert alert-light mb-3">
-                                    <small><strong>Your message:</strong> {{ request.message }}</small>
+                                
+                                {% if request.message %}
+                                    <div class="alert alert-light mb-3" style="background: var(--bg-light); border-left: 4px solid var(--secondary-color);">
+                                        <small><strong>Your message:</strong> {{ request.message }}</small>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'memory_assistant:profile' request.to_user.username %}" 
+                                       class="btn-modern btn-modern-outline">
+                                        <i class="bi bi-person"></i> View Profile
+                                    </a>
+                                    <form method="post" action="{% url 'memory_assistant:cancel_friend_request' request.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="social-action-btn danger">
+                                            <i class="bi bi-x-circle"></i> Cancel Request
+                                        </button>
+                                    </form>
                                 </div>
-                            {% endif %}
-                            
-                            <div class="d-flex justify-content-between align-items-center">
-                                <a href="{% url 'memory_assistant:profile' request.to_user.username %}" 
-                                   class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-person"></i> View Profile
-                                </a>
-                                <small class="text-muted">Waiting for response...</small>
                             </div>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center text-muted py-4">
-                        <i class="bi bi-send display-4"></i>
-                        <h6 class="mt-2">No sent requests</h6>
-                        <p>You haven't sent any friend requests yet.</p>
-                        <a href="{% url 'memory_assistant:find_users' %}" class="btn btn-primary">
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-send display-1 text-muted"></i>
+                        <h5 class="mt-3 fw-bold">No sent requests</h5>
+                        <p class="text-muted">You haven't sent any friend requests yet.</p>
+                        <a href="{% url 'memory_assistant:find_users' %}" class="btn-modern btn-modern-primary">
                             <i class="bi bi-person-plus"></i> Find Friends
                         </a>
                     </div>
@@ -138,14 +153,37 @@
     </div>
 </div>
 
-<style>
-.request-item {
-    transition: background-color 0.3s ease;
-}
-.request-item:hover {
-    background-color: #f8f9fa;
-}
-</style>
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="social-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning-fill"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'memory_assistant:find_users' %}" class="btn-modern btn-modern-primary w-100">
+                            <i class="bi bi-person-plus-fill"></i> Find New Friends
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'memory_assistant:friends_list' %}" class="btn-modern btn-modern-outline w-100">
+                            <i class="bi bi-people-fill"></i> View My Friends
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'memory_assistant:organizations_list' %}" class="btn-modern btn-modern-outline w-100">
+                            <i class="bi bi-building-fill"></i> Browse Organizations
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 

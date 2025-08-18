@@ -43,6 +43,19 @@ def ai_dashboard(request):
         # Get user's recent memories
         user_memories = Memory.objects.filter(user=request.user).order_by('-created_at')[:10]
         
+        # Get memory statistics (similar to main dashboard)
+        from django.db.models import Count, Case, When, IntegerField
+        from django.utils import timezone
+        now = timezone.now()
+        
+        all_user_memories = Memory.objects.filter(user=request.user, is_archived=False)
+        stats = all_user_memories.aggregate(
+            total_memories=Count('id'),
+            important_memories=Count(Case(When(importance__gte=8, then=1), output_field=IntegerField())),
+            scheduled_memories_count=Count(Case(When(delivery_date__isnull=False, then=1), output_field=IntegerField())),
+            today_memories=Count(Case(When(delivery_date__date=now.date(), then=1), output_field=IntegerField()))
+        )
+        
         # Generate AI insights
         memories_data = [
             {
@@ -63,6 +76,10 @@ def ai_dashboard(request):
             'analysis': analysis,
             'suggestions': suggestions,
             'memory_count': len(user_memories),
+            'total_memories': stats['total_memories'],
+            'important_memories': stats['important_memories'],
+            'scheduled_memories_count': stats['scheduled_memories_count'],
+            'todays_memories_count': stats['today_memories'],
             'ai_enabled': True
         }
         

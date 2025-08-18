@@ -4,236 +4,342 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-plus-circle"></i> Create New Memory
-                </h5>
+    <div class="col-lg-10">
+        <!-- Modern Create Memory Header -->
+        <div class="modern-create-header mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="text-white mb-2">
+                        <i class="bi bi-plus-circle me-2"></i> Create New Memory
+                    </h3>
+                    <p class="text-white-50 mb-0">Capture your thoughts, experiences, and important moments with AI-powered organization</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Back to Memories
+                    </a>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
-                    {% csrf_token %}
+        </div>
+
+        <!-- Main Form Container -->
+        <div class="modern-form-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <form method="POST" enctype="multipart/form-data" class="modern-memory-form">
+                {% csrf_token %}
+                
+                <!-- Memory Content Section -->
+                <div class="form-section mb-4">
+                    <div class="section-header mb-3">
+                        <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-pencil-square me-2" style="color: #667eea;"></i> Memory Content
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Describe what you want to remember</p>
+                    </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.content.id_for_label }}" class="form-label">
-                            {{ form.content.label }}
-                        </label>
+                    <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
                         {{ form.content }}
-                        {% if form.content.help_text %}
-                            <div class="form-text">{{ form.content.help_text }}</div>
-                        {% endif %}
                         {% if form.content.errors %}
-                            <div class="invalid-feedback d-block">
+                            <div class="invalid-feedback d-block ms-3 mb-2">
                                 {% for error in form.content.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
                         {% endif %}
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.image.id_for_label }}" class="form-label">
-                            {{ form.image.label }}
-                        </label>
-                        {{ form.image }}
-                        {% if form.image.help_text %}
-                            <div class="form-text">{{ form.image.help_text }}</div>
-                        {% endif %}
-                        {% if form.image.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.image.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        
-                        <!-- Image preview -->
-                        <div id="image-preview" class="mt-2" style="display: none;">
-                            <img id="preview-img" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" alt="Image preview">
+                <!-- Image Upload Section -->
+                <div class="form-section mb-4">
+                    <div class="section-header mb-3">
+                        <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-image me-2" style="color: #667eea;"></i> Add Image (Optional)
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Upload a photo to enhance your memory</p>
+                    </div>
+                    
+                    <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                        <div class="p-3">
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {% for error in form.image.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
-
-                    <!-- AI Suggestions -->
-                    <div class="mb-3" id="ai-suggestions" style="display: none;">
-                        <label class="form-label">
-                            <i class="bi bi-lightbulb"></i> AI Suggestions
-                        </label>
-                        <div class="alert alert-info">
-                            <div id="suggestions-content">
-                                <p class="mb-2"><strong>Suggested prompts to help you get started:</strong></p>
-                                <div id="suggested-prompts"></div>
-                            </div>
+                    
+                    <!-- Image preview -->
+                    <div id="image-preview" class="mt-3" style="display: none;">
+                        <div class="preview-container" style="background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                            <img id="preview-img" class="img-fluid rounded" style="max-width: 300px; max-height: 300px;" alt="Image preview">
                         </div>
                     </div>
+                </div>
 
-                    <div class="row">
+                <!-- AI Suggestions -->
+                <div class="form-section mb-4" id="ai-suggestions" style="display: none;">
+                    <div class="section-header mb-3">
+                        <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-lightbulb me-2" style="color: #667eea;"></i> AI Suggestions
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Get inspired with AI-generated prompts</p>
+                    </div>
+                    
+                    <div class="suggestions-container" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <div id="suggestions-content">
+                            <p class="mb-3"><strong>Suggested prompts to help you get started:</strong></p>
+                            <div id="suggested-prompts" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Settings Section -->
+                <div class="form-section mb-4">
+                    <div class="section-header mb-3">
+                        <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-gear me-2" style="color: #667eea;"></i> Memory Settings
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Configure how your memory will be organized</p>
+                    </div>
+                    
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.memory_type.id_for_label }}" class="form-label">
-                                    {{ form.memory_type.label }}
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <div class="p-3">
+                                    <label for="{{ form.memory_type.id_for_label }}" class="form-label" style="font-weight: 600; color: #495057; font-size: 0.9rem;">
+                                        {{ form.memory_type.label }}
+                                    </label>
+                                    {{ form.memory_type }}
+                                    {% if form.memory_type.errors %}
+                                        <div class="invalid-feedback d-block mt-2">
+                                            {% for error in form.memory_type.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <div class="p-3">
+                                    <label for="{{ form.importance.id_for_label }}" class="form-label" style="font-weight: 600; color: #495057; font-size: 0.9rem;">
+                                        {{ form.importance.label }}
+                                    </label>
+                                    {{ form.importance }}
+                                    {% if form.importance.errors %}
+                                        <div class="invalid-feedback d-block mt-2">
+                                            {% for error in form.importance.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privacy and Sharing Settings -->
+                <div class="form-section mb-4">
+                    <div class="section-header mb-3">
+                        <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-shield-lock me-2" style="color: #667eea;"></i> Privacy & Sharing
+                        </h6>
+                        <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Control who can see and interact with your memory</p>
+                    </div>
+                    
+                    <div class="privacy-container" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.privacy_level.id_for_label }}" class="form-label" style="font-weight: 600; color: #495057; font-size: 0.9rem;">
+                                    {{ form.privacy_level.label }}
                                 </label>
-                                {{ form.memory_type }}
-                                {% if form.memory_type.help_text %}
-                                    <div class="form-text">{{ form.memory_type.help_text }}</div>
+                                {{ form.privacy_level }}
+                                {% if form.privacy_level.errors %}
+                                    <div class="invalid-feedback d-block mt-2">
+                                        {% for error in form.privacy_level.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
-                                {% if form.memory_type.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.memory_type.errors %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ form.allow_comments }}
+                                    <label class="form-check-label" for="{{ form.allow_comments.id_for_label }}" style="font-weight: 600; color: #495057;">
+                                        {{ form.allow_comments.label }}
+                                    </label>
+                                </div>
+                                {% if form.allow_comments.errors %}
+                                    <div class="invalid-feedback d-block mt-2">
+                                        {% for error in form.allow_comments.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ form.allow_likes }}
+                                    <label class="form-check-label" for="{{ form.allow_likes.id_for_label }}" style="font-weight: 600; color: #495057;">
+                                        {{ form.allow_likes.label }}
+                                    </label>
+                                </div>
+                                {% if form.allow_likes.errors %}
+                                    <div class="invalid-feedback d-block mt-2">
+                                        {% for error in form.allow_likes.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.importance.id_for_label }}" class="form-label">
-                                    {{ form.importance.label }}
-                                </label>
-                                {{ form.importance }}
-                                {% if form.importance.help_text %}
-                                    <div class="form-text">{{ form.importance.help_text }}</div>
-                                {% endif %}
-                                {% if form.importance.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.importance.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
-
-                    <!-- Privacy and Sharing Settings -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-shield-lock"></i> Privacy & Sharing Settings
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label for="{{ form.privacy_level.id_for_label }}" class="form-label">
-                                            {{ form.privacy_level.label }}
-                                        </label>
-                                        {{ form.privacy_level }}
-                                        {% if form.privacy_level.help_text %}
-                                            <div class="form-text">{{ form.privacy_level.help_text }}</div>
-                                        {% endif %}
-                                        {% if form.privacy_level.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {% for error in form.privacy_level.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <div class="form-check">
-                                            {{ form.allow_comments }}
-                                            <label class="form-check-label" for="{{ form.allow_comments.id_for_label }}">
-                                                {{ form.allow_comments.label }}
-                                            </label>
-                                        </div>
-                                        {% if form.allow_comments.help_text %}
-                                            <div class="form-text">{{ form.allow_comments.help_text }}</div>
-                                        {% endif %}
-                                        {% if form.allow_comments.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {% for error in form.allow_comments.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <div class="form-check">
-                                            {{ form.allow_likes }}
-                                            <label class="form-check-label" for="{{ form.allow_likes.id_for_label }}">
-                                                {{ form.allow_likes.label }}
-                                            </label>
-                                        </div>
-                                        {% if form.allow_likes.help_text %}
-                                            <div class="form-text">{{ form.allow_likes.help_text }}</div>
-                                        {% endif %}
-                                        {% if form.allow_likes.errors %}
-                                            <div class="invalid-feedback d-block">
-                                                {% for error in form.allow_likes.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                </div>
 
 
 
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>AI Processing:</strong> When you save this memory, our AI will automatically:
-                        <ul class="mb-0 mt-2">
-                            <li>Generate a concise summary</li>
-                            <li>Add relevant tags for better organization</li>
-                            <li>Assess the importance level</li>
-                            <li>Categorize the memory type</li>
-                        </ul>
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Create Memory
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <!-- Action Buttons -->
+                <div class="action-buttons d-flex justify-content-between align-items-center">
+                    <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-secondary" 
+                       style="border-radius: 12px; padding: 0.75rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-arrow-left me-2"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" 
+                            style="background: #667eea; border: none; border-radius: 12px; padding: 0.75rem 2rem; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                        <i class="bi bi-save me-2"></i> Create Memory
+                    </button>
+                </div>
+            </form>
         </div>
 
         <!-- Tips Section -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-lightbulb"></i> Tips for Better Memories
+        <div class="tips-container mt-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div class="section-header mb-3">
+                <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                    <i class="bi bi-lightbulb me-2" style="color: #667eea;"></i> Tips for Better Memories
                 </h6>
+                <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Make the most of your memory creation</p>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Be Specific</h6>
-                        <p class="text-muted small">Include details like names, dates, locations, and emotions to help AI better understand and categorize your memory.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Use Natural Language</h6>
-                        <p class="text-muted small">Write as you would speak. The AI can understand context and extract meaning from natural language.</p>
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="tip-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <h6 style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-pencil me-2" style="color: #667eea;"></i> Be Specific
+                        </h6>
+                        <p class="text-muted small mb-0">Include details like names, dates, locations, and emotions to help AI better understand and categorize your memory.</p>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Include Context</h6>
-                        <p class="text-muted small">Mention why this memory is important to you or what you learned from the experience.</p>
+                <div class="col-md-6">
+                    <div class="tip-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <h6 style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-chat-quote me-2" style="color: #667eea;"></i> Use Natural Language
+                        </h6>
+                        <p class="text-muted small mb-0">Write as you would speak. The AI can understand context and extract meaning from natural language.</p>
                     </div>
-                    <div class="col-md-6">
-                        <h6>Think About Future You</h6>
-                        <p class="text-muted small">Consider what details would be most helpful when you look back at this memory later.</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="tip-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <h6 style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-info-circle me-2" style="color: #667eea;"></i> Include Context
+                        </h6>
+                        <p class="text-muted small mb-0">Mention why this memory is important to you or what you learned from the experience.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="tip-card" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                        <h6 style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-clock me-2" style="color: #667eea;"></i> Think About Future You
+                        </h6>
+                        <p class="text-muted small mb-0">Consider what details would be most helpful when you look back at this memory later.</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.modern-create-header {
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-create-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    pointer-events: none;
+}
+
+.modern-form-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-form-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+    pointer-events: none;
+}
+
+.modern-memory-form {
+    position: relative;
+    z-index: 1;
+}
+
+.input-wrapper:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+}
+
+.tip-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .modern-create-header,
+    .modern-form-container,
+    .tips-container {
+        padding: 1.5rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+}
+</style>
 
 <script>
 // Load AI suggestions when page loads
@@ -290,14 +396,14 @@ function displaySuggestions(prompts) {
     if (prompts && prompts.length > 0) {
         promptsDiv.innerHTML = '';
         prompts.forEach(prompt => {
-            const promptElement = document.createElement('div');
-            promptElement.className = 'mb-2';
-            promptElement.innerHTML = `
-                <button type="button" class="btn btn-outline-primary btn-sm" 
-                        onclick="usePrompt('${prompt.replace(/'/g, "\\'")}')">
-                    <i class="bi bi-lightbulb"></i> ${prompt}
-                </button>
-            `;
+            const promptElement = document.createElement('button');
+            promptElement.type = 'button';
+            promptElement.className = 'btn btn-outline-primary btn-sm';
+            promptElement.style.cssText = 'border-radius: 20px; padding: 0.5rem 1rem; font-size: 0.85rem;';
+            promptElement.innerHTML = `<i class="bi bi-lightbulb me-1"></i> ${prompt}`;
+            promptElement.onclick = function() {
+                usePrompt(prompt.replace(/'/g, "\\'"));
+            };
             promptsDiv.appendChild(promptElement);
         });
         suggestionsDiv.style.display = 'block';

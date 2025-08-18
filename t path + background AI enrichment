@@ -1,0 +1,10 @@
+[33m5dfb190[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m Fix dashboard.html encoding by re-checking out from v4.1.0-release
+[33m032bb07[m Restore dashboard.html from tag v4.1.0-release
+[33mdd69eb9[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Modernize login and registration pages
+[33m4e40691[m Add simplified GitLab push script
+[33m9ce2c08[m Add GitLab setup script and comprehensive README
+[33mbbef1c8[m[33m ([m[1;33mtag: v4.1.0-release[m[33m)[m Bump version to 4.1.0-release for modernized design
+[33m13ad712[m Modernize login and registration pages with improved design and performance
+[33mf358b1c[m[33m ([m[1;33mtag: v4.0.0[m[33m)[m 🎉 Release v4.0.0: Major Social Features & Memory Sharing System
+[33m4af5eec[m Fix: Update API key placeholders to avoid GitHub secret detection
+[33mf6575d6[m[33m ([m[1;33mtag: v3.6.0[m[33m)[m v3.6.0: Dashboard clickable cards and contextual AI suggestions with date-aware processing

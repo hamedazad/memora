@@ -27,10 +27,12 @@ class AIService:
             from openai import OpenAI
             client = OpenAI(api_key=self.api_key)
             
+            system_prompt = "You are a helpful assistant that categorizes memories. Return only 3-5 relevant categories as a comma-separated list."
+            
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that categorizes memories. Return only 3-5 relevant categories as a comma-separated list."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Categorize this memory: {content}"}
                 ],
                 max_tokens=50,
@@ -133,10 +135,12 @@ class AIService:
             # Analyze recent memories to generate suggestions
             recent_memories = "\n".join(user_memories[-5:])  # Last 5 memories
             
+            system_prompt = "You are a helpful assistant that suggests new memory topics based on existing memories. Return 3-5 suggestions as a comma-separated list."
+            
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that suggests new memory topics based on existing memories. Return 3-5 suggestions as a comma-separated list."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Based on these recent memories, suggest new topics to remember: {recent_memories}"}
                 ],
                 max_tokens=150,
@@ -182,7 +186,12 @@ class AIService:
             client = OpenAI(api_key=self.api_key)
             
             prompt = f"""
-            Analyze the following memory content and categorize it with high precision into one of these categories:
+            Analyze the following memory content and categorize it with high precision. You MUST analyze:
+            1. MEMORY TYPE based on content and purpose
+            2. IMPORTANCE LEVEL based on urgency, significance, and impact
+            3. SCHEDULING NEEDS based on time-sensitive elements
+            4. TAGS for better organization
+            5. SUMMARY for quick understanding
 
             CATEGORY DEFINITIONS:
             - work: Professional tasks, meetings, projects, career-related items, business activities, job responsibilities, workplace events, professional development, work deadlines, team activities, client interactions, business ideas, work-related learning
@@ -192,33 +201,40 @@ class AIService:
             - reminder: Tasks, to-dos, appointments, deadlines, scheduled events, time-sensitive activities, future plans, calendar events, action items, follow-ups, time management, planning activities
             - general: Everything else that doesn't fit the above categories
 
-            ANALYSIS INSTRUCTIONS:
-            1. Look for specific keywords and context clues
-            2. Consider the intent and purpose of the memory
-            3. Identify the primary focus of the content
-            4. Consider temporal aspects (past events vs future plans)
-            5. Evaluate the emotional and practical significance
+            IMPORTANCE SCALE (be specific about reasoning):
+            - 1-2: Trivial notes, casual observations, low-priority items
+            - 3-4: Useful information, minor tasks, interesting but not critical
+            - 5-6: Important memories, regular tasks, significant personal events
+            - 7-8: High-priority items, important deadlines, significant work/personal matters
+            - 9-10: Critical/urgent matters, major deadlines, life-changing events, emergencies
+
+            SCHEDULING ANALYSIS:
+            Look for time indicators like: today, tomorrow, next week, specific dates, deadlines, appointments, recurring events, "need to", "must do", "don't forget", urgency words
 
             Memory content: {content}
 
-            Provide a detailed analysis in JSON format:
+            Provide a comprehensive analysis in JSON format:
             {{
                 "category": "work|personal|learning|idea|reminder|general",
                 "confidence": 0-100,
                 "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-                "summary": "1-2 sentence summary",
+                "summary": "Clear 1-2 sentence summary",
                 "importance": 1-10,
-                "reasoning": "Brief explanation of why this category was chosen"
+                "reasoning": "Detailed explanation of categorization and importance",
+                "is_time_sensitive": true/false,
+                "urgency_level": "low|medium|high|critical",
+                "suggested_delivery_type": "immediate|scheduled|recurring",
+                "key_themes": ["theme1", "theme2", "theme3"]
             }}
             """
             
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are an expert AI memory analyst with deep understanding of human activities and categorization. You excel at identifying the primary purpose and context of memories. Be precise, consistent, and provide well-reasoned categorizations."},
+                    {"role": "system", "content": "You are an expert AI memory analyst with deep understanding of human activities and categorization. You excel at identifying the primary purpose, urgency, and context of memories. Be precise, consistent, and provide well-reasoned categorizations. ALWAYS fill in all required fields with thoughtful analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=300,
+                max_tokens=500,
                 temperature=0.1
             )
             
@@ -234,6 +250,15 @@ class AIService:
             if not isinstance(importance, int) or importance < 1 or importance > 10:
                 result['importance'] = 5
             
+            # Ensure required fields exist
+            result['tags'] = result.get('tags', ['general'])
+            result['summary'] = result.get('summary', f"Memory: {content[:100]}...")
+            result['reasoning'] = result.get('reasoning', 'AI-generated categorization')
+            result['is_time_sensitive'] = result.get('is_time_sensitive', False)
+            result['urgency_level'] = result.get('urgency_level', 'low')
+            result['suggested_delivery_type'] = result.get('suggested_delivery_type', 'immediate')
+            result['key_themes'] = result.get('key_themes', [])
+            
             return result
         except Exception as e:
             print(f"Error in auto_categorize_memory: {e}")
@@ -243,7 +268,11 @@ class AIService:
                 "tags": ["general"],
                 "summary": f"Memory about: {content[:100]}...",
                 "importance": 5,
-                "reasoning": "Fallback categorization due to processing error"
+                "reasoning": "Fallback categorization due to processing error",
+                "is_time_sensitive": False,
+                "urgency_level": "low",
+                "suggested_delivery_type": "immediate",
+                "key_themes": []
             }
     
     def categorize_audio_memory(self, audio_text: str) -> Dict[str, Any]:

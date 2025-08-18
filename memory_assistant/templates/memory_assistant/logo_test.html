@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Test - Memora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .logo-test {
+            border: 2px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Logo Test Page</h1>
+        
+        <div class="alert alert-info">
+            <h4>Debug Information:</h4>
+            <p><strong>Static URL:</strong> {% static 'images/memora-logo-small.svg' %}</p>
+            <p><strong>Full Static URL:</strong> /static/images/memora-logo-small.svg</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="logo-test">
+                    <h3>Small Logo (Navbar)</h3>
+                    <img src="{% static 'images/memora-logo-small.svg' %}" alt="Memora Logo Small" height="40" 
+                         onload="this.parentElement.querySelector('.status').textContent='✅ Loaded successfully'; this.parentElement.querySelector('.status').className='status success';" 
+                         onerror="this.parentElement.querySelector('.status').textContent='❌ Failed to load'; this.parentElement.querySelector('.status').className='status error';">
+                    <p class="mt-2"><strong>Path:</strong> {% static 'images/memora-logo-small.svg' %}</p>
+                    <p class="status">⏳ Loading...</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="logo-test">
+                    <h3>Full Logo</h3>
+                    <img src="{% static 'images/memora-logo.svg' %}" alt="Memora Logo Full" height="120"
+                         onload="this.parentElement.querySelector('.status').textContent='✅ Loaded successfully'; this.parentElement.querySelector('.status').className='status success';" 
+                         onerror="this.parentElement.querySelector('.status').textContent='❌ Failed to load'; this.parentElement.querySelector('.status').className='status error';">
+                    <p class="mt-2"><strong>Path:</strong> {% static 'images/memora-logo.svg' %}</p>
+                    <p class="status">⏳ Loading...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="logo-test">
+                <h3>Navbar Test</h3>
+                <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #4A90E2 0%, #9B59B6 100%);">
+                    <div class="container">
+                        <a class="navbar-brand d-flex align-items-center" href="#">
+                            <img src="{% static 'images/memora-logo-small.svg' %}" alt="Memora Logo" height="32" class="me-2"
+                                 onload="this.parentElement.parentElement.querySelector('.status').textContent='✅ Navbar logo loaded'; this.parentElement.parentElement.querySelector('.status').className='status success';" 
+                                 onerror="this.parentElement.parentElement.querySelector('.status').textContent='❌ Navbar logo failed'; this.parentElement.parentElement.querySelector('.status').className='status error';">
+                            <span class="fw-bold fs-4">Memora</span>
+                        </a>
+                    </div>
+                </nav>
+                <p class="status mt-2">⏳ Loading navbar logo...</p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h3>Direct URL Test</h3>
+            <p>Try these direct URLs in your browser:</p>
+            <ul>
+                <li><a href="/static/images/memora-logo-small.svg" target="_blank">Small Logo Direct URL</a></li>
+                <li><a href="/static/images/memora-logo.svg" target="_blank">Full Logo Direct URL</a></li>
+            </ul>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'memory_assistant:dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+            <a href="{% url 'memory_assistant:logo_test' %}" class="btn btn-secondary">Refresh This Page</a>
+        </div>
+    </div>
+    
+    <script>
+        // Additional debugging
+        console.log('Logo test page loaded');
+        console.log('Static URL for small logo:', '{% static "images/memora-logo-small.svg" %}');
+        console.log('Static URL for full logo:', '{% static "images/memora-logo.svg" %}');
+    </script>
+</body>
+</html>

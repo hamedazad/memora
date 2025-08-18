@@ -135,7 +135,8 @@ def create_test_lunch_breakfast_memory():
         content=content,
         memory_type='reminder',
         importance=7,
-        delivery_type='scheduled'
+        delivery_type='scheduled',
+        language='en'
     )
     
     print(f"✅ Created memory ID {memory.id}")

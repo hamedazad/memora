@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <!-- Memory Preview -->
-        <div class="card mb-4">
+        <div class="social-card mb-4">
             <div class="card-header">
                 <h6 class="card-title mb-0">
                     <i class="bi bi-journal-text"></i> Memory to Share
@@ -16,15 +16,17 @@
                 <div class="row">
                     <div class="col-md-8">
                         <p class="mb-2">{{ memory.content|truncatewords:50 }}</p>
-                        <div class="d-flex align-items-center">
-                            <span class="badge bg-primary me-2">{{ memory.importance }}/10</span>
-                            <span class="badge bg-secondary me-2">{{ memory.get_memory_type_display }}</span>
-                            <small class="text-muted">Created {{ memory.created_at|date:"M j, Y" }}</small>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="social-badge">{{ memory.importance }}/10</span>
+                            <span class="badge bg-secondary">{{ memory.get_memory_type_display }}</span>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> Created {{ memory.created_at|date:"M j, Y" }}
+                            </small>
                         </div>
                     </div>
                     {% if memory.image %}
                         <div class="col-md-4">
-                            <img src="{{ memory.image.url }}" class="img-thumbnail" 
+                            <img src="{{ memory.image.url }}" class="img-thumbnail rounded" 
                                  style="max-width: 100%; max-height: 120px; object-fit: cover;" alt="Memory image">
                         </div>
                     {% endif %}
@@ -33,18 +35,18 @@
         </div>
         
         <!-- Share Form -->
-        <div class="card">
+        <div class="social-card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-share"></i> Share This Memory
+                    <i class="bi bi-share-fill"></i> Share This Memory
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST">
                     {% csrf_token %}
                     
-                    <div class="mb-3">
-                        <label for="{{ form.share_type.id_for_label }}" class="form-label">
+                    <div class="mb-4">
+                        <label for="{{ form.share_type.id_for_label }}" class="form-label fw-bold">
                             {{ form.share_type.label }} <span class="text-danger">*</span>
                         </label>
                         {{ form.share_type }}
@@ -60,8 +62,8 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3" id="user-recipient-field">
-                        <label for="{{ form.recipient_user.id_for_label }}" class="form-label">
+                    <div class="mb-4" id="user-recipient-field">
+                        <label for="{{ form.recipient_user.id_for_label }}" class="form-label fw-bold">
                             {{ form.recipient_user.label }}
                         </label>
                         {{ form.recipient_user }}
@@ -77,8 +79,8 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3" id="org-recipient-field" style="display: none;">
-                        <label for="{{ form.recipient_organization.id_for_label }}" class="form-label">
+                    <div class="mb-4" id="org-recipient-field" style="display: none;">
+                        <label for="{{ form.recipient_organization.id_for_label }}" class="form-label fw-bold">
                             {{ form.recipient_organization.label }}
                         </label>
                         {{ form.recipient_organization }}
@@ -94,8 +96,8 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.message.id_for_label }}" class="form-label">
+                    <div class="mb-4">
+                        <label for="{{ form.message.id_for_label }}" class="form-label fw-bold">
                             {{ form.message.label }}
                         </label>
                         {{ form.message }}
@@ -111,11 +113,11 @@
                         {% endif %}
                     </div>
                     
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="form-check">
                                 {{ form.can_reshare }}
-                                <label class="form-check-label" for="{{ form.can_reshare.id_for_label }}">
+                                <label class="form-check-label fw-bold" for="{{ form.can_reshare.id_for_label }}">
                                     {{ form.can_reshare.label }}
                                 </label>
                                 {% if form.can_reshare.help_text %}
@@ -126,11 +128,11 @@
                     </div>
                     
                     <div class="d-flex justify-content-between mt-4">
-                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" class="btn btn-secondary">
+                        <a href="{% url 'memory_assistant:memory_detail' memory.id %}" class="btn-modern btn-modern-outline">
                             <i class="bi bi-arrow-left"></i> Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-share"></i> Share Memory
+                        <button type="submit" class="social-action-btn">
+                            <i class="bi bi-share-fill"></i> Share Memory
                         </button>
                     </div>
                 </form>
@@ -138,29 +140,43 @@
         </div>
         
         <!-- Sharing Tips -->
-        <div class="card mt-4">
+        <div class="social-card mt-4">
             <div class="card-header">
                 <h6 class="card-title mb-0">
-                    <i class="bi bi-lightbulb"></i> Sharing Tips
+                    <i class="bi bi-lightbulb-fill"></i> Sharing Tips
                 </h6>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6><i class="bi bi-person"></i> Personal Sharing</h6>
-                        <ul class="small text-muted">
-                            <li>Share with individual friends</li>
-                            <li>Add a personal message</li>
-                            <li>Control resharing permissions</li>
-                        </ul>
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="bg-primary rounded-circle p-2 me-3" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;">
+                                <i class="bi bi-person-fill text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Personal Sharing</h6>
+                                <ul class="small text-muted mb-0">
+                                    <li>Share with individual friends</li>
+                                    <li>Add a personal message</li>
+                                    <li>Control resharing permissions</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h6><i class="bi bi-building"></i> Organization Sharing</h6>
-                        <ul class="small text-muted">
-                            <li>Share with entire organizations</li>
-                            <li>Visible to all members</li>
-                            <li>Great for team memories</li>
-                        </ul>
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="bg-secondary rounded-circle p-2 me-3" style="background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%) !important;">
+                                <i class="bi bi-building-fill text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold">Organization Sharing</h6>
+                                <ul class="small text-muted mb-0">
+                                    <li>Share with entire organizations</li>
+                                    <li>Visible to all members</li>
+                                    <li>Great for team memories</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

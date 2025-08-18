@@ -1,4 +1,5 @@
 {% extends 'memory_assistant/base.html' %}
+{% load memory_extras %}
 
 {% block title %}Search Results - Memora{% endblock %}
 
@@ -47,31 +48,48 @@
         <div class="modern-refine-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
             <div class="refine-header mb-3">
                 <h6 class="mb-0" style="color: #495057; font-weight: 600;">
-                    <i class="bi bi-funnel me-2" style="color: #667eea;"></i> Refine Search
+                    <i class="bi bi-funnel me-2" style="color: #667eea;"></i> Filters & Search
                 </h6>
-                <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Modify your search criteria</p>
+                <p class="text-muted mb-0 mt-1" style="font-size: 0.9rem;">Refine your search criteria</p>
             </div>
             
             <form method="GET" action="{% url 'memory_assistant:search_memories' %}" class="modern-refine-form">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <!-- Search Query -->
                     <div class="col-lg-4 col-md-6">
                         <div class="refine-group">
-                            <label for="q" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                            <label for="q" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem; font-size: 0.9rem;">
                                 <i class="bi bi-search me-1" style="color: #667eea;"></i>Search Query
                             </label>
                             <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
                                 <input type="text" class="form-control border-0 shadow-none" id="q" name="q" 
-                                       value="{{ query }}" placeholder="Search content, tags, or summary..."
+                                       value="{{ query }}" placeholder="Search by meaning, not just keywords..."
                                        style="border: none; outline: none; padding: 0.75rem 1rem;">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Date Filter -->
-                    <div class="col-lg-3 col-md-6">
+                    <!-- Search Type -->
+                    <div class="col-lg-2 col-md-6">
                         <div class="refine-group">
-                            <label for="date_filter" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem;">
+                            <label for="search_type" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                                <i class="bi bi-gear me-1" style="color: #667eea;"></i>Search Type
+                            </label>
+                            <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+                                <select class="form-control border-0 shadow-none" id="search_type" name="search_type" 
+                                        style="border: none; outline: none; padding: 0.75rem 1rem;">
+                                    <option value="hybrid" {% if search_type == 'hybrid' %}selected{% endif %}>Hybrid (Recommended)</option>
+                                    <option value="semantic" {% if search_type == 'semantic' %}selected{% endif %}>Semantic Only</option>
+                                    <option value="keyword" {% if search_type == 'keyword' %}selected{% endif %}>Keyword Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="refine-group">
+                            <label for="date_filter" class="form-label" style="font-weight: 600; color: #495057; margin-bottom: 0.5rem; font-size: 0.9rem;">
                                 <i class="bi bi-calendar3 me-1" style="color: #667eea;"></i>Date Filter
                             </label>
                             <div class="input-wrapper" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
@@ -83,9 +101,9 @@
                     </div>
                     
                     <!-- Search Button -->
-                    <div class="col-lg-3 col-md-6">
-                        <div class="refine-group d-flex flex-column" style="margin-top: 1.8rem;">
-                            <button type="submit" class="btn btn-primary" 
+                    <div class="col-lg-2 col-md-6">
+                        <div class="refine-group">
+                            <button type="submit" class="btn btn-primary w-100" 
                                     style="background: #667eea; border: none; border-radius: 12px; padding: 0.75rem 1rem; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
                                 <i class="bi bi-search me-2"></i>Search
                             </button>
@@ -94,8 +112,8 @@
                     
                     <!-- Clear Button -->
                     <div class="col-lg-2 col-md-6">
-                        <div class="refine-group d-flex flex-column" style="margin-top: 1.8rem;">
-                            <a href="{% url 'memory_assistant:search_memories' %}" class="btn btn-outline-secondary"
+                        <div class="refine-group">
+                            <a href="{% url 'memory_assistant:search_memories' %}" class="btn btn-outline-secondary w-100"
                                style="border-radius: 12px; padding: 0.75rem 1rem; font-weight: 600;">
                                 <i class="bi bi-x-circle me-2"></i>Clear
                             </a>
@@ -170,6 +188,16 @@
                             <i class="bi bi-calendar"></i>
                             <strong>Date Filter:</strong> Showing all memories created on {{ date_filter }}.
                         </div>
+                    {% elif search_method == "semantic_search" %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-robot"></i>
+                            <strong>Semantic Search:</strong> Results are ranked by semantic similarity using AI embeddings. Understanding meaning, not just keywords.
+                        </div>
+                    {% elif search_method == "hybrid_search" %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-robot"></i>
+                            <strong>Hybrid Search:</strong> Results combine semantic understanding with keyword matching for optimal relevance.
+                        </div>
                     {% elif search_method == "ai_semantic" %}
                         <div class="alert alert-success">
                             <i class="bi bi-robot"></i>
@@ -197,6 +225,52 @@
                         </div>
                     {% endif %}
                     
+                    <!-- Search Intent Analysis -->
+                    {% if search_intent and query %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-brain"></i>
+                            <strong>Search Intent Analysis:</strong>
+                            <div class="mt-2">
+                                {% if search_intent.query_type == 'time_based' %}
+                                    <span class="badge bg-primary me-2">Time-based search</span>
+                                {% endif %}
+                                {% if search_intent.is_question %}
+                                    <span class="badge bg-success me-2">Question detected</span>
+                                {% endif %}
+                                {% if search_intent.memory_types %}
+                                    <span class="badge bg-warning me-2">Memory types: {{ search_intent.memory_types|join:", " }}</span>
+                                {% endif %}
+                                {% if search_intent.keywords %}
+                                    <span class="badge bg-info me-2">Keywords: {{ search_intent.keywords|join:", " }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Search Suggestions -->
+                    {% if search_suggestions %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Search Suggestions:</strong> Try these related searches:
+                            <div class="mt-2">
+                                {% for suggestion in search_suggestions %}
+                                    <a href="?q={{ suggestion|urlencode }}&search_type={{ search_type }}" 
+                                       class="badge bg-light text-dark text-decoration-none me-2 mb-1">
+                                        {{ suggestion }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Similarity Scores for Semantic Search -->
+                    {% if similarity_scores and search_method in 'semantic_search,hybrid_search' %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-graph-up"></i>
+                            <strong>Relevance Scores:</strong> Results are ranked by semantic similarity (higher scores = more relevant)
+                        </div>
+                    {% endif %}
+                    
                     <!-- AI Search Suggestions -->
                     <div class="alert alert-warning" id="ai-suggestions" style="display: none;">
                         <i class="bi bi-lightbulb"></i>
@@ -210,12 +284,19 @@
                                 <div class="card memory-card h-100">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <span class="badge bg-primary importance-badge">
-                                                {{ memory.importance }}/10
-                                            </span>
-                                            <span class="badge bg-secondary importance-badge">
-                                                {{ memory.get_memory_type_display }}
-                                            </span>
+                                            <div>
+                                                <span class="badge bg-primary importance-badge">
+                                                    {{ memory.importance }}/10
+                                                </span>
+                                                <span class="badge bg-secondary importance-badge">
+                                                    {{ memory.get_memory_type_display }}
+                                                </span>
+                                                {% if similarity_scores and memory.id in similarity_scores %}
+                                                    <span class="badge bg-success importance-badge" title="Semantic similarity score">
+                                                        {{ similarity_scores|get_item:memory.id|floatformat:2 }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                         
                                         <h6 class="card-title">{{ memory.content|truncatewords:20 }}</h6>

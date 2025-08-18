@@ -12,7 +12,7 @@ from .timezone_utils import get_country_choices, get_timezone_for_country
 class MemoryForm(forms.ModelForm):
     class Meta:
         model = Memory
-        fields = ['content', 'image', 'memory_type', 'importance', 'privacy_level', 'allow_comments', 'allow_likes']
+        fields = ['content', 'image', 'memory_type', 'importance', 'privacy_level', 'allow_comments', 'allow_likes', 'language']
         widgets = {
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -28,6 +28,7 @@ class MemoryForm(forms.ModelForm):
             'privacy_level': forms.Select(attrs={'class': 'form-control'}),
             'allow_comments': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'allow_likes': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'language': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'content': 'Memory Content',
@@ -36,19 +37,13 @@ class MemoryForm(forms.ModelForm):
             'importance': 'Importance Level',
             'privacy_level': 'Privacy Level',
             'allow_comments': 'Allow Comments',
-            'allow_likes': 'Allow Likes/Reactions'
+            'allow_likes': 'Allow Likes/Reactions',
+            'language': 'Language'
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add help text
-        self.fields['content'].help_text = 'Describe what you want to remember. Be as detailed as possible for better AI processing and auto-categorization.'
-        self.fields['image'].help_text = 'Upload an optional image to attach to this memory. Supported formats: JPG, PNG, GIF.'
-        self.fields['memory_type'].help_text = 'Choose the category that best fits this memory. AI will also suggest a category automatically.'
-        self.fields['importance'].help_text = 'Rate how important this memory is to you (1-10). AI will also suggest an importance level.'
-        self.fields['privacy_level'].help_text = 'Choose who can see this memory. Private is only you, Friends are confirmed friends, Organization members, or Public for everyone.'
-        self.fields['allow_comments'].help_text = 'Allow others to comment on this memory when shared.'
-        self.fields['allow_likes'].help_text = 'Allow others to like or react to this memory when shared.'
+        # No help text needed for cleaner form
         
 
     

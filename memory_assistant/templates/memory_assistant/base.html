@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,8 +12,53 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --bg-light: #f7fafc;
+            --white: #ffffff;
+            --success-color: #48bb78;
+            --warning-color: #ed8936;
+            --danger-color: #f56565;
+        }
+
+        [data-theme="dark"] .badge {
+            background-color: var(--dark-hover);
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: var(--dark-text-secondary) !important;
+        }
+
+        [data-theme="dark"] .border {
+            border-color: var(--dark-border) !important;
+        }
+
+        [data-theme="dark"] .bg-light {
+            background-color: var(--dark-card) !important;
+        }
+
+        [data-theme="dark"] .bg-white {
+            background-color: var(--dark-card) !important;
+        }
+
+
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            padding-top: 80px; /* Account for fixed navbar height */
+        }
+
         .memory-card {
             transition: transform 0.2s ease-in-out;
         }
@@ -47,6 +93,16 @@
             font-weight: bold;
             font-size: 1.5rem;
         }
+        .navbar-brand img {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        .navbar-brand span {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -66,128 +122,1569 @@
         .clickable-card:hover .card-body {
             color: white;
         }
+
+        /* Modern Social Dropdown Styles */
+        .social-dropdown {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+            min-width: 280px;
+        }
+
+        .social-dropdown .dropdown-item {
+            padding: 0.75rem 1.5rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .social-dropdown .dropdown-item:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            transform: translateX(5px);
+        }
+
+        .social-dropdown .dropdown-item i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .social-dropdown .dropdown-divider {
+            margin: 0.5rem 0;
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .social-badge {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Modern Button Styles */
+        .btn-modern {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-modern-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4c93 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #38a169 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-success:hover {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #e53e3e 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-danger:hover {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: var(--white);
+        }
+
+        .btn-modern-outline {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-modern-outline:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        /* Modern Modal Styles */
+        .modal-modern .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-modern .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            border-radius: 20px 20px 0 0;
+            border: none;
+            padding: 1.5rem 2rem;
+        }
+
+        .modal-modern .modal-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .modal-modern .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-modern .modal-footer {
+            border: none;
+            padding: 1.5rem 2rem;
+            background: var(--bg-light);
+            border-radius: 0 0 20px 20px;
+        }
+
+        .modal-modern .btn-close {
+            filter: invert(1);
+            opacity: 0.8;
+        }
+
+        /* Social Action Buttons */
+        .social-action-btn {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .social-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .social-action-btn.success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #38a169 100%);
+        }
+
+        .social-action-btn.success:hover {
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.3);
+        }
+
+        .social-action-btn.danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #e53e3e 100%);
+        }
+
+        .social-action-btn.danger:hover {
+            box-shadow: 0 8px 25px rgba(245, 101, 101, 0.3);
+        }
+
+        /* Social Card Styles */
+        .social-card {
+            background: var(--white);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .social-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .social-card .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            border: none;
+            padding: 1.5rem;
+        }
+
+        .social-card .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Notification Badge Animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .notification-badge {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .social-dropdown {
+                min-width: 250px;
+            }
+            
+            .btn-modern {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            
+            .modal-modern .modal-body {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Ultra-Modern Navigation Styles */
+        .modern-navbar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.98) 100%);
+            backdrop-filter: blur(40px) saturate(150%);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 0.75rem 0;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1030;
+            border-radius: 0;
+        }
+
+        .modern-navbar.scrolled {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(249, 250, 251, 0.99) 100%);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+        }
+
+        /* Simple & Creative Brand/Logo Styles */
+        .modern-brand {
+            padding: 0;
+            margin: 0;
+            text-decoration: none !important;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .modern-brand:hover {
+            transform: translateY(-1px);
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        /* Simple Creative Logo Icon */
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: #6366f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Creative Memory Dots Effect */
+        .brand-icon::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            top: 8px;
+            left: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .brand-icon::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            bottom: 10px;
+            right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .modern-brand:hover .brand-icon {
+            background: #8b5cf6;
+            transform: rotate(10deg);
+        }
+
+        .modern-brand:hover .brand-icon::before {
+            transform: scale(1.5);
+            opacity: 0.8;
+        }
+
+        .modern-brand:hover .brand-icon::after {
+            transform: scale(1.3);
+            opacity: 0.9;
+        }
+
+        /* Simple Icon Styling */
+        .brand-icon i {
+            font-size: 1.3rem;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 2;
+            position: relative;
+        }
+
+        .modern-brand:hover .brand-icon i {
+            transform: scale(1.1);
+        }
+
+        /* Clean Brand Text */
+        .brand-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            transition: all 0.3s ease;
+            position: relative;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Creative Highlight Effect */
+        .brand-text::before {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: #6366f1;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        .modern-brand:hover .brand-text {
+            color: #6366f1;
+        }
+
+        .modern-brand:hover .brand-text::before {
+            width: 100%;
+        }
+
+        /* Memory Symbol Badge */
+        .brand-memory-symbol {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            width: 12px;
+            height: 12px;
+            background: #ef4444;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 3;
+        }
+
+        .modern-brand:hover .brand-memory-symbol {
+            transform: scale(1);
+            animation: memoryPulse 1.5s infinite;
+        }
+
+        @keyframes memoryPulse {
+            0%, 100% { 
+                transform: scale(1); 
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.2); 
+                opacity: 0.8;
+            }
+        }
+
+
+
+        /* Enhanced Navigation Links */
+        .modern-nav {
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .modern-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            padding: 0.875rem 1.5rem !important;
+            border-radius: 18px;
+            color: #64748b !important;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid transparent;
+            backdrop-filter: blur(10px);
+        }
+
+        .modern-nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .modern-nav-link:hover::before {
+            left: 100%;
+        }
+
+        .modern-nav-link:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+            color: #6366f1 !important;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .modern-nav-link.highlight {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white !important;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            border-color: transparent;
+        }
+
+        .modern-nav-link.highlight:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .modern-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white !important;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+        }
+
+        /* Enhanced New Memory Button Container */
+        .new-memory-button-container {
+            display: flex;
+            align-items: center;
+            margin: 0 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Enhanced Standalone New Memory Button */
+        .new-memory-standalone-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.875rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            border: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .new-memory-standalone-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.8s ease;
+        }
+
+        .new-memory-standalone-btn:hover::before {
+            left: 100%;
+        }
+
+        .new-memory-standalone-btn:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4c93 100%);
+            color: white !important;
+            text-decoration: none;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .new-memory-standalone-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .new-memory-standalone-btn i {
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .new-memory-standalone-btn:hover i {
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .new-memory-standalone-btn span {
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Glow effect for New Memory button */
+        .btn-glow {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .new-memory-btn:hover .btn-glow {
+            left: 100%;
+        }
+
+        /* Pulse animation for New Memory button */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(102, 126, 234, 0.6);
+            }
+            100% {
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            }
+        }
+
+        .new-memory-standalone-btn {
+            animation: pulse 2s infinite;
+        }
+
+        .new-memory-standalone-btn:hover {
+            animation: none;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 991.98px) {
+            .new-memory-button-container {
+                margin: 0.5rem 0;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .new-memory-standalone-btn {
+                margin: 0.5rem 0;
+                padding: 0.75rem 1.25rem;
+                border-radius: 25px;
+                font-size: 0.9rem;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .new-memory-standalone-btn i {
+                font-size: 1.1rem;
+            }
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .nav-text {
+            font-size: 0.95rem;
+        }
+
+        /* Enhanced Quick Actions */
+        .modern-quick-action {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            color: var(--text-dark) !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 0 0.5rem;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modern-quick-action::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .modern-quick-action:hover::before {
+            left: 100%;
+        }
+
+        .modern-quick-action:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: var(--primary-color) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.2);
+        }
+
+        /* Enhanced User Section */
+        .modern-user-nav {
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .modern-user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1.25rem !important;
+            border-radius: 16px;
+            color: var(--text-dark) !important;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modern-user-dropdown::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .modern-user-dropdown:hover::before {
+            left: 100%;
+        }
+
+        .modern-user-dropdown:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: var(--primary-color) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.2);
+        }
+
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-left: 8px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            letter-spacing: -0.2px;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modern-user-dropdown[aria-expanded="true"] .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .modern-user-dropdown:hover .dropdown-arrow {
+            color: var(--primary-color);
+        }
+
+        /* Enhanced Modern Dropdowns */
+        .modern-dropdown {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+            padding: 1rem 0;
+            margin-top: 0.5rem;
+            min-width: 280px;
+            animation: dropdownSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modern-dropdown-item {
+            padding: 0.875rem 1.5rem;
+            color: var(--text-dark);
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modern-dropdown-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .modern-dropdown-item:hover::before {
+            left: 100%;
+        }
+
+        .modern-dropdown-item:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            transform: translateX(8px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .modern-dropdown-item i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .modern-dropdown-item:hover i {
+            transform: scale(1.1);
+        }
+
+        /* Modern Badge */
+        .modern-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            min-width: 1.2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+        }
+
+        /* Mobile Toggle */
+        .modern-toggler {
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .modern-toggler:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .modern-toggler:focus {
+            box-shadow: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 991.98px) {
+            body {
+                padding-top: 70px; /* Smaller padding for mobile */
+            }
+            
+            .modern-navbar {
+                padding: 0.5rem 0;
+            }
+
+            .brand-text {
+                font-size: 1.5rem;
+            }
+
+            .brand-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .modern-nav-link {
+                padding: 1rem !important;
+                border-radius: 8px;
+                margin: 0.25rem 0;
+            }
+
+            .modern-user-dropdown {
+                padding: 1rem !important;
+                border-radius: 8px;
+                margin: 0.25rem 0;
+            }
+
+            .dropdown-arrow {
+                display: none;
+            }
+
+            .modern-dropdown {
+                margin-top: 0.25rem;
+                border-radius: 12px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding-top: 65px; /* Even smaller padding for small screens */
+            }
+        }
+
+        /* Modern Global Search Styles */
+        .modern-search-container {
+            position: relative;
+        }
+
+        .modern-search-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(99, 102, 241, 0.1);
+            border-radius: 25px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.08);
+        }
+
+        .modern-search-wrapper:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .modern-search-wrapper:focus-within {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .modern-search-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #374151;
+            width: 280px;
+            transition: all 0.3s ease;
+        }
+
+        .modern-search-input::placeholder {
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .modern-search-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            padding: 0.75rem 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .modern-search-btn:hover {
+            background: linear-gradient(135deg, #5b58f7 0%, #8650f6 100%);
+            transform: scale(1.05);
+        }
+
+        /* Fast Search Results Dropdown */
+        .fast-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15);
+            margin-top: 0.5rem;
+            z-index: 1050;
+            max-height: 400px;
+            overflow-y: auto;
+            animation: dropdownSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fast-search-header {
+            padding: 1rem 1.5rem 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .fast-search-items {
+            padding: 0.5rem 0;
+        }
+
+        .fast-search-item {
+            padding: 0.75rem 1.5rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            border-radius: 0;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fast-search-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .fast-search-item:hover::before {
+            left: 100%;
+        }
+
+        .fast-search-item:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .fast-search-item-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .fast-search-item:hover .fast-search-item-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .fast-search-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .fast-search-item-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .fast-search-item-meta {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fast-search-item:hover .fast-search-item-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .fast-search-item-tags {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .fast-search-item-tag {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .fast-search-item:hover .fast-search-item-tag {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .fast-search-footer {
+            padding: 0.75rem 1.5rem;
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+            text-align: center;
+        }
+
+        .fast-search-more {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .fast-search-more:hover {
+            color: var(--secondary-color);
+            transform: translateX(3px);
+        }
+
+        .fast-search-no-results {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .fast-search-loading {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .fast-search-loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Animation for navbar scroll effect */
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modern-navbar.scrolled {
+            animation: slideDown 0.3s ease;
+        }
+
+        /* New Memory Button in Navbar */
+        .modern-new-memory-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
+            font-size: 0.9rem;
+        }
+
+        .modern-new-memory-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .modern-new-memory-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .modern-new-memory-btn .btn-icon {
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+        }
+
+        .modern-new-memory-btn .btn-text {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive adjustments for new memory button */
+        @media (max-width: 992px) {
+            .modern-new-memory-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .modern-new-memory-btn .btn-text {
+                display: none;
+            }
+            
+            .modern-new-memory-btn .btn-icon {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modern-new-memory-btn {
+                padding: 0.45rem 0.8rem;
+            }
+        }
+
+        /* Modern Quick Action Buttons */
+        .modern-quick-action {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 2px solid rgba(99, 102, 241, 0.2) !important;
+            border-radius: 50% !important;
+            width: 44px !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            backdrop-filter: blur(10px) !important;
+            margin: 0 0.25rem !important;
+            text-decoration: none !important;
+        }
+
+        .modern-quick-action:hover {
+            background: rgba(99, 102, 241, 0.1) !important;
+            border-color: rgba(99, 102, 241, 0.4) !important;
+            transform: scale(1.1) rotate(-5deg) !important;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15) !important;
+        }
+
+        .modern-quick-action i {
+            font-size: 1.1rem !important;
+            color: #6366f1 !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* Profile Button Specific Styles */
+        .profile-quick-btn:hover {
+            border-color: rgba(34, 197, 94, 0.4) !important;
+            background: rgba(34, 197, 94, 0.1) !important;
+            transform: scale(1.1) rotate(5deg) !important;
+        }
+
+        .profile-quick-btn:hover i {
+            color: #22c55e !important;
+        }
+
+        /* Settings Button Specific Styles */
+        .settings-quick-btn:hover {
+            border-color: rgba(245, 158, 11, 0.4) !important;
+            background: rgba(245, 158, 11, 0.1) !important;
+            transform: scale(1.1) rotate(15deg) !important;
+        }
+
+        .settings-quick-btn:hover i {
+            color: #f59e0b !important;
+        }
+
+
+
+
+
+        /* Enhanced Mobile Responsiveness for Search */
+        @media (max-width: 768px) {
+            .modern-search-input {
+                width: 180px;
+                font-size: 0.85rem;
+            }
+            
+            .modern-search-wrapper {
+                border-radius: 20px;
+            }
+            
+            .fast-search-results {
+                max-height: 300px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .modern-search-container {
+                display: none;
+            }
+        }
+
+        /* Modern Settings Modal Styles */
+        .modern-modal .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(40px);
+        }
+
+        .settings-section {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            height: 100%;
+        }
+
+        .settings-section-title {
+            color: #374151;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .settings-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .settings-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            text-decoration: none;
+            color: #374151;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .settings-option:hover {
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+            color: #374151;
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        .option-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .settings-option:hover .option-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+
+        .option-desc {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        .option-arrow {
+            color: #9ca3af;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .settings-option:hover .option-arrow {
+            color: #6366f1;
+            transform: translateX(3px);
+        }
+
+
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'memory_assistant:dashboard' %}">
-                <i class="bi bi-brain"></i> Memora
+    <!-- Modern Navigation Header -->
+    <nav class="navbar navbar-expand-lg modern-navbar">
+        <div class="container-fluid px-4">
+            <!-- Simple Creative Logo Section -->
+            <a class="navbar-brand modern-brand" href="{% url 'memory_assistant:dashboard' %}">
+                <div class="brand-container">
+                    <div class="brand-icon">
+                        <i class="bi bi-bookmark-heart-fill"></i>
+                        <div class="brand-memory-symbol"></div>
+                    </div>
+                    <span class="brand-text">Memora</span>
+                </div>
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler modern-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
+            <!-- Navigation Content -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 {% if user.is_authenticated %}
-                    <ul class="navbar-nav me-auto">
+                    <!-- Primary Navigation -->
+                    <ul class="navbar-nav me-auto modern-nav">
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:dashboard' %}">
-                                <i class="bi bi-house"></i> Dashboard
+                            <a class="nav-link modern-nav-link" href="{% url 'memory_assistant:dashboard' %}">
+                                <div class="nav-icon">
+                                    <i class="bi bi-house-door"></i>
+                                </div>
+                                <span class="nav-text">Dashboard</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:memory_list' %}">
-                                <i class="bi bi-list-ul"></i> Memories
+                            <a class="nav-link modern-nav-link" href="{% url 'memory_assistant:memory_list' %}">
+                                <div class="nav-icon">
+                                    <i class="bi bi-journal-text"></i>
+                                </div>
+                                <span class="nav-text">Memories</span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link modern-nav-link" href="{% url 'memory_assistant:voice_create_memory' %}">
+                                <div class="nav-icon">
+                                    <i class="bi bi-mic-fill"></i>
+                                </div>
+                                <span class="nav-text">Voice Memory</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:create_memory' %}">
-                                <i class="bi bi-plus-circle"></i> New Memory
+                            <a class="nav-link modern-nav-link" href="{% url 'memory_assistant:voice_search_memories' %}">
+                                <div class="nav-icon">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                                <span class="nav-text">Voice Search</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:voice_create_memory' %}">
-                                <i class="bi bi-mic"></i> Voice Memory
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:voice_search_memories' %}">
-                                <i class="bi bi-search"></i> Voice Search
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'memory_assistant:smart_reminders' %}">
-                                <i class="bi bi-bell"></i> Smart Reminders
+                            <a class="nav-link modern-nav-link" href="{% url 'memory_assistant:smart_reminders' %}">
+                                <div class="nav-icon">
+                                    <i class="bi bi-bell"></i>
+                                </div>
+                                <span class="nav-text">Smart Reminders</span>
                             </a>
                         </li>
                         
-                        <!-- Social Features -->
+
+                        
+                        <!-- Social Features Dropdown -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="socialDropdown" role="button" 
+                            <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="socialDropdown" role="button" 
                                data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-people"></i> Social
+                                <div class="nav-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <span class="nav-text">Social</span>
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="socialDropdown">
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:friends_list' %}">
-                                    <i class="bi bi-people"></i> My Friends
+                            <ul class="dropdown-menu modern-dropdown social-dropdown" aria-labelledby="socialDropdown">
+                                <li class="dropdown-header">
+                                    <i class="bi bi-people-fill"></i> Connect & Share
+                                </li>
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:friends_list' %}">
+                                    <i class="bi bi-people-fill"></i> My Friends
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:find_users' %}">
-                                    <i class="bi bi-person-plus"></i> Find Friends
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:find_users' %}">
+                                    <i class="bi bi-person-plus-fill"></i> Find Friends
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:organizations_list' %}">
-                                    <i class="bi bi-building"></i> Organizations
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:organizations_list' %}">
+                                    <i class="bi bi-building-fill"></i> Organizations
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:my_organization_invitations' %}">
-                                    <i class="bi bi-envelope-open"></i> Organization Invitations
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:my_organization_invitations' %}">
+                                    <i class="bi bi-envelope-open-fill"></i> Invitations
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:shared_with_me' %}">
-                                    <i class="bi bi-share"></i> Shared with Me
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:shared_with_me' %}">
+                                    <i class="bi bi-share-fill"></i> Shared with Me
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:friend_requests' %}">
-                                    <i class="bi bi-envelope"></i> Friend Requests
-                                    <span class="badge bg-primary ms-1" id="friend-requests-badge" style="display: none;">0</span>
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:friend_requests' %}">
+                                    <i class="bi bi-envelope-fill"></i> Friend Requests
+                                    <span class="modern-badge" id="friend-requests-badge" style="display: none;">0</span>
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item modern-dropdown-item" href="#" onclick="showSocialPopup(); return false;">
+                                    <i class="bi bi-grid-3x3-gap-fill"></i> Social Hub
                                 </a></li>
                             </ul>
                         </li>
-                    </ul>
-                {% endif %}
-                
-                <!-- User Menu -->
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <!-- Notifications -->
-                        <li class="nav-item">
-                            <a class="nav-link position-relative" href="{% url 'memory_assistant:notifications' %}" 
-                               title="Notifications" id="notifications-link">
-                                <i class="bi bi-bell"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
-                                      id="notifications-badge" style="display: none; font-size: 0.7rem; min-width: 1.2rem;">
-                                    <span class="visually-hidden">unread notifications</span>
-                                </span>
-                            </a>
-                        </li>
-                        
+
+
+
+                        <!-- User Profile Dropdown -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                            <a class="nav-link modern-nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
                                data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle"></i> {{ user.username }}
+                                <div class="nav-icon">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <span class="nav-text">{{ user.username }}</span>
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:profile' %}">
-                                    <i class="bi bi-person"></i> My Profile
+                            <ul class="dropdown-menu modern-dropdown" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:profile' %}">
+                                    <i class="bi bi-person-fill"></i> View Profile
                                 </a></li>
-                                <li><a class="dropdown-item" href="{% url 'memory_assistant:edit_profile' %}">
-                                    <i class="bi bi-pencil"></i> Edit Profile
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:edit_profile' %}">
+                                    <i class="bi bi-pencil-fill"></i> Edit Profile
+                                </a></li>
+                                <li><button class="dropdown-item modern-dropdown-item" onclick="openSettingsModal()" style="border: none; background: none; width: 100%; text-align: left;">
+                                    <i class="bi bi-gear-fill"></i> Settings
+                                </button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:search_memories' %}">
+                                    <i class="bi bi-search"></i> Search Memories
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a></li>
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:all_memories' %}">
+                                    <i class="bi bi-collection"></i> All Memories
+                                </a></li>
+                                <li><a class="dropdown-item modern-dropdown-item" href="{% url 'memory_assistant:important_memories' %}">
+                                    <i class="bi bi-star-fill"></i> Important
+                                </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'logout' %}" style="display: inline;">
                                         {% csrf_token %}
-                                        <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left;">
+                                        <button type="submit" class="dropdown-item modern-dropdown-item" style="border: none; background: none; width: 100%; text-align: left;">
                                             <i class="bi bi-box-arrow-right"></i> Logout
                                         </button>
                                     </form>
                                 </li>
                             </ul>
                         </li>
-                    {% else %}
+                    </ul>
+                {% endif %}
+                
+                <!-- Login/Register Section -->
+                <ul class="navbar-nav modern-user-nav">
+                    {% if not user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'login' %}">
                                 <i class="bi bi-box-arrow-in-right"></i> Login
@@ -203,6 +1700,155 @@
             </div>
         </div>
     </nav>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content modern-modal">
+                <div class="modal-header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border-bottom: none; border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title" id="settingsModalLabel">
+                        <i class="bi bi-gear me-2"></i>
+                        Settings & Preferences
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 2rem;">
+                    <div class="row g-4">
+                        <!-- Account Settings -->
+                        <div class="col-md-6">
+                            <div class="settings-section">
+                                <h6 class="settings-section-title">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    Account Settings
+                                </h6>
+                                <div class="settings-options">
+                                    <a href="{% url 'memory_assistant:edit_profile' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                                            <i class="bi bi-person-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Edit Profile</div>
+                                            <div class="option-desc">Update your personal information</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                    <a href="{% url 'memory_assistant:profile' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">View Profile</div>
+                                            <div class="option-desc">See your public profile</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Memory Settings -->
+                        <div class="col-md-6">
+                            <div class="settings-section">
+                                <h6 class="settings-section-title">
+                                    <i class="bi bi-journal-text me-2"></i>
+                                    Memory Settings
+                                </h6>
+                                <div class="settings-options">
+                                    <a href="{% url 'memory_assistant:create_memory' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                            <i class="bi bi-plus-circle-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Create Memory</div>
+                                            <div class="option-desc">Add a new memory</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                    <a href="{% url 'memory_assistant:search_memories' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                            <i class="bi bi-search"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Search Memories</div>
+                                            <div class="option-desc">Find specific memories</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Voice Features -->
+                        <div class="col-md-6">
+                            <div class="settings-section">
+                                <h6 class="settings-section-title">
+                                    <i class="bi bi-mic-fill me-2"></i>
+                                    Voice Features
+                                </h6>
+                                <div class="settings-options">
+                                    <a href="{% url 'memory_assistant:voice_create_memory' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(236, 72, 153, 0.1); color: #ec4899;">
+                                            <i class="bi bi-mic-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Voice Memory</div>
+                                            <div class="option-desc">Create memories with voice</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                    <a href="{% url 'memory_assistant:voice_search_memories' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                                            <i class="bi bi-search"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Voice Search</div>
+                                            <div class="option-desc">Search using voice commands</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Social Features -->
+                        <div class="col-md-6">
+                            <div class="settings-section">
+                                <h6 class="settings-section-title">
+                                    <i class="bi bi-people-fill me-2"></i>
+                                    Social Features
+                                </h6>
+                                <div class="settings-options">
+                                    <a href="{% url 'memory_assistant:friends_list' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Friends</div>
+                                            <div class="option-desc">Manage your connections</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                    <a href="{% url 'memory_assistant:notifications' %}" class="settings-option">
+                                        <div class="option-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                                            <i class="bi bi-bell-fill"></i>
+                                        </div>
+                                        <div class="option-content">
+                                            <div class="option-title">Notifications</div>
+                                            <div class="option-desc">View your alerts</div>
+                                        </div>
+                                        <i class="bi bi-chevron-right option-arrow"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: none; padding: 1rem 2rem 2rem;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 12px; background: #6b7280; border-color: #6b7280;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Messages -->
     {% if messages %}
@@ -222,10 +1868,10 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-light py-4 mt-5">
+    <footer class="py-4 mt-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
         <div class="container text-center">
             <p class="text-muted mb-0">
-                <i class="bi bi-heart-fill text-danger"></i> 
+                <i class="bi bi-heart-fill" style="color: #9B59B6;"></i> 
                 Memora - Your AI-Powered Memory Assistant
             </p>
         </div>
@@ -507,8 +2153,627 @@
                 });
             }
         }
+        
+        // Show social popup
+        function showSocialPopup() {
+            const modal = new bootstrap.Modal(document.getElementById('socialPopupModal'));
+            modal.show();
+        }
+
+        // Modern Navbar Functionality
+        $(document).ready(function() {
+            // Navbar scroll effect
+            $(window).scroll(function() {
+                if ($(this).scrollTop() > 50) {
+                    $('.modern-navbar').addClass('scrolled');
+                } else {
+                    $('.modern-navbar').removeClass('scrolled');
+                }
+            });
+
+            // Smooth hover effects for navigation links
+            $('.modern-nav-link').hover(
+                function() {
+                    $(this).find('.nav-icon').css('transform', 'scale(1.1)');
+                },
+                function() {
+                    $(this).find('.nav-icon').css('transform', 'scale(1)');
+                }
+            );
+
+            // Enhanced dropdown animations
+            $('.dropdown-toggle').on('click', function() {
+                const $dropdown = $(this).next('.dropdown-menu');
+                $dropdown.addClass('show');
+                
+                // Add entrance animation
+                $dropdown.find('.dropdown-item').each(function(index) {
+                    $(this).css({
+                        'animation-delay': (index * 0.05) + 's',
+                        'animation': 'slideInRight 0.3s ease forwards'
+                    });
+                });
+            });
+
+            // Quick action button effects
+            $('.modern-quick-action').hover(
+                function() {
+                    $(this).css('transform', 'translateY(-2px) scale(1.05)');
+                },
+                function() {
+                    $(this).css('transform', 'translateY(0) scale(1)');
+                }
+            );
+
+            // Enhanced New Memory button effects
+            $('.new-memory-standalone-btn').hover(
+                function() {
+                    $(this).find('i').addClass('fa-spin');
+                    $(this).addClass('btn-hovered');
+                },
+                function() {
+                    $(this).find('i').removeClass('fa-spin');
+                    $(this).removeClass('btn-hovered');
+                }
+            );
+
+            // Click effect for New Memory button
+            $('.new-memory-standalone-btn').on('click', function() {
+                $(this).addClass('btn-clicked');
+                setTimeout(() => {
+                    $(this).removeClass('btn-clicked');
+                }, 300);
+            });
+
+            // Add ripple effect to New Memory button
+            $('.new-memory-standalone-btn').on('mousedown', function(e) {
+                const $ripple = $('<span class="ripple"></span>');
+                const $button = $(this);
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+
+                $ripple.css({
+                    width: size + 'px',
+                    height: size + 'px',
+                    left: x + 'px',
+                    top: y + 'px'
+                });
+
+                $button.append($ripple);
+
+                setTimeout(() => {
+                    $ripple.remove();
+                }, 600);
+            });
+
+            // Enhanced navigation link interactions
+            $('.modern-nav-link').hover(
+                function() {
+                    $(this).find('i').addClass('fa-bounce');
+                },
+                function() {
+                    $(this).find('i').removeClass('fa-bounce');
+                }
+            );
+
+            // Enhanced quick action interactions
+            $('.modern-quick-action').hover(
+                function() {
+                    $(this).find('i').addClass('fa-bounce');
+                },
+                function() {
+                    $(this).find('i').removeClass('fa-bounce');
+                }
+            );
+
+            // Enhanced user dropdown interactions
+            $('.modern-user-dropdown').hover(
+                function() {
+                    $(this).find('.user-avatar').addClass('fa-bounce');
+                },
+                function() {
+                    $(this).find('.user-avatar').removeClass('fa-bounce');
+                }
+            );
+
+            // Smooth scroll effect for navbar
+            let lastScrollTop = 0;
+            $(window).scroll(function() {
+                const scrollTop = $(this).scrollTop();
+                const navbar = $('.modern-navbar');
+                
+                // Always keep navbar visible but apply scroll effects
+                if (scrollTop > 50) {
+                    navbar.addClass('scrolled');
+                } else {
+                    navbar.removeClass('scrolled');
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+
+            // Enhanced dropdown animations
+            $('.dropdown-toggle').on('click', function(e) {
+                const $dropdown = $(this).next('.dropdown-menu');
+                const $arrow = $(this).find('.dropdown-arrow');
+                
+                // Add animation class
+                $dropdown.addClass('dropdown-animating');
+                $arrow.addClass('arrow-rotating');
+                
+                setTimeout(() => {
+                    $dropdown.removeClass('dropdown-animating');
+                    $arrow.removeClass('arrow-rotating');
+                }, 300);
+            });
+
+            // Close dropdowns when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dropdown').length) {
+                    $('.dropdown-menu').removeClass('show');
+                    $('.dropdown-arrow').removeClass('rotated');
+                }
+            });
+
+            // Close dropdowns when clicking menu items
+            $('.dropdown-item').on('click', function() {
+                $(this).closest('.dropdown-menu').removeClass('show');
+                $('.dropdown-arrow').removeClass('rotated');
+            });
+
+            // User dropdown enhancement
+            $('.modern-user-dropdown').on('click', function() {
+                const $arrow = $(this).find('.dropdown-arrow');
+                $arrow.toggleClass('rotated');
+            });
+
+            // Mobile menu improvements
+            $('.modern-toggler').on('click', function() {
+                $(this).toggleClass('active');
+            });
+
+            // Add loading states to navigation links
+            $('.modern-nav-link').on('click', function() {
+                if (!$(this).hasClass('dropdown-toggle')) {
+                    $(this).addClass('loading');
+                    setTimeout(() => {
+                        $(this).removeClass('loading');
+                    }, 1000);
+                }
+            });
+
+            // Keyboard navigation support
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    $('.dropdown-menu').removeClass('show');
+                    $('.dropdown-arrow').removeClass('rotated');
+                    hideFastSearchResults();
+                }
+                
+                // Ctrl/Cmd + K to focus fast search
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    $('#fastSearchInput').focus();
+                }
+            });
+
+            // Accessibility improvements
+            $('.modern-nav-link').on('focus', function() {
+                $(this).addClass('focused');
+            }).on('blur', function() {
+                $(this).removeClass('focused');
+            });
+
+            // Performance optimization - debounce scroll events
+            let scrollTimeout;
+            $(window).on('scroll', function() {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(function() {
+                    // Recalculate navbar position if needed
+                    const scrollTop = $(window).scrollTop();
+                    if (scrollTop > 50) {
+                        $('.modern-navbar').addClass('scrolled');
+                    } else {
+                        $('.modern-navbar').removeClass('scrolled');
+                    }
+                }, 10);
+            });
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            .modern-nav-link.loading {
+                position: relative;
+                pointer-events: none;
+            }
+
+            .modern-nav-link.loading::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 16px;
+                height: 16px;
+                margin: -8px 0 0 -8px;
+                border: 2px solid transparent;
+                border-top: 2px solid var(--primary-color);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            .modern-nav-link.focused {
+                outline: 2px solid var(--primary-color);
+                outline-offset: 2px;
+            }
+
+            .dropdown-arrow.rotated {
+                transform: rotate(180deg);
+            }
+
+            .modern-toggler.active {
+                background: rgba(102, 126, 234, 0.2);
+            }
+
+            /* New Memory Button Additional Effects */
+            .new-memory-standalone-btn.btn-hovered {
+                transform: translateY(-3px) scale(1.02);
+            }
+
+            .new-memory-standalone-btn.btn-clicked {
+                transform: translateY(-1px) scale(0.98);
+            }
+
+            /* Ripple effect for New Memory button */
+            .ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.6);
+                transform: scale(0);
+                animation: ripple-animation 0.6s linear;
+                pointer-events: none;
+            }
+
+            @keyframes ripple-animation {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+
+            /* Enhanced icon animation for New Memory button */
+            .new-memory-standalone-btn i.fa-spin {
+                animation: spin 1s linear infinite;
+            }
+
+            /* Focus state for accessibility */
+            .new-memory-standalone-btn:focus {
+                outline: 2px solid rgba(255, 255, 255, 0.8);
+                outline-offset: 2px;
+            }
+
+            /* Loading state for New Memory button */
+            .new-memory-standalone-btn.loading {
+                pointer-events: none;
+                opacity: 0.8;
+            }
+
+            .new-memory-standalone-btn.loading i {
+                animation: spin 1s linear infinite;
+            }
+
+            /* Enhanced navbar animations - Removed navbar-hidden to keep header always visible */
+
+            /* Enhanced dropdown animations */
+            .dropdown-animating {
+                animation: dropdownBounce 0.3s ease;
+            }
+
+            @keyframes dropdownBounce {
+                0% { transform: scale(0.95) translateY(-10px); opacity: 0; }
+                50% { transform: scale(1.02) translateY(-5px); opacity: 0.8; }
+                100% { transform: scale(1) translateY(0); opacity: 1; }
+            }
+
+            .arrow-rotating {
+                animation: arrowRotate 0.3s ease;
+            }
+
+            @keyframes arrowRotate {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(180deg); }
+            }
+
+            /* Enhanced icon animations */
+            .fa-bounce {
+                animation: iconBounce 0.6s ease;
+            }
+
+            @keyframes iconBounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                40% { transform: translateY(-3px); }
+                60% { transform: translateY(-2px); }
+            }
+
+            /* Enhanced hover effects for all interactive elements */
+            .modern-nav-link:hover i,
+            .modern-quick-action:hover i,
+            .modern-user-dropdown:hover .user-avatar i {
+                transform: scale(1.1);
+                transition: transform 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
     
+    <!-- Modern Social Popup Modal -->
+    <div class="modal fade modal-modern" id="socialPopupModal" tabindex="-1" aria-labelledby="socialPopupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socialPopupModalLabel">
+                        <i class="bi bi-people-fill"></i> Social Actions
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="social-card h-100" style="transform: none; cursor: pointer;" onclick="window.location.href='{% url 'memory_assistant:find_users' %}'">
+                                <div class="card-body text-center">
+                                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                         style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;">
+                                        <i class="bi bi-person-plus-fill text-white fs-3"></i>
+                                    </div>
+                                    <h6 class="fw-bold">Find Friends</h6>
+                                    <p class="text-muted small">Discover and connect with new people</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="social-card h-100" style="transform: none; cursor: pointer;" onclick="window.location.href='{% url 'memory_assistant:organizations_list' %}'">
+                                <div class="card-body text-center">
+                                    <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                         style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%) !important;">
+                                        <i class="bi bi-building-fill text-white fs-3"></i>
+                                    </div>
+                                    <h6 class="fw-bold">Organizations</h6>
+                                    <p class="text-muted small">Join or create organizations</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="social-card h-100" style="transform: none; cursor: pointer;" onclick="window.location.href='{% url 'memory_assistant:friend_requests' %}'">
+                                <div class="card-body text-center">
+                                    <div class="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                         style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--warning-color) 0%, #f6ad55 100%) !important;">
+                                        <i class="bi bi-envelope-fill text-white fs-3"></i>
+                                    </div>
+                                    <h6 class="fw-bold">Friend Requests</h6>
+                                    <p class="text-muted small">Manage your friend requests</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="social-card h-100" style="transform: none; cursor: pointer;" onclick="window.location.href='{% url 'memory_assistant:shared_with_me' %}'">
+                                <div class="card-body text-center">
+                                    <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                         style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--success-color) 0%, #38a169 100%) !important;">
+                                        <i class="bi bi-share-fill text-white fs-3"></i>
+                                    </div>
+                                    <h6 class="fw-bold">Shared with Me</h6>
+                                    <p class="text-muted small">View memories shared with you</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-modern btn-modern-outline" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Settings Modal Function
+        function openSettingsModal() {
+            const settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
+            settingsModal.show();
+        }
+
+        // Fast Search Functionality
+        let fastSearchTimeout;
+        let currentSearchQuery = '';
+
+        // Initialize fast search
+        $(document).ready(function() {
+            const fastSearchInput = $('#fastSearchInput');
+            const fastSearchResults = $('#fastSearchResults');
+
+            // Handle input changes with debouncing
+            fastSearchInput.on('input', function() {
+                const query = $(this).val().trim();
+                currentSearchQuery = query;
+                
+                clearTimeout(fastSearchTimeout);
+                
+                if (query.length === 0) {
+                    hideFastSearchResults();
+                    return;
+                }
+                
+                if (query.length < 2) {
+                    return;
+                }
+                
+                // Show loading state
+                showFastSearchLoading();
+                
+                // Debounce the search
+                fastSearchTimeout = setTimeout(() => {
+                    if (currentSearchQuery === query) {
+                        performFastSearch(query);
+                    }
+                }, 300);
+            });
+
+            // Handle focus events
+            fastSearchInput.on('focus', function() {
+                const query = $(this).val().trim();
+                if (query.length >= 2) {
+                    showFastSearchResults();
+                }
+            });
+
+            // Handle click outside to close results
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.modern-search-container').length) {
+                    hideFastSearchResults();
+                }
+            });
+
+            // Handle keyboard navigation
+            fastSearchInput.on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    hideFastSearchResults();
+                    $(this).blur();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = $(this).val().trim();
+                    if (query.length > 0) {
+                        window.location.href = `{% url 'memory_assistant:search_memories' %}?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        });
+
+        function performFastSearch(query = null) {
+            const searchQuery = query || $('#fastSearchInput').val().trim();
+            
+            if (searchQuery.length < 2) {
+                hideFastSearchResults();
+                return;
+            }
+
+            $.ajax({
+                url: '{% url "memory_assistant:search_memories" %}',
+                method: 'GET',
+                data: { q: searchQuery },
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        displayFastSearchResults(response.results, searchQuery);
+                    } else {
+                        showFastSearchNoResults();
+                    }
+                },
+                error: function(xhr) {
+                    console.log('Fast search error:', xhr);
+                    showFastSearchNoResults();
+                }
+            });
+        }
+
+        function displayFastSearchResults(results, query) {
+            const resultsContainer = $('#fastSearchItems');
+            const resultsDropdown = $('#fastSearchResults');
+            
+            if (results.length === 0) {
+                showFastSearchNoResults();
+                return;
+            }
+
+            let html = '';
+            
+            results.forEach(function(memory) {
+                const tags = memory.tags ? memory.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                const tagsHtml = tags.map(tag => 
+                    `<span class="fast-search-item-tag">${tag}</span>`
+                ).join('');
+                
+                html += `
+                    <a href="{% url 'memory_assistant:memory_detail' 0 %}" class="fast-search-item" 
+                       onclick="window.location.href='{% url 'memory_assistant:memory_detail' 0 %}'.replace('0', '${memory.id}')">
+                        <div class="fast-search-item-icon">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div class="fast-search-item-content">
+                            <div class="fast-search-item-title">${memory.content}</div>
+                            <div class="fast-search-item-meta">
+                                <span>${memory.created_at}</span>
+                                ${tagsHtml ? `<div class="fast-search-item-tags">${tagsHtml}</div>` : ''}
+                            </div>
+                        </div>
+                    </a>
+                `;
+            });
+            
+            resultsContainer.html(html);
+            showFastSearchResults();
+        }
+
+        function showFastSearchResults() {
+            $('#fastSearchResults').show();
+        }
+
+        function hideFastSearchResults() {
+            $('#fastSearchResults').hide();
+        }
+
+        function showFastSearchLoading() {
+            const resultsContainer = $('#fastSearchItems');
+            const resultsDropdown = $('#fastSearchResults');
+            
+            resultsContainer.html(`
+                <div class="fast-search-loading">
+                    <i class="bi bi-arrow-clockwise"></i> Searching...
+                </div>
+            `);
+            
+            showFastSearchResults();
+        }
+
+        function showFastSearchNoResults() {
+            const resultsContainer = $('#fastSearchItems');
+            const resultsDropdown = $('#fastSearchResults');
+            
+            resultsContainer.html(`
+                <div class="fast-search-no-results">
+                    <i class="bi bi-search"></i>
+                    <p>No memories found</p>
+                    <small>Try different keywords or check spelling</small>
+                </div>
+            `);
+            
+            showFastSearchResults();
+        }
+
+
+    </script>
 </body>
 </html> 

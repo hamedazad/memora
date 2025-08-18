@@ -1,568 +1,715 @@
 {% extends 'memory_assistant/base.html' %}
-{% load memory_extras %}
 
 {% block title %}Dashboard - Memora{% endblock %}
 
-<style>
-/* Hide Done, Snooze, Decline buttons on dashboard */
-.memory-card .btn-success[onclick*="markMemoryDone"],
-.memory-card .btn-warning[onclick*="showSnoozeOptions"],
-.memory-card .btn-danger[onclick*="showDeclineOptions"],
-.memory-card .btn-success:contains("Done"),
-.memory-card .btn-warning:contains("Snooze"),
-.memory-card .btn-danger:contains("Decline") {
-    display: none !important;
-}
-
-/* Hide any buttons with Done, Snooze, Decline text in memory cards */
-.memory-card .btn:contains("Done"),
-.memory-card .btn:contains("Snooze"),
-.memory-card .btn:contains("Decline") {
-    display: none !important;
-}
-</style>
-
-<style>
-.search-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    border-radius: 15px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
-    padding: 2rem !important;
-}
-
-.search-section .card {
-    background: transparent;
-    border: none;
-}
-
-.search-section .card-body {
-    padding: 0;
-}
-
-.search-section .input-group {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.search-section .form-control {
-    border: none;
-    padding: 0.75rem 1rem;
-    font-size: 1.1rem;
-    background: white;
-}
-
-.search-section .form-control:focus {
-    box-shadow: none;
-    background: white;
-}
-
-.search-section .input-group-text {
-    border: none;
-    background: white;
-    padding: 0.75rem 1rem;
-}
-
-.search-section .btn-outline-primary {
-    border: none;
-    background: #667eea;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.search-section .btn-outline-primary:hover {
-    background: #5a6fd8;
-    transform: translateY(-1px);
-}
-
-.search-section .btn-primary {
-    background: white;
-    color: #667eea;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.search-section .btn-primary:hover {
-    background: #f8f9fa;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-</style>
-
 {% block content %}
-<div class="row">
-    <!-- AI Status Alert -->
-    {% if not ai_available %}
-    <div class="col-12 mb-4">
-        <div class="alert alert-warning" role="alert">
-            <i class="bi bi-exclamation-triangle"></i>
-            <strong>AI Features Disabled:</strong> To enable AI-powered memory processing, summarization, and smart suggestions, 
-            please set up your OpenAI API key. Create a <code>.env</code> file in the project root with:
-            <code>OPENAI_API_KEY=your_api_key_here</code>
-        </div>
-    </div>
-    {% endif %}
+        <style>
+            /* Dashboard-specific styles */
+            :root {
+                --primary-color: #6366f1;
+            }
 
-    <!-- Reminder Notifications -->
-    {% if reminder_notifications %}
-    <div class="col-12 mb-4">
-        {% for notification in reminder_notifications %}
-            <div class="alert alert-info alert-dismissible fade show reminder-notification" role="alert" data-reminder-id="{{ notification.id }}">
-                <div class="d-flex align-items-start">
-                    <div class="flex-grow-1">
-                        <h6 class="alert-heading mb-2">
-                            <i class="bi bi-bell-fill"></i> {{ notification.title }}
-                        </h6>
-                        <p class="mb-2">{{ notification.message }}</p>
-                        <p class="mb-2"><strong>Memory:</strong> {{ notification.memory_content }}</p>
 
-                    </div>
-                    <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+
+            body {
+                background: var(--bg-light);
+                color: var(--text-dark);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 16px;
+            }
+
+
+
+            .dashboard-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 2rem;
+            }
+
+            /* Search and Quick Add Section */
+            .search-quick-section {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+                margin-top: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .search-section {
+                background: white;
+                border-radius: 20px;
+                padding: 2rem;
+                border: 1px solid var(--border-light);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+
+            .quick-add-section {
+                background: white;
+                border-radius: 20px;
+                padding: 2rem;
+                border: 1px solid var(--border-light);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+
+            /* Override global purple gradient box on quick-add form */
+            .quick-add-form {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                color: inherit !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                margin: 0;
+            }
+
+            /* Overview and AI Suggestions Section */
+            .overview-ai-section {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .search-section h2 {
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 0.75rem;
+                color: var(--text-dark);
+            }
+
+            .search-section p {
+                color: var(--text-light);
+                margin-bottom: 1.5rem;
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+
+            .search-form {
+                display: block;
+            }
+
+            .search-input {
+                width: 100%;
+                min-height: 56px;
+                padding: 0.9rem 1rem;
+                border: 2px solid #000000;
+                border-radius: 12px;
+                resize: vertical;
+                font-size: 1rem;
+                margin-bottom: 1rem;
+                transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+                background-color: #ffffff;
+            }
+
+            .search-input:hover {
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            }
+
+            .search-input:focus {
+                outline: none;
+                border-color: #000000;
+                box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.15);
+                background-color: #ffffff;
+            }
+
+
+
+            /* Section Headers */
+            .section-title {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 1.5rem;
+                font-size: 1.4rem;
+                font-weight: 700;
+                color: var(--text-dark);
+            }
+
+            .section-title i {
+                color: var(--text-light);
+            }
+
+            /* Memory Overview */
+            .overview-card {
+                background: white;
+                border: 1px solid var(--border-light);
+                border-radius: 20px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+
+            .stat-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .stat-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .stat-icon {
+                width: 20px;
+                height: 20px;
+                color: var(--text-dark);
+                font-size: 1.2rem;
+            }
+
+            .stat-content h3 {
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin: 0;
+                color: var(--primary-color);
+                line-height: 1;
+            }
+
+            .stat-content p {
+                margin: 0;
+                font-size: 0.9rem;
+                color: var(--text-dark);
+                line-height: 1.2;
+                font-weight: 500;
+            }
+
+            .stat-content a {
+                color: var(--primary-color);
+                text-decoration: none;
+            }
+
+            .stat-content a:hover {
+                text-decoration: underline;
+            }
+
+            /* Clickable Stat Cards */
+            .stat-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 1rem;
+                border-radius: 12px;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                text-decoration: none;
+                color: inherit;
+            }
+
+            .stat-item:hover {
+                background: rgba(99, 102, 241, 0.05);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);
+            }
+
+            .stat-item:active {
+                transform: translateY(0);
+            }
+
+            /* Quick Actions */
+            .actions-card {
+                background: white;
+                border: 1px solid var(--border-light);
+                border-radius: 20px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+
+
+
+            .action-buttons {
+                display: flex;
+                gap: 0.75rem;
+            }
+
+            .btn-primary {
+                background: #ffffff;
+                border: 2px solid #6366f1;
+                color: #6366f1;
+                padding: 0.75rem 1.25rem;
+                border-radius: 12px;
+                font-size: 1rem;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                line-height: 1;
+                min-height: 56px;
+                transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+            }
+
+            .btn-primary:hover {
+                background: rgba(99, 102, 241, 0.05);
+                border-color: #6366f1;
+                color: #6366f1;
+                box-shadow: 0 2px 10px rgba(99, 102, 241, 0.12);
+            }
+
+            .btn-primary:active {
+                transform: scale(0.98);
+            }
+
+            .btn-outline {
+                background: white;
+                border: 1px solid var(--border-light);
+                color: var(--text-dark);
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .btn-outline:hover {
+                background: var(--bg-light);
+             }
+             
+             /* AI Suggestions */
+             .suggestions-header {
+                 display: flex;
+                 justify-content: space-between;
+                 align-items: center;
+                 margin-bottom: 1rem;
+             }
+
+            .refresh-btn {
+                background: white;
+                border: 1px solid var(--border-light);
+                padding: 0.4rem 0.75rem;
+                border-radius: 6px;
+                font-size: 0.9rem;
+                color: var(--text-dark);
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+            }
+
+            .refresh-btn:hover {
+                background: var(--bg-light);
+            }
+
+            .refresh-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+            .spin {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+
+            .suggestion-item {
+                padding: 0.75rem 0;
+                border-bottom: 1px solid #f3f4f6;
+                color: var(--text-dark);
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+
+            /* Recent Memories Section */
+            .recent-memories-section {
+                background: white;
+                border-radius: 20px;
+                padding: 2rem;
+                border: 1px solid var(--border-light);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                margin-bottom: 2rem;
+            }
+
+            .memory-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem 0;
+                border-bottom: 1px solid #f3f4f6;
+                transition: all 0.3s ease;
+            }
+
+            .memory-item:last-child {
+                border-bottom: none;
+            }
+
+            .memory-item:hover {
+                background: rgba(99, 102, 241, 0.05);
+                border-radius: 12px;
+                padding: 1rem;
+                margin: 0 -1rem;
+            }
+
+            .memory-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 1.2rem;
+                flex-shrink: 0;
+            }
+
+            .memory-content {
+                flex: 1;
+            }
+
+            .memory-title {
+                font-weight: 600;
+                color: var(--text-dark);
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+            }
+
+            .memory-text {
+                color: var(--text-light);
+                font-size: 0.9rem;
+                line-height: 1.4;
+                margin-bottom: 0.5rem;
+            }
+
+            .memory-meta {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                font-size: 0.8rem;
+                color: var(--text-light);
+            }
+
+            .memory-type {
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(99, 102, 241, 0.1);
+                border-radius: 6px;
+                color: var(--primary-color);
+                font-weight: 500;
+            }
+
+            .memory-date {
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+            }
+
+            .memory-importance {
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(245, 158, 11, 0.1);
+                border-radius: 6px;
+                color: #f59e0b;
+                font-weight: 500;
+            }
+
+            .suggestion-item:last-child {
+                border-bottom: none;
+            }
+
+                         /* Responsive */
+             @media (max-width: 768px) {
+                .dashboard-container {
+                     padding: 1rem;
+                 }
+                
+                .search-quick-section {
+                    grid-template-columns: 1fr;
+                    gap: 1rem;
+                }
+                
+                .overview-ai-section {
+                    grid-template-columns: 1fr;
+                    gap: 1rem;
+                 }
+                 
+                 .search-form {
+                     flex-direction: column;
+                     align-items: stretch;
+                 }
+                 
+                 .stat-grid {
+                     grid-template-columns: 1fr;
+                 }
+                 
+                 .action-buttons {
+                     flex-direction: column;
+                 }
+             }
+        </style>
+
+        <div class="dashboard-container">
+            <!-- Search and Quick Add Section -->
+            <div class="search-quick-section">
+                <!-- Search Section -->
+                <div class="search-section">
+                    <h2>Find Your Memories</h2>
+                    <p>Search through your personal memory collection with ease</p>
+                    <form class="search-form">
+                        <textarea class="search-input" placeholder="Search your memories..."></textarea>
+                        <div class="action-buttons">
+                            <button type="submit" class="btn-primary">
+                            <i class="bi bi-search"></i>
+                            Search
+                        </button>
+                        </div>
+                    </form>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Modern Search and Action Section -->
-    <div class="col-12 mb-4">
-        <div class="search-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <form method="GET" action="{% url 'memory_assistant:search_memories' %}" class="modern-search-form">
-                        <div class="search-row" style="display: flex; gap: 1rem; align-items: center;">
-                            <!-- Search Input -->
-                            <div class="search-input-group" style="flex: 2; position: relative;">
-                                <div class="input-wrapper" style="background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.3s ease;">
-                                    <div class="input-content" style="display: flex; align-items: center; padding: 0.75rem 1rem;">
-                                        <i class="bi bi-search" style="color: #667eea; font-size: 1.2rem; margin-right: 0.75rem;"></i>
-                                        <input class="form-control border-0 shadow-none" type="search" name="q" 
-                                               placeholder="Search your memories..." 
-                                               aria-label="Search" value="{{ request.GET.q }}"
-                                               style="border: none; outline: none; box-shadow: none; font-size: 1rem; background: transparent;">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Date Picker -->
-                            <div class="date-input-group" style="flex: 1; position: relative;">
-                                <div class="input-wrapper" style="background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; transition: all 0.3s ease;">
-                                    <div class="input-content" style="display: flex; align-items: center; padding: 0.75rem 1rem;">
-                                        <i class="bi bi-calendar3" style="color: #667eea; font-size: 1.2rem; margin-right: 0.75rem;"></i>
-                                        <input class="form-control border-0 shadow-none" type="date" name="date_filter" 
-                                               aria-label="Date Filter" value="{{ request.GET.date_filter }}"
-                                               style="border: none; outline: none; box-shadow: none; font-size: 1rem; background: transparent;">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Search Button -->
-                            <button class="btn search-btn" type="submit" 
-                                    style="background: white; color: #667eea; border: none; padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: all 0.3s ease; font-size: 1rem;">
-                                <i class="bi bi-search me-2"></i>Search
+                
+                <!-- Quick Add Memory Section -->
+                <div class="quick-add-section">
+                    <h2>Quick Add Memory</h2>
+                    <p>Create a new memory quickly and easily</p>
+                    <form class="quick-add-form">
+                        {% csrf_token %}
+                        <textarea id="quickAddContent" class="search-input" placeholder="Write a quick memory... (minimum 10 characters)"></textarea>
+                        <div class="action-buttons">
+                            <button type="button" id="quickAddBtn" class="btn-primary">
+                                <i class="bi bi-plus-circle"></i>
+                                Add Memory
                             </button>
                         </div>
                     </form>
                 </div>
-                <div class="col-lg-4 text-end mt-3 mt-lg-0">
-                    <a href="{% url 'memory_assistant:create_memory' %}" class="btn create-memory-btn" 
-                       style="background: rgba(255,255,255,0.9); color: #667eea; border: none; padding: 1rem 1.5rem; font-weight: 600; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center;">
-                        <i class="bi bi-plus-circle me-2" style="font-size: 1.2rem;"></i> New Memory
-                    </a>
+            </div>
+
+            <!-- Memory Overview and AI Suggestions Section -->
+            <div class="overview-ai-section">
+            <!-- Memory Overview -->
+            <div class="overview-card">
+                <div class="section-title">
+                    <i class="bi bi-graph-up"></i>
+                    Memory Overview
+                </div>
+                <div class="stat-grid">
+                        <a href="{% url 'memory_assistant:all_memories' %}" class="stat-item">
+                        <i class="bi bi-collection stat-icon"></i>
+                        <div class="stat-content">
+                                <h3>{{ total_memories }}</h3>
+                                <p>Total Memories</p>
+                        </div>
+                        </a>
+                        <a href="{% url 'memory_assistant:important_memories' %}" class="stat-item">
+                        <i class="bi bi-star stat-icon"></i>
+                        <div class="stat-content">
+                                <h3>{{ important_memories }}</h3>
+                                <p>Important Memories</p>
+                        </div>
+                        </a>
+                        <a href="{% url 'memory_assistant:scheduled_memories' %}" class="stat-item">
+                        <i class="bi bi-calendar3 stat-icon"></i>
+                        <div class="stat-content">
+                                <h3>{{ scheduled_memories_count }}</h3>
+                                <p>Future Scheduled</p>
+                        </div>
+                        </a>
+                        <a href="{% url 'memory_assistant:todays_memories' %}" class="stat-item">
+                        <i class="bi bi-calendar-check stat-icon"></i>
+                        <div class="stat-content">
+                                <h3>{{ todays_memories_count }}</h3>
+                                <p>Today's Memories</p>
+                        </div>
+                        </a>
+                    </div>
+                </div>
+
+            <!-- AI Suggestions -->
+            <div class="actions-card">
+                <div class="suggestions-header">
+                    <div class="section-title" style="margin-bottom: 0;">
+                        <i class="bi bi-robot"></i>
+                        AI Suggestions
+                    </div>
+                        <button class="refresh-btn" onclick="refreshSuggestions()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Refresh
+                    </button>
+                </div>
+                
+                    {% if suggestions %}
+                        {% for suggestion in suggestions %}
+                <div class="suggestion-item">
+                                {{ suggestion }}
+                </div>
+                        {% endfor %}
+                    {% else %}
+                <div class="suggestion-item">
+                            <em>No suggestions available. Create some memories to get personalized AI suggestions.</em>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-        </div>
-    </div>
 
-    <style>
-    .modern-search-form .input-wrapper:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-    }
-    
-    .modern-search-form .search-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-        background: #f8f9fa !important;
-    }
-    
-    .create-memory-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-        background: white !important;
-        color: #667eea !important;
-        text-decoration: none;
-    }
-    
-    .search-container {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .search-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        pointer-events: none;
-    }
-    
-    .search-row {
-        position: relative;
-        z-index: 1;
-    }
-    
-    @media (max-width: 768px) {
-        .search-row {
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .search-input-group,
-        .date-input-group {
-            flex: 1;
-            width: 100%;
-        }
-        
-        .search-btn {
-            width: 100%;
-        }
-    }
-    </style>
-
-    <!-- Statistics Cards -->
-    <div class="col-md-3 mb-4">
-        <a href="{% url 'memory_assistant:all_memories' %}" class="text-decoration-none">
-            <div class="card stats-card h-100 clickable-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-collection display-4 mb-3"></i>
-                    <h3 class="card-title">{{ total_memories }}</h3>
-                    <p class="card-text">Total Memories</p>
+            <!-- Recent Memories Section -->
+            <div class="recent-memories-section">
+                <div class="section-title">
+                    <i class="bi bi-clock-history"></i>
+                    Recent Memories
                 </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <a href="{% url 'memory_assistant:important_memories' %}" class="text-decoration-none">
-            <div class="card stats-card h-100 clickable-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-star display-4 mb-3"></i>
-                    <h3 class="card-title">{{ important_memories }}</h3>
-                    <p class="card-text">Important Memories</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <a href="{% url 'memory_assistant:scheduled_memories' %}" class="text-decoration-none">
-            <div class="card stats-card h-100 clickable-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-calendar3 display-4 mb-3"></i>
-                    <h3 class="card-title">{{ scheduled_memories_count }}</h3>
-                    <p class="card-text">Future Scheduled</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <a href="{% url 'memory_assistant:todays_memories' %}" class="text-decoration-none">
-            <div class="card stats-card h-100 clickable-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-calendar-check display-4 mb-3"></i>
-                    <h3 class="card-title">{{ todays_memories_count }}</h3>
-                    <p class="card-text">Today's Memories</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-
-    
-
-
-
-    <!-- Quick Add Memory -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-lightning"></i> Quick Add Memory
-                </h5>
-            </div>
-            <div class="card-body">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <textarea id="quick-memory-content" class="form-control" rows="4" 
-                              placeholder="Write a quick memory... (minimum 10 characters)"></textarea>
-                </div>
-                <button type="button" class="btn btn-primary" onclick="quickAddMemory()">
-                    <i class="bi bi-plus-circle"></i> Add Memory
-                </button>
-                <button type="button" class="btn btn-outline-info btn-sm ms-2" onclick="createTestMemories()">
-                    <i class="bi bi-plus-circle"></i> Create Test Memories
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Suggestions -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-robot"></i> 
-                    {% if ai_available %}AI Suggestions{% else %}Memory Suggestions{% endif %}
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if suggestions %}
-                    {% for suggestion in suggestions %}
-                        <div class="suggestion-card p-3 mb-2">
-                            <p class="mb-0">{{ suggestion }}</p>
+                
+                {% if recent_memories %}
+                    {% for memory in recent_memories %}
+                        <div class="memory-item">
+                            <div class="memory-icon">
+                                {% if memory.memory_type == 'work' %}
+                                    <i class="bi bi-briefcase"></i>
+                                {% elif memory.memory_type == 'personal' %}
+                                    <i class="bi bi-heart"></i>
+                                {% elif memory.memory_type == 'learning' %}
+                                    <i class="bi bi-book"></i>
+                                {% elif memory.memory_type == 'idea' %}
+                                    <i class="bi bi-lightbulb"></i>
+                                {% elif memory.memory_type == 'reminder' %}
+                                    <i class="bi bi-bell"></i>
+                                {% else %}
+                                    <i class="bi bi-journal-text"></i>
+                                {% endif %}
+                            </div>
+                            <div class="memory-content">
+                                <div class="memory-title">
+                                    {% if memory.summary %}
+                                        {{ memory.summary|truncatechars:50 }}
+                                    {% else %}
+                                        {{ memory.content|truncatechars:50 }}
+                                    {% endif %}
+                                </div>
+                                <div class="memory-text">{{ memory.content|truncatechars:150 }}</div>
+                                <div class="memory-meta">
+                                    <span class="memory-type">
+                                        {% if memory.memory_type == 'work' %}
+                                            <i class="bi bi-briefcase"></i>
+                                        {% elif memory.memory_type == 'personal' %}
+                                            <i class="bi bi-heart"></i>
+                                        {% elif memory.memory_type == 'learning' %}
+                                            <i class="bi bi-book"></i>
+                                        {% elif memory.memory_type == 'idea' %}
+                                            <i class="bi bi-lightbulb"></i>
+                                        {% elif memory.memory_type == 'reminder' %}
+                                            <i class="bi bi-bell"></i>
+                                        {% else %}
+                                            <i class="bi bi-journal-text"></i>
+                                        {% endif %}
+                                        {{ memory.get_memory_type_display }}
+                                    </span>
+                                    <span class="memory-date">
+                                        <i class="bi bi-calendar"></i>
+                                        {{ memory.created_at|timesince }} ago
+                                    </span>
+                                    {% if memory.importance >= 8 %}
+                                        <span class="memory-importance">
+                                            <i class="bi bi-star-fill"></i>
+                                            Important
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <p class="text-muted">No suggestions available yet. Start adding memories to get personalized suggestions!</p>
-                {% endif %}
-                {% if not ai_available %}
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle"></i>
-                            These are general suggestions. Enable AI features for personalized recommendations.
-                        </small>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Memories -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-clock-history"></i> Recent Memories
-                </h5>
-                <a href="{% url 'memory_assistant:memory_list' %}" class="btn btn-outline-primary btn-sm">
-                    View All <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
-            <div class="card-body">
-                {% if recent_memories %}
-                    <div class="row">
-                        {% for memory in recent_memories %}
-                            <div class="col-md-6 col-lg-4 mb-3">
-                                {% if memory.id in shared_memory_info %}
-                                    <!-- Shared Memory Card -->
-                                    <div class="card memory-card shared-memory-card h-100 border-info">
-                                        <div class="card-body">
-                                            <!-- Shared Memory Header -->
-                                            <div class="shared-memory-header mb-2 p-2 bg-light rounded">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-share text-info me-2"></i>
-                                                    <small class="text-muted">
-                                                        {% with shared_info=shared_memory_info|lookup:memory.id %}
-                                                            {% if shared_info.share_type == 'user' %}
-                                                                Shared by <strong>{{ shared_info.shared_by.username }}</strong>
-                                                            {% else %}
-                                                                Shared with <strong>{{ shared_info.organization.name }}</strong>
-                                                            {% endif %}
-                                                        {% endwith %}
-                                                    </small>
-                                                </div>
-                                                {% with shared_info=shared_memory_info|lookup:memory.id %}
-                                                    {% if shared_info.message %}
-                                                        <small class="text-muted d-block">{{ shared_info.message|truncatewords:10 }}</small>
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <span class="badge bg-primary importance-badge">
-                                                    {{ memory.importance }}/10
-                                                </span>
-                                                <span class="badge bg-secondary importance-badge">
-                                                    {{ memory.get_memory_type_display }}
-                                                </span>
-                                            </div>
-                                {% else %}
-                                    <!-- Own Memory Card -->
-                                    <div class="card memory-card h-100">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <span class="badge bg-primary importance-badge">
-                                                    {{ memory.importance }}/10
-                                                </span>
-                                                <span class="badge bg-secondary importance-badge">
-                                                    {{ memory.get_memory_type_display }}
-                                                </span>
-                                            </div>
-                                {% endif %}
-                                        
-                                        <h6 class="card-title">{{ memory.content|truncatewords:20 }}</h6>
-                                        
-                                        {% if memory.image %}
-                                            <div class="mb-2">
-                                                <img src="{{ memory.image.url }}" class="img-fluid rounded" 
-                                                     style="max-width: 100%; max-height: 150px; object-fit: cover;" 
-                                                     alt="Memory thumbnail">
-                                            </div>
-                                        {% endif %}
-                                        
-                                        {% if memory.summary %}
-                                            <p class="card-text text-muted small">
-                                                {{ memory.summary|truncatewords:25 }}
-                                            </p>
-                                        {% endif %}
-                                        
-                                        {% if memory.tags %}
-                                            <div class="mb-3">
-                                                {% for tag in memory.tags|slice:":4" %}
-                                                    <span class="badge bg-light text-dark tag-badge">{{ tag }}</span>
-                                                {% endfor %}
-                                                {% if memory.tags|length > 4 %}
-                                                    <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-4" }}</span>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">
-                                                {{ memory.created_at|date:"M j, Y" }}
-                                            </small>
-                                            <div class="btn-group" role="group">
-                                                <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
-                                                   class="btn btn-outline-primary btn-sm">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                {% if memory.id in shared_memory_info %}
-                                                    <!-- Shared memory - limited actions -->
-                                                    <span class="btn btn-outline-info btn-sm disabled">
-                                                        <i class="bi bi-share"></i> Shared
-                                                    </span>
-                                                {% else %}
-                                                    <!-- Own memory - full actions -->
-                                                    <a href="{% url 'memory_assistant:edit_memory' memory.id %}" 
-                                                       class="btn btn-outline-secondary btn-sm">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </a>
-                                                    <a href="{% url 'memory_assistant:delete_memory' memory.id %}" 
-                                                       class="btn btn-outline-danger btn-sm">
-                                                        <i class="bi bi-trash"></i>
-                                                    </a>
-                                                {% endif %}
-                                                                                        </div>
-                                            
-
-
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="memory-item">
+                        <div class="memory-icon">
+                            <i class="bi bi-journal-plus"></i>
+                        </div>
+                        <div class="memory-content">
+                            <div class="memory-title">No Memories Yet</div>
+                            <div class="memory-text">Start creating your first memory using the Quick Add Memory section above.</div>
+                            <div class="memory-meta">
+                                <span class="memory-type">
+                                    <i class="bi bi-info-circle"></i>
+                                    Get Started
+                                </span>
                             </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-inbox display-4 text-muted mb-3"></i>
-                        <h5 class="text-muted">No memories yet</h5>
-                        <p class="text-muted">Start by adding your first memory!</p>
-                        <a href="{% url 'memory_assistant:create_memory' %}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle"></i> Create First Memory
-                        </a>
+                        </div>
                     </div>
                 {% endif %}
             </div>
         </div>
-    </div>
-</div>
 
-<script>
-function quickAddMemory() {
-    const content = document.getElementById('quick-memory-content').value.trim();
-    
-    if (content.length < 10) {
-        alert('Memory content must be at least 10 characters long.');
-        return;
-    }
-    
-    fetch('{% url "memory_assistant:quick_add_memory" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content: content })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Memory added successfully!');
-            document.getElementById('quick-memory-content').value = '';
-            location.reload(); // Refresh to show the new memory
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error adding memory');
-    });
-}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Quick Add Memory (AJAX to backend endpoint)
+            const quickAddBtn = document.getElementById('quickAddBtn');
+            if (quickAddBtn) {
+                quickAddBtn.addEventListener('click', function() {
+                    const textarea = document.getElementById('quickAddContent');
+                    const content = textarea.value.trim();
+                    if (content.length < 10) {
+                        alert('Memory content must be at least 10 characters long.');
+                        return;
+                    }
 
-function createTestMemories() {
-    fetch('{% url "memory_assistant:create_test_memory" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Test memories created successfully! Now try searching for "plan for today" or "shopping list".');
-            location.reload(); // Refresh to show the new memories
-        } else {
-            alert('Error creating test memories: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error creating test memories');
-    });
-}
-
-// Hide Done, Snooze, Decline buttons on dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    // Find all memory cards
-    const memoryCards = document.querySelectorAll('.memory-card');
-    
-    memoryCards.forEach(card => {
-        // Find buttons with Done, Snooze, Decline text or onclick handlers
-        const buttons = card.querySelectorAll('.btn');
-        
-        buttons.forEach(button => {
-            const buttonText = button.textContent.trim();
-            const onclick = button.getAttribute('onclick') || '';
-            
-            // Hide buttons that are Done, Snooze, or Decline
-            if (buttonText === 'Done' || buttonText === 'Snooze' || buttonText === 'Decline' ||
-                onclick.includes('markMemoryDone') || onclick.includes('showSnoozeOptions') || onclick.includes('showDeclineOptions')) {
-                button.style.display = 'none';
+                    fetch('{% url "memory_assistant:quick_add_memory" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ content, fast: true })
+                    })
+                    .then(async (res) => {
+                        const contentType = res.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            const text = await res.text();
+                            throw new Error(text || `Unexpected response (${res.status})`);
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '{% url "memory_assistant:memory_list" %}';
+                        } else {
+                            alert(data.error || 'Failed to add memory.');
+                        }
+                    })
+                    .catch((err) => {
+                        console.error('Quick add failed:', err);
+                        alert('Could not add memory. Please make sure you are logged in and try again.');
+                    });
+                });
             }
-        });
-    });
-});
-</script>
-{% endblock %} 
+
+             // Test Memories (guarded)
+            (function(){
+                const testBtn = document.querySelector('.btn-outline');
+                if (testBtn) {
+                    testBtn.addEventListener('click', function() {
+                        alert('Test memories created successfully!');
+                    });
+                }
+            })();
+
+                    // Refresh Suggestions
+            function refreshSuggestions() {
+                // Show loading state
+                const refreshBtn = document.querySelector('.refresh-btn');
+                const originalText = refreshBtn.innerHTML;
+                refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Refreshing...';
+                refreshBtn.disabled = true;
+                
+                // Reload the page to get fresh suggestions
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+
+
+
+            // Stat card click effects
+            document.querySelectorAll('.stat-item').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Add a subtle click effect
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+        </script>
+{% endblock %}

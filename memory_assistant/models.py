@@ -74,11 +74,36 @@ class Memory(models.Model):
     snooze_count = models.PositiveIntegerField(default=0, help_text="Number of times this memory has been snoozed")
     last_snoozed_at = models.DateTimeField(null=True, blank=True, help_text="When this memory was last snoozed")
     
-
+    # Language field
+    language = models.CharField(
+        max_length=10,
+        choices=[
+            ('en', 'English'),
+            ('es', 'Spanish'),
+            ('fr', 'French'),
+            ('de', 'German'),
+            ('ar', 'Arabic'),
+            ('fa', 'Persian'),
+            ('zh', 'Chinese'),
+            ('ru', 'Russian'),
+            ('ja', 'Japanese')
+        ],
+        default='en',
+        help_text='Language of the memory content'
+    )
+    
     
     class Meta:
         ordering = ['-created_at']
         verbose_name_plural = "Memories"
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'memory_type']),
+            models.Index(fields=['user', 'importance']),
+            models.Index(fields=['user', 'is_archived']),
+            models.Index(fields=['content']),  # For content search
+            models.Index(fields=['user', 'is_archived', 'created_at']),  # For common queries
+        ]
     
     def __str__(self):
         return f"{self.user.username} - {self.content[:50]}..."
@@ -189,6 +214,7 @@ class UserProfile(models.Model):
         ],
         help_text="User's preferred timezone"
     )
+    
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -390,6 +416,13 @@ class SharedMemory(models.Model):
                 condition=models.Q(shared_with_organization__isnull=False),
                 name='unique_org_share'
             )
+        ]
+        # Performance indexes for dashboard queries
+        indexes = [
+            models.Index(fields=['shared_with_user', 'is_active']),
+            models.Index(fields=['shared_with_organization', 'is_active']),
+            models.Index(fields=['memory', 'is_active']),
+            models.Index(fields=['is_active', 'created_at']),
         ]
     
     def __str__(self):

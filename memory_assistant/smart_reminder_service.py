@@ -2,17 +2,17 @@
 import re
 from datetime import datetime, timedelta
 from django.utils import timezone
-from .models import SmartReminder, ReminderTrigger
+from .models import SmartReminder, ReminderTrigger, Memory
 from .ai_services import AIService
 
 class SmartReminderService:
-    """Service for analyzing memories and creating smart reminders"""
+    """Enhanced service for analyzing memories and creating smart reminders with scheduled memory integration"""
     
     def __init__(self):
         self.ai_service = AIService()
     
     def analyze_memory_for_reminders(self, memory):
-        """Analyze memory content and suggest smart reminders"""
+        """Analyze memory content and suggest smart reminders with enhanced scheduled memory support"""
         content = memory.content.lower()
         
         # Check if this memory is about a past event
@@ -21,47 +21,261 @@ class SmartReminderService:
         
         suggestions = []
         
-        # Check for meeting/appointment patterns
-        meeting_suggestions = self._detect_meetings(content)
-        suggestions.extend(meeting_suggestions)
+        # PRIORITY 1: Handle scheduled memories (with delivery_date)
+        if memory.delivery_date:
+            scheduled_suggestions = self._create_scheduled_memory_reminders(memory)
+            suggestions.extend(scheduled_suggestions)
         
-        # Check for deadline patterns
-        deadline_suggestions = self._detect_deadlines(content)
-        suggestions.extend(deadline_suggestions)
-        
-        # Check for health/wellness patterns
-        health_suggestions = self._detect_health_reminders(content)
-        suggestions.extend(health_suggestions)
-        
-        # Check for personal tasks
-        personal_suggestions = self._detect_personal_tasks(content)
-        suggestions.extend(personal_suggestions)
-        
-        # Check for work tasks
-        work_suggestions = self._detect_work_tasks(content)
-        suggestions.extend(work_suggestions)
-        
-        # Check for general time-based patterns
+        # PRIORITY 2: Handle time-sensitive content patterns
         time_suggestions = self._detect_time_patterns(content)
         suggestions.extend(time_suggestions)
         
-        # Remove duplicates based on time and activity
-        unique_suggestions = []
-        seen_times = set()
+        # PRIORITY 3: Handle specific activity patterns
+        meeting_suggestions = self._detect_meetings(content)
+        suggestions.extend(meeting_suggestions)
         
+        deadline_suggestions = self._detect_deadlines(content)
+        suggestions.extend(deadline_suggestions)
+        
+        health_suggestions = self._detect_health_reminders(content)
+        suggestions.extend(health_suggestions)
+        
+        personal_suggestions = self._detect_personal_tasks(content)
+        suggestions.extend(personal_suggestions)
+        
+        work_suggestions = self._detect_work_tasks(content)
+        suggestions.extend(work_suggestions)
+        
+        # Remove duplicates and prioritize scheduled memories
+        unique_suggestions = self._deduplicate_suggestions(suggestions, memory)
+        
+        return unique_suggestions
+    
+    def _create_scheduled_memory_reminders(self, memory):
+        """Create intelligent reminders for scheduled memories"""
+        suggestions = []
+        delivery_date = memory.delivery_date
+        delivery_type = memory.delivery_type
+        
+        if not delivery_date:
+            return suggestions
+        
+        now = timezone.now()
+        
+        # Calculate time until delivery
+        time_until_delivery = delivery_date - now
+        
+        # Skip if delivery date is in the past
+        if time_until_delivery.total_seconds() <= 0:
+            return suggestions
+        
+        # Determine reminder strategy based on delivery type and importance
+        if delivery_type == 'scheduled':
+            suggestions.extend(self._create_scheduled_reminders(memory, delivery_date))
+        elif delivery_type == 'recurring':
+            suggestions.extend(self._create_recurring_reminders(memory, delivery_date))
+        elif delivery_type == 'conditional':
+            suggestions.extend(self._create_conditional_reminders(memory, delivery_date))
+        else:  # immediate
+            suggestions.extend(self._create_immediate_reminders(memory, delivery_date))
+        
+        return suggestions
+    
+    def _create_scheduled_reminders(self, memory, delivery_date):
+        """Create reminders for scheduled memories"""
+        suggestions = []
+        importance = memory.importance
+        content = memory.content.lower()
+        
+        # Determine advance notice based on importance and content type
+        advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
+        
+        for advance_hours in advance_notices:
+            reminder_time = delivery_date - timedelta(hours=advance_hours)
+            
+            # Skip if reminder time is in the past
+            if reminder_time <= timezone.now():
+                continue
+            
+            # Determine priority based on importance and advance time
+            priority = self._determine_priority(importance, advance_hours)
+            
+            suggestions.append({
+                'type': 'time_based',
+                'priority': priority,
+                'description': f"{memory.get_memory_type_display()} reminder: {memory.content[:50]}...",
+                'trigger_conditions': {
+                    'target_time': delivery_date.isoformat(),
+                    'reminder_time': reminder_time.isoformat(),
+                    'advance_hours': advance_hours,
+                    'memory_id': memory.id,
+                    'reason': f"Scheduled {memory.get_memory_type_display().lower()} memory due in {advance_hours} hours"
+                }
+            })
+        
+        return suggestions
+    
+    def _create_recurring_reminders(self, memory, delivery_date):
+        """Create reminders for recurring memories"""
+        suggestions = []
+        
+        # Get recurring pattern from memory
+        recurring_pattern = getattr(memory, 'recurring_pattern', {})
+        pattern_type = recurring_pattern.get('type', 'daily')
+        
+        if pattern_type == 'daily':
+            # Create daily reminder
+            suggestions.append({
+                'type': 'frequency_based',
+                'priority': 'medium',
+                'description': f"Daily: {memory.content[:50]}...",
+                'trigger_conditions': {
+                    'frequency': 'daily',
+                    'target_time': delivery_date.time().isoformat(),
+                    'memory_id': memory.id,
+                    'reason': f"Daily recurring {memory.get_memory_type_display().lower()} task"
+                }
+            })
+        elif pattern_type == 'weekly':
+            # Create weekly reminder
+            suggestions.append({
+                'type': 'frequency_based',
+                'priority': 'medium',
+                'description': f"Weekly: {memory.content[:50]}...",
+                'trigger_conditions': {
+                    'frequency': 'weekly',
+                    'target_day': delivery_date.strftime('%A').lower(),
+                    'target_time': delivery_date.time().isoformat(),
+                    'memory_id': memory.id,
+                    'reason': f"Weekly recurring {memory.get_memory_type_display().lower()} task"
+                }
+            })
+        elif pattern_type == 'monthly':
+            # Create monthly reminder
+            suggestions.append({
+                'type': 'frequency_based',
+                'priority': 'medium',
+                'description': f"Monthly: {memory.content[:50]}...",
+                'trigger_conditions': {
+                    'frequency': 'monthly',
+                    'target_day': delivery_date.day,
+                    'target_time': delivery_date.time().isoformat(),
+                    'memory_id': memory.id,
+                    'reason': f"Monthly recurring {memory.get_memory_type_display().lower()} task"
+                }
+            })
+        
+        return suggestions
+    
+    def _create_conditional_reminders(self, memory, delivery_date):
+        """Create reminders for conditional memories"""
+        suggestions = []
+        
+        # Conditional memories might have specific conditions
+        conditions = getattr(memory, 'trigger_conditions', {})
+        
+        suggestions.append({
+            'type': 'context_based',
+            'priority': 'medium',
+            'description': f"Conditional: {memory.content[:50]}...",
+            'trigger_conditions': {
+                'target_time': delivery_date.isoformat(),
+                'conditions': conditions,
+                'memory_id': memory.id,
+                'reason': f"Conditional {memory.get_memory_type_display().lower()} memory"
+            }
+        })
+        
+        return suggestions
+    
+    def _create_immediate_reminders(self, memory, delivery_date):
+        """Create immediate reminders for urgent memories"""
+        suggestions = []
+        
+        # For immediate delivery, create a reminder for 5 minutes from now
+        reminder_time = timezone.now() + timedelta(minutes=5)
+        
+        suggestions.append({
+            'type': 'time_based',
+            'priority': 'high',
+            'description': f"Urgent: {memory.content[:50]}...",
+            'trigger_conditions': {
+                'target_time': delivery_date.isoformat(),
+                'reminder_time': reminder_time.isoformat(),
+                'memory_id': memory.id,
+                'reason': f"Immediate {memory.get_memory_type_display().lower()} memory"
+            }
+        })
+        
+        return suggestions
+    
+    def _get_advance_notices_for_memory(self, memory, delivery_date):
+        """Determine appropriate advance notice times based on memory characteristics"""
+        importance = memory.importance
+        memory_type = memory.memory_type
+        content = memory.content.lower()
+        
+        # Base advance notices by importance
+        if importance >= 9:  # Critical
+            base_notices = [24, 12, 6, 2, 1]  # 1 day, 12 hours, 6 hours, 2 hours, 1 hour
+        elif importance >= 7:  # High
+            base_notices = [12, 6, 2, 1]  # 12 hours, 6 hours, 2 hours, 1 hour
+        elif importance >= 5:  # Medium
+            base_notices = [6, 2, 1]  # 6 hours, 2 hours, 1 hour
+        else:  # Low
+            base_notices = [2, 1]  # 2 hours, 1 hour
+        
+        # Adjust based on memory type
+        if memory_type == 'work':
+            # Work items might need more advance notice
+            base_notices.extend([48, 24])  # Add 2 days and 1 day
+        elif memory_type == 'reminder':
+            # Reminders might need more frequent notifications
+            base_notices.extend([30, 15])  # Add 30 minutes and 15 minutes
+        
+        # Adjust based on content keywords
+        if any(word in content for word in ['meeting', 'appointment', 'interview']):
+            base_notices.extend([60, 30])  # Add 1 hour and 30 minutes
+        elif any(word in content for word in ['deadline', 'due', 'submit']):
+            base_notices.extend([24, 12])  # Add 1 day and 12 hours
+        elif any(word in content for word in ['call', 'phone']):
+            base_notices.extend([15, 5])  # Add 15 minutes and 5 minutes
+        
+        # Remove duplicates and sort
+        unique_notices = sorted(list(set(base_notices)), reverse=True)
+        
+        # Limit to reasonable number of reminders (max 5)
+        return unique_notices[:5]
+    
+    def _determine_priority(self, importance, advance_hours):
+        """Determine reminder priority based on importance and advance time"""
+        if importance >= 9:
+            return 'critical'
+        elif importance >= 7:
+            return 'high'
+        elif importance >= 5:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _deduplicate_suggestions(self, suggestions, memory):
+        """Remove duplicate suggestions and prioritize scheduled memories"""
+        unique_suggestions = []
+        seen_descriptions = set()
+        
+        # First, add scheduled memory suggestions (highest priority)
         for suggestion in suggestions:
-            if suggestion['type'] == 'time_based':
-                # Extract time from reason
-                time_match = re.search(r'at (\d{2}):(\d{2})', suggestion['trigger_conditions']['reason'])
-                if time_match:
-                    time_key = f"{time_match.group(1)}:{time_match.group(2)}"
-                    if time_key not in seen_times:
-                        seen_times.add(time_key)
-                        unique_suggestions.append(suggestion)
-                else:
+            if 'memory_id' in suggestion['trigger_conditions']:
+                if suggestion['description'] not in seen_descriptions:
                     unique_suggestions.append(suggestion)
-            else:
-                unique_suggestions.append(suggestion)
+                    seen_descriptions.add(suggestion['description'])
+        
+        # Then add other suggestions
+        for suggestion in suggestions:
+            if 'memory_id' not in suggestion['trigger_conditions']:
+                if suggestion['description'] not in seen_descriptions:
+                    unique_suggestions.append(suggestion)
+                    seen_descriptions.add(suggestion['description'])
         
         return unique_suggestions
     
@@ -636,34 +850,162 @@ class SmartReminderService:
         
         return reminder
     
+    def create_scheduled_memory_reminder(self, memory, user):
+        """Create reminder specifically for scheduled memories with delivery_date"""
+        if not memory.delivery_date:
+            return None
+        
+        # Check if reminder already exists
+        existing_reminder = SmartReminder.objects.filter(
+            memory=memory,
+            user=user,
+            reminder_type='time_based'
+        ).first()
+        
+        if existing_reminder:
+            return existing_reminder
+        
+        # Create enhanced reminder for scheduled memory
+        delivery_date = memory.delivery_date
+        now = timezone.now()
+        
+        # Calculate appropriate advance notice
+        advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
+        
+        # Use the first (most important) advance notice
+        if advance_notices:
+            advance_hours = advance_notices[0]
+            reminder_time = delivery_date - timedelta(hours=advance_hours)
+            
+            # Skip if reminder time is in the past
+            if reminder_time <= now:
+                return None
+            
+            # Calculate offset in minutes
+            offset_minutes = int((reminder_time - now).total_seconds() / 60)
+            
+            # Determine priority
+            priority = self._determine_priority(memory.importance, advance_hours)
+            
+            trigger_conditions = {
+                'target_time': delivery_date.isoformat(),
+                'reminder_time': reminder_time.isoformat(),
+                'advance_hours': advance_hours,
+                'memory_id': memory.id,
+                'offset_minutes': offset_minutes,
+                'reason': f"Scheduled {memory.get_memory_type_display().lower()} memory due in {advance_hours} hours"
+            }
+            
+            reminder = SmartReminder.objects.create(
+                memory=memory,
+                user=user,
+                reminder_type='time_based',
+                priority=priority,
+                trigger_conditions=trigger_conditions
+            )
+            
+            # Calculate next trigger time
+            reminder.calculate_next_trigger()
+            reminder.save()
+            
+            return reminder
+        
+        return None
+    
+    def update_scheduled_memory_reminders(self, memory):
+        """Update existing reminders when a scheduled memory is modified"""
+        if not memory.delivery_date:
+            return
+        
+        # Find existing reminders for this memory
+        existing_reminders = SmartReminder.objects.filter(memory=memory)
+        
+        for reminder in existing_reminders:
+            # Update trigger conditions based on new delivery date
+            delivery_date = memory.delivery_date
+            now = timezone.now()
+            
+            # Recalculate advance notices
+            advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
+            
+            if advance_notices:
+                advance_hours = advance_notices[0]
+                reminder_time = delivery_date - timedelta(hours=advance_hours)
+                
+                # Update trigger conditions
+                reminder.trigger_conditions.update({
+                    'target_time': delivery_date.isoformat(),
+                    'reminder_time': reminder_time.isoformat(),
+                    'advance_hours': advance_hours,
+                    'offset_minutes': int((reminder_time - now).total_seconds() / 60) if reminder_time > now else 0
+                })
+                
+                # Update priority
+                reminder.priority = self._determine_priority(memory.importance, advance_hours)
+                
+                # Recalculate next trigger
+                reminder.calculate_next_trigger()
+                reminder.save()
+    
+    def get_scheduled_memory_reminders(self, user):
+        """Get all reminders for scheduled memories"""
+        return SmartReminder.objects.filter(
+            user=user,
+            memory__delivery_date__isnull=False,
+            is_active=True
+        ).select_related('memory').order_by('next_trigger')
+    
     def check_and_trigger_reminders(self, user=None):
-        """Check active reminders and trigger them if needed"""
+        """Check active reminders and trigger them if needed - Optimized for performance"""
         if user:
-            # Check reminders for specific user
-            active_reminders = SmartReminder.objects.filter(user=user, is_active=True)
+            # Check reminders for specific user with optimized query
+            active_reminders = SmartReminder.objects.filter(
+                user=user, 
+                is_active=True
+            ).select_related('memory').prefetch_related('memory__user')
         else:
             # Check all reminders (for system-wide checks)
-            active_reminders = SmartReminder.objects.filter(is_active=True)
+            active_reminders = SmartReminder.objects.filter(
+                is_active=True
+            ).select_related('memory').prefetch_related('memory__user')
         
         triggered_reminders = []
         
+        # Batch process reminders for better performance
+        reminders_to_update = []
+        triggers_to_create = []
+        
         for reminder in active_reminders:
             if reminder.should_trigger():
-                # Create trigger record
-                trigger = ReminderTrigger.objects.create(
+                # Prepare trigger record
+                trigger = ReminderTrigger(
                     reminder=reminder,
                     trigger_reason=reminder.trigger_conditions.get('reason', 'Time-based trigger')
                 )
+                triggers_to_create.append(trigger)
                 
-                # Update reminder
+                # Prepare reminder update
                 reminder.last_triggered = timezone.now()
                 reminder.calculate_next_trigger()
-                reminder.save()
-                
-                triggered_reminders.append({
-                    'reminder': reminder,
-                    'trigger': trigger
-                })
+                reminders_to_update.append(reminder)
+        
+        # Batch create triggers
+        if triggers_to_create:
+            ReminderTrigger.objects.bulk_create(triggers_to_create)
+        
+        # Batch update reminders
+        if reminders_to_update:
+            SmartReminder.objects.bulk_update(
+                reminders_to_update, 
+                ['last_triggered', 'next_trigger']
+            )
+        
+        # Build result list
+        for i, reminder in enumerate(reminders_to_update):
+            triggered_reminders.append({
+                'reminder': reminder,
+                'trigger': triggers_to_create[i]
+            })
         
         return triggered_reminders
     

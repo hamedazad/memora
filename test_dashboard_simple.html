@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f8fafc;
+            --border-light: rgba(0,0,0,0.08);
+        }
+
+        body {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .section-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header h2 i {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .search-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .stat-icon-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-content {
+            flex-grow: 1;
+        }
+
+        .stat-number-small {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid var(--border-light);
+        }
+
+        .action-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .action-header i {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+        }
+
+        .action-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--text-dark);
+            flex-grow: 1;
+        }
+
+        .suggestion-card {
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .suggestion-card:hover {
+            background: rgba(99, 102, 241, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+        }
+
+        .suggestion-card p {
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .btn-modern {
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-modern-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-modern-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            color: white;
+        }
+
+        .btn-modern-outline {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .btn-modern-outline:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Search Hero Section -->
+        <div class="search-hero">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2>Find Your Memories</h2>
+                    <p>Search through your personal memory collection with ease</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <input type="search" class="form-control" placeholder="Search your memories..." style="border-radius: 16px; padding: 1rem 1.5rem;">
+                        </div>
+                        <button class="btn btn-light">
+                            <i class="bi bi-search"></i>
+                            Search
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-light btn-opacity-25">
+                            <i class="bi bi-plus-circle"></i>
+                            New Memory
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="section-header">
+            <h2><i class="bi bi-graph-up"></i> Memory Overview</h2>
+        </div>
+        
+        <div class="stats-grid">
+            <a href="#" class="stat-item">
+                <div class="stat-icon-small">
+                    <i class="bi bi-calendar"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number-small">6 Total Memories</div>
+                </div>
+            </a>
+
+            <a href="#" class="stat-item">
+                <div class="stat-icon-small">
+                    <i class="bi bi-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number-small">1 Important Memories</div>
+                </div>
+            </a>
+
+            <a href="#" class="stat-item">
+                <div class="stat-icon-small">
+                    <i class="bi bi-calendar3"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number-small">3 Future Scheduled</div>
+                </div>
+            </a>
+
+            <a href="#" class="stat-item">
+                <div class="stat-icon-small">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number-small">2 Today's Memories</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Quick Actions Section -->
+        <div class="section-header">
+            <h2><i class="bi bi-lightning"></i> Quick Actions</h2>
+        </div>
+        
+        <div class="quick-actions">
+            <!-- Quick Add Memory -->
+            <div class="action-card">
+                <div class="action-header">
+                    <i class="bi bi-plus-circle"></i>
+                    <h5>Quick Add Memory</h5>
+                </div>
+                <textarea class="form-control mb-3" rows="4" placeholder="Write a quick memory... (minimum 10 characters)" style="border-radius: 12px; border: 1px solid var(--border-light);"></textarea>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-modern btn-modern-primary">
+                        <i class="bi bi-plus-circle"></i>
+                        Add Memory
+                    </button>
+                    <button class="btn btn-modern btn-modern-outline">
+                        <i class="bi bi-plus-circle"></i>
+                        Test Memories
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Suggestions -->
+            <div class="action-card">
+                <div class="action-header">
+                    <i class="bi bi-robot"></i>
+                    <h5>AI Suggestions</h5>
+                    <button class="btn btn-modern btn-modern-outline btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="suggestions-container">
+                    <div class="suggestion-card">
+                        <p>What time is your appointment with your colleagues today and have you prepared any talking points for the new project?</p>
+                    </div>
+                    <div class="suggestion-card">
+                        <p>Have you made a plan on how to approach Sergio about his addiction and his father's concerns?</p>
+                    </div>
+                    <div class="suggestion-card">
+                        <p>Did you set a specific time to call Sergio's father today to discuss his son's addiction?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

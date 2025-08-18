@@ -4,10 +4,11 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import datetime, timedelta
+import threading
 import json
 import os
 import re
@@ -17,6 +18,8 @@ from .services import ChatGPTService
 from .voice_service import voice_service
 from .recommendation_service import AIRecommendationService
 from .smart_reminder_service import SmartReminderService
+from django.core.cache import cache
+import traceback
 
 
 def home(request):
@@ -28,89 +31,229 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    """Main dashboard view"""
-    # Get user's own memories
-    memories = Memory.objects.filter(user=request.user, is_archived=False)
+    """Main dashboard view - Optimized for performance"""
+    from django.core.cache import cache
+    from django.db.models import Prefetch, Count, Q
+    from django.utils import timezone
+    from datetime import datetime
     
-    # Get shared memories for dashboard
+    # Cache key for user-specific dashboard data
+    cache_key = f"dashboard_data_{request.user.id}"
+    cache_timeout = 300  # 5 minutes
+    
+    # Try to get cached data first
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return render(request, 'memory_assistant/dashboard.html', cached_data)
+    
+    # OPTIMIZATION 1: Single optimized query for all memories (own + shared)
     from .models import SharedMemory
-    shared_memory_objects = SharedMemory.objects.filter(
+    
+    # Get all shared memory IDs in one query
+    shared_memory_ids = SharedMemory.objects.filter(
         Q(shared_with_user=request.user) | 
         Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
         is_active=True
-    ).select_related('memory').values_list('memory', flat=True)
+    ).values_list('memory_id', flat=True)
     
-    # Combine own and shared memories for recent list using Q objects
+    # Get all memories (own + shared) in one optimized query
     all_memories = Memory.objects.filter(
-        Q(user=request.user) | Q(id__in=shared_memory_objects),
+        Q(user=request.user) | Q(id__in=shared_memory_ids),
         is_archived=False
+    ).select_related('user').prefetch_related(
+        'shares__shared_by',
+        'shares__shared_with_organization'
     ).order_by('-created_at')
+    
+    # Get recent memories (limit to 5 for performance)
     recent_memories = all_memories[:5]
     
-    # Create shared memory info for dashboard
+    # OPTIMIZATION 2: Build shared memory info from prefetched data
     shared_memory_info = {}
-    for shared in SharedMemory.objects.filter(
-        Q(shared_with_user=request.user) | 
-        Q(shared_with_organization__in=request.user.organization_memberships.filter(is_active=True).values_list('organization', flat=True)),
-        is_active=True
-    ).select_related('memory', 'shared_by'):
-        shared_memory_info[shared.memory.id] = {
-            'shared_by': shared.shared_by,
-            'share_type': shared.share_type,
-            'organization': shared.shared_with_organization if shared.share_type == 'organization' else None
-        }
+    for memory in all_memories:
+        for share in memory.shares.all():
+            if share.is_active:
+                shared_memory_info[memory.id] = {
+                    'shared_by': share.shared_by,
+                    'share_type': share.share_type,
+                    'organization': share.shared_with_organization if share.share_type == 'organization' else None,
+                    'message': share.message
+                }
+                break  # Only need first share per memory
     
-    # Get memory statistics
-    total_memories = memories.count()
-    important_memories = memories.filter(importance__gte=8).count()
-    
-    # Only count future scheduled memories
-    from django.utils import timezone
+    # OPTIMIZATION 3: Get statistics in a single query
     now = timezone.now()
-    scheduled_memories_count = memories.filter(delivery_date__gt=now).count()
-    todays_memories_count = memories.filter(delivery_date__date=datetime.now().date()).count()
-
+    stats = all_memories.aggregate(
+        total_memories=Count('id'),
+        important_memories=Count('id', filter=Q(importance__gte=8)),
+        scheduled_memories_count=Count('id', filter=Q(delivery_date__gt=now)),
+        todays_memories_count=Count('id', filter=Q(delivery_date__date=now.date()))
+    )
     
-    # Get memory suggestions
-    chatgpt_service = ChatGPTService()
-    recent_memory_data = [
-        {
-            'content': memory.content,
-            'tags': memory.tags
-        } for memory in recent_memories
-    ]
-    suggestions = chatgpt_service.generate_memory_suggestions(recent_memory_data)
-    
-    # Check for triggered reminders
-    reminder_service = SmartReminderService()
-    triggered_reminders = reminder_service.check_and_trigger_reminders(request.user)
-    
-    # Format triggered reminders for display
-    reminder_notifications = []
-    for item in triggered_reminders:
-        reminder = item['reminder']
-        trigger = item['trigger']
-        reminder_notifications.append({
-            'id': reminder.id,
-            'memory_id': reminder.memory.id,
-            'title': f"Reminder: {reminder.memory.content[:50]}...",
-            'message': trigger.trigger_reason,
-            'memory_content': reminder.memory.content,
-            'triggered_at': trigger.triggered_at,
-            'priority': reminder.priority
-        })
-    
+    # Initialize context with basic data
     context = {
         'recent_memories': recent_memories,
-        'total_memories': total_memories,
-        'important_memories': important_memories,
+        'total_memories': stats['total_memories'],
+        'important_memories': stats['important_memories'],
         'shared_memory_info': shared_memory_info,
-        'scheduled_memories_count': scheduled_memories_count,
-        'todays_memories_count': todays_memories_count,
-        'suggestions': suggestions,
-        'ai_available': chatgpt_service.is_available(),
-        'reminder_notifications': reminder_notifications,
+        'scheduled_memories_count': stats['scheduled_memories_count'],
+        'todays_memories_count': stats['todays_memories_count'],
+        'ai_available': False,  # Default to False, will be updated if AI is available
+        'reminder_notifications': [],  # Default empty, will be updated if needed
     }
+    
+    # OPTIMIZATION 4: Check AI availability and generate suggestions
+    try:
+        chatgpt_service = ChatGPTService()
+        context['ai_available'] = chatgpt_service.is_available()
+        
+        # Simple local suggestion fallback generator
+        def _local_suggestions(mem_qs):
+            items = list(mem_qs[:5])
+            if not items:
+                return [
+                    "What's the next step for your current projects?",
+                    "Any insights from today's experiences?",
+                    "What would you like to remember about this week?",
+                ]
+            texts = [ (m.summary or m.content or '').lower() for m in items ]
+            suggestions = []
+            if any('meet' in t for t in texts):
+                suggestions.append('Add outcomes or follow-ups from your recent meeting.')
+            if any(any(w in t for w in ['buy','purchase','order','shopping']) for t in texts):
+                suggestions.append('Create a quick shopping reminder or checklist.')
+            if any(any(w in t for w in ['call','phone','contact']) for t in texts):
+                suggestions.append('Schedule a call reminder with name and time.')
+            if any(any(w in t for w in ['learn','study','course','read']) for t in texts):
+                suggestions.append('Capture key takeaways from what you learned.')
+            if any(any(w in t for w in ['idea','brainstorm','plan']) for t in texts):
+                suggestions.append('Break your idea into small next steps.')
+            suggestions.extend([
+                'Tag your latest memory to make it easier to find later.',
+                'Set a reminder date/time if this needs follow‑up.',
+            ])
+            # Unique, max 5
+            out = []
+            for s in suggestions:
+                if s not in out:
+                    out.append(s)
+                if len(out) >= 5:
+                    break
+            return out
+
+        if context['ai_available'] and recent_memories.exists():
+            # Try to get cached suggestions first
+            suggestions_cache_key = f"ai_suggestions_{request.user.id}"
+            suggestions = cache.get(suggestions_cache_key)
+            
+            if not suggestions:
+                try:
+                    # Prepare memory data for AI
+                    recent_memory_data = [
+                        {
+                            'content': memory.content,
+                            'tags': memory.tags or []
+                        } for memory in recent_memories
+                    ]
+                    
+                    # Generate suggestions with timeout
+                    import threading
+                    import queue
+                    
+                    ai_result = queue.Queue()
+                    
+                    def generate_suggestions():
+                        try:
+                            suggestions = chatgpt_service.generate_memory_suggestions(recent_memory_data)
+                            ai_result.put(('success', suggestions))
+                        except Exception as e:
+                            print(f"Error generating AI suggestions: {e}")
+                            ai_result.put(('error', ["Unable to generate suggestions at this time."]))
+                    
+                    # Start suggestion generation in background thread
+                    suggestion_thread = threading.Thread(target=generate_suggestions)
+                    suggestion_thread.daemon = True
+                    suggestion_thread.start()
+                    suggestion_thread.join(timeout=10.0)  # 10 second timeout for AI generation
+                    
+                    # Get results
+                    try:
+                        result_type, result_data = ai_result.get_nowait()
+                        if result_type == 'success':
+                            suggestions = result_data
+                            # Cache successful suggestions for 10 minutes
+                            cache.set(suggestions_cache_key, suggestions, 600)
+                        else:
+                            suggestions = result_data
+                    except queue.Empty:
+                        # Timeout - use local suggestions
+                        suggestions = _local_suggestions(recent_memories)
+                        print("AI suggestions timed out, using local suggestions")
+                
+                except Exception as e:
+                    print(f"Error in AI suggestion generation: {e}")
+                    suggestions = _local_suggestions(recent_memories)
+            
+            context['suggestions'] = suggestions
+        else:
+            # AI not available or no memories - provide local suggestions
+            context['suggestions'] = _local_suggestions(recent_memories)
+    
+    except Exception as e:
+        print(f"Error initializing AI service: {e}")
+        context['ai_available'] = False
+        context['suggestions'] = _local_suggestions(recent_memories)
+    
+    # OPTIMIZATION 5: Check reminders with timeout
+    try:
+        import threading
+        import queue
+        
+        reminder_result = queue.Queue()
+        
+        def check_reminders():
+            try:
+                reminder_service = SmartReminderService()
+                triggered_reminders = reminder_service.check_and_trigger_reminders(request.user)
+                
+                # Format triggered reminders for display
+                reminder_notifications = []
+                for item in triggered_reminders:
+                    reminder = item['reminder']
+                    trigger = item['trigger']
+                    reminder_notifications.append({
+                        'id': reminder.id,
+                        'memory_id': reminder.memory.id,
+                        'title': f"Reminder: {reminder.memory.content[:50]}...",
+                        'message': trigger.trigger_reason,
+                        'memory_content': reminder.memory.content,
+                        'triggered_at': trigger.triggered_at,
+                        'priority': reminder.priority
+                    })
+                
+                reminder_result.put(reminder_notifications)
+            except Exception as e:
+                print(f"Error checking reminders: {e}")
+                reminder_result.put([])
+        
+        # Start reminder check in background thread with timeout
+        reminder_thread = threading.Thread(target=check_reminders)
+        reminder_thread.daemon = True
+        reminder_thread.start()
+        reminder_thread.join(timeout=1.0)  # 1 second timeout
+        
+        # Get reminder results if available
+        try:
+            context['reminder_notifications'] = reminder_result.get_nowait()
+        except queue.Empty:
+            pass  # Reminder check timed out, use empty list
+        
+    except Exception as e:
+        print(f"Error checking reminders: {e}")
+        context['reminder_notifications'] = []
+    
+    # Cache the complete context
+    cache.set(cache_key, context, cache_timeout)
     
     return render(request, 'memory_assistant/dashboard.html', context)
 
@@ -934,6 +1077,7 @@ def quick_add_memory(request):
         try:
             data = json.loads(request.body)
             content = data.get('content', '').strip()
+            fast = bool(data.get('fast', False))
             
             if len(content) < 10:
                 return JsonResponse({
@@ -941,6 +1085,80 @@ def quick_add_memory(request):
                     'error': 'Memory content must be at least 10 characters long.'
                 })
             
+            # Fast path: create minimal memory without AI processing for speed
+            if fast:
+                memory = Memory.objects.create(
+                    user=request.user,
+                    content=content,
+                    memory_type='general',
+                    importance=5,
+                )
+                # Invalidate dashboard cache so recent memories refresh
+                try:
+                    cache.delete(f"dashboard_data_{request.user.id}")
+                    cache.delete(f"ai_suggestions_{request.user.id}")
+                except Exception:
+                    pass
+                # Enrich asynchronously with AI (summary, tags, type, reminders)
+                def _enrich_memory_async(memory_id: int, user_id: int, raw_content: str) -> None:
+                    try:
+                        chatgpt_service = ChatGPTService()
+                        processed_data = chatgpt_service.process_memory(raw_content)
+
+                        delivery_date = processed_data.get('delivery_date')
+                        if delivery_date and delivery_date != "None" and delivery_date is not None:
+                            if isinstance(delivery_date, str):
+                                try:
+                                    delivery_date = datetime.fromisoformat(delivery_date.replace('Z', '+00:00'))
+                                except (ValueError, TypeError):
+                                    delivery_date = None
+                        else:
+                            delivery_date = None
+
+                        try:
+                            mem = Memory.objects.get(id=memory_id, user_id=user_id)
+                        except Memory.DoesNotExist:
+                            return
+
+                        mem.memory_type = processed_data.get('memory_type', mem.memory_type)
+                        mem.importance = processed_data.get('importance', mem.importance)
+                        mem.summary = processed_data.get('summary', mem.summary or '')
+                        mem.ai_reasoning = processed_data.get('reasoning', mem.ai_reasoning or '')
+                        mem.tags = processed_data.get('tags', mem.tags or [])
+                        mem.delivery_date = delivery_date
+                        mem.delivery_type = processed_data.get('delivery_type', mem.delivery_type or 'immediate')
+                        mem.save()
+
+                        # Smart reminders
+                        try:
+                            reminder_service = SmartReminderService()
+                            suggestions = reminder_service.analyze_memory_for_reminders(mem)
+                            for suggestion in suggestions:
+                                if suggestion['type'] == 'time_based':
+                                    reminder_service.create_smart_reminder(mem, mem.user, suggestion)
+                        except Exception:
+                            pass
+                        # Invalidate caches after enrichment
+                        try:
+                            cache.delete(f"dashboard_data_{user_id}")
+                            cache.delete(f"ai_suggestions_{user_id}")
+                        except Exception:
+                            pass
+                    except Exception:
+                        # Do not break request cycle on background errors
+                        pass
+
+                threading.Thread(
+                    target=_enrich_memory_async,
+                    args=(memory.id, request.user.id, content),
+                    daemon=True,
+                ).start()
+                return JsonResponse({
+                    'success': True,
+                    'memory_id': memory.id,
+                    'message': 'Memory added successfully!'
+                })
+
             # Process with ChatGPT first to get categorization
             chatgpt_service = ChatGPTService()
             processed_data = chatgpt_service.process_memory(content)
@@ -970,6 +1188,12 @@ def quick_add_memory(request):
                 delivery_date=delivery_date,
                 delivery_type=processed_data.get('delivery_type', 'immediate')
             )
+            # Invalidate dashboard cache so recent memories refresh
+            try:
+                cache.delete(f"dashboard_data_{request.user.id}")
+                cache.delete(f"ai_suggestions_{request.user.id}")
+            except Exception:
+                pass
             
             # Auto-create smart reminders based on memory content
             reminder_count = 0
@@ -2405,3 +2629,64 @@ def timezone_test(request):
     }
     
     return render(request, 'memory_assistant/timezone_test.html', context)
+
+@login_required
+def debug_ai_suggestions(request):
+    """Debug endpoint to test AI suggestions"""
+    try:
+        from .services import ChatGPTService
+        
+        # Get recent memories
+        recent_memories = Memory.objects.filter(
+            user=request.user, 
+            is_archived=False
+        ).order_by('-created_at')[:5]
+        
+        # Prepare memory data
+        recent_memory_data = [
+            {
+                'content': memory.content,
+                'tags': memory.tags or []
+            } for memory in recent_memories
+        ]
+        
+        # Test ChatGPTService
+        chatgpt_service = ChatGPTService()
+        is_available = chatgpt_service.is_available()
+        
+        if not is_available:
+            return JsonResponse({
+                'success': False,
+                'error': 'ChatGPTService is not available',
+                'api_key_set': bool(os.getenv('OPENAI_API_KEY'))
+            })
+        
+        if not recent_memories.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'No memories found',
+                'memory_count': 0
+            })
+        
+        # Generate suggestions
+        suggestions = chatgpt_service.generate_memory_suggestions(recent_memory_data)
+        
+        return JsonResponse({
+            'success': True,
+            'ai_available': is_available,
+            'memory_count': recent_memories.count(),
+            'suggestions': suggestions,
+            'memories': [
+                {
+                    'content': memory.content[:100] + '...' if len(memory.content) > 100 else memory.content,
+                    'tags': memory.tags or []
+                } for memory in recent_memories
+            ]
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        })
