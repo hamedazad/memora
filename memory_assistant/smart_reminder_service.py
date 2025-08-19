@@ -82,23 +82,33 @@ class SmartReminderService:
         return suggestions
     
     def _create_scheduled_reminders(self, memory, delivery_date):
-        """Create reminders for scheduled memories"""
+        """Create reminders for scheduled memories using minute-based lead times"""
         suggestions = []
         importance = memory.importance
         content = memory.content.lower()
         
-        # Determine advance notice based on importance and content type
-        advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
+        # Determine advance notice minutes based on content type (e.g., call=15, meeting=60)
+        advance_minutes_list = self._get_advance_notices_for_memory(memory, delivery_date)
+        now = timezone.now()
         
-        for advance_hours in advance_notices:
-            reminder_time = delivery_date - timedelta(hours=advance_hours)
+        for advance_minutes in advance_minutes_list:
+            reminder_time = delivery_date - timedelta(minutes=advance_minutes)
             
             # Skip if reminder time is in the past
-            if reminder_time <= timezone.now():
+            if reminder_time <= now:
                 continue
             
-            # Determine priority based on importance and advance time
-            priority = self._determine_priority(importance, advance_hours)
+            # Determine priority based on importance and lead time (convert minutes to hours for priority heuristic)
+            priority = self._determine_priority(importance, max(1, advance_minutes // 60))
+            
+            # Compute offset in minutes from now so the reminder fires on the scheduled day
+            offset_minutes = int((reminder_time - now).total_seconds() / 60)
+            
+            # Human-friendly reason
+            if advance_minutes % 60 == 0:
+                lead_text = f"{advance_minutes // 60} hour" + ("s" if advance_minutes // 60 != 1 else "")
+            else:
+                lead_text = f"{advance_minutes} minutes"
             
             suggestions.append({
                 'type': 'time_based',
@@ -107,9 +117,11 @@ class SmartReminderService:
                 'trigger_conditions': {
                     'target_time': delivery_date.isoformat(),
                     'reminder_time': reminder_time.isoformat(),
-                    'advance_hours': advance_hours,
+                    'advance_minutes': advance_minutes,
+                    'advance_hours': advance_minutes / 60.0,
+                    'offset_minutes': offset_minutes,
                     'memory_id': memory.id,
-                    'reason': f"Scheduled {memory.get_memory_type_display().lower()} memory due in {advance_hours} hours"
+                    'reason': f"Reminder {lead_text} before scheduled time"
                 }
             })
         
@@ -210,42 +222,24 @@ class SmartReminderService:
         return suggestions
     
     def _get_advance_notices_for_memory(self, memory, delivery_date):
-        """Determine appropriate advance notice times based on memory characteristics"""
-        importance = memory.importance
-        memory_type = memory.memory_type
+        """Return a list of advance notice times in MINUTES based on activity keywords.
+        Examples: call=15, meeting/appointment/interview=60."""
         content = memory.content.lower()
         
-        # Base advance notices by importance
-        if importance >= 9:  # Critical
-            base_notices = [24, 12, 6, 2, 1]  # 1 day, 12 hours, 6 hours, 2 hours, 1 hour
-        elif importance >= 7:  # High
-            base_notices = [12, 6, 2, 1]  # 12 hours, 6 hours, 2 hours, 1 hour
-        elif importance >= 5:  # Medium
-            base_notices = [6, 2, 1]  # 6 hours, 2 hours, 1 hour
-        else:  # Low
-            base_notices = [2, 1]  # 2 hours, 1 hour
+        # Keyword-driven defaults (in minutes)
+        if any(word in content for word in ['meeting', 'appointment', 'interview', 'conference', 'presentation']):
+            return [60]
+        if any(word in content for word in ['call', 'phone']):
+            return [15]
+        if any(word in content for word in ['doctor', 'dentist', 'hospital', 'clinic', 'medical', 'checkup']):
+            return [45]
+        if any(word in content for word in ['flight', 'train', 'bus', 'travel', 'trip', 'departure']):
+            return [60]
+        if any(word in content for word in ['dinner', 'lunch', 'party', 'event', 'celebration', 'date']):
+            return [20]
         
-        # Adjust based on memory type
-        if memory_type == 'work':
-            # Work items might need more advance notice
-            base_notices.extend([48, 24])  # Add 2 days and 1 day
-        elif memory_type == 'reminder':
-            # Reminders might need more frequent notifications
-            base_notices.extend([30, 15])  # Add 30 minutes and 15 minutes
-        
-        # Adjust based on content keywords
-        if any(word in content for word in ['meeting', 'appointment', 'interview']):
-            base_notices.extend([60, 30])  # Add 1 hour and 30 minutes
-        elif any(word in content for word in ['deadline', 'due', 'submit']):
-            base_notices.extend([24, 12])  # Add 1 day and 12 hours
-        elif any(word in content for word in ['call', 'phone']):
-            base_notices.extend([15, 5])  # Add 15 minutes and 5 minutes
-        
-        # Remove duplicates and sort
-        unique_notices = sorted(list(set(base_notices)), reverse=True)
-        
-        # Limit to reasonable number of reminders (max 5)
-        return unique_notices[:5]
+        # Fallback default
+        return [15]
     
     def _determine_priority(self, importance, advance_hours):
         """Determine reminder priority based on importance and advance time"""
@@ -869,13 +863,13 @@ class SmartReminderService:
         delivery_date = memory.delivery_date
         now = timezone.now()
         
-        # Calculate appropriate advance notice
+        # Calculate appropriate advance notice (in minutes)
         advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
         
         # Use the first (most important) advance notice
         if advance_notices:
-            advance_hours = advance_notices[0]
-            reminder_time = delivery_date - timedelta(hours=advance_hours)
+            advance_minutes = advance_notices[0]
+            reminder_time = delivery_date - timedelta(minutes=advance_minutes)
             
             # Skip if reminder time is in the past
             if reminder_time <= now:
@@ -884,16 +878,23 @@ class SmartReminderService:
             # Calculate offset in minutes
             offset_minutes = int((reminder_time - now).total_seconds() / 60)
             
-            # Determine priority
-            priority = self._determine_priority(memory.importance, advance_hours)
+            # Determine priority (convert minutes to hours for heuristic)
+            priority = self._determine_priority(memory.importance, max(1, advance_minutes // 60))
+            
+            # Friendly reason text
+            if advance_minutes % 60 == 0:
+                lead_text = f"{advance_minutes // 60} hour" + ("s" if advance_minutes // 60 != 1 else "")
+            else:
+                lead_text = f"{advance_minutes} minutes"
             
             trigger_conditions = {
                 'target_time': delivery_date.isoformat(),
                 'reminder_time': reminder_time.isoformat(),
-                'advance_hours': advance_hours,
+                'advance_minutes': advance_minutes,
+                'advance_hours': advance_minutes / 60.0,
                 'memory_id': memory.id,
                 'offset_minutes': offset_minutes,
-                'reason': f"Scheduled {memory.get_memory_type_display().lower()} memory due in {advance_hours} hours"
+                'reason': f"Reminder {lead_text} before scheduled time"
             }
             
             reminder = SmartReminder.objects.create(

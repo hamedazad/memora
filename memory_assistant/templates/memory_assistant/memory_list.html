@@ -446,7 +446,11 @@
                                         
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
-                                                {{ memory.created_at|date:"M j, Y" }}
+                                                {% if memory.delivery_date %}
+                                                    <span class="text-primary fw-semibold">Scheduled for: {{ memory.delivery_date|date:"M j, Y" }}</span>
+                                                {% else %}
+                                                    {{ memory.created_at|date:"M j, Y" }}
+                                                {% endif %}
                                             </small>
                                             <div class="btn-group" role="group">
                                                 <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 

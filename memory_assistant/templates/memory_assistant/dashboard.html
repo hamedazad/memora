@@ -1,4 +1,5 @@
 {% extends 'memory_assistant/base.html' %}
+{% load memory_extras %}
 
 {% block title %}Dashboard - Memora{% endblock %}
 
@@ -322,6 +323,17 @@
                 margin-bottom: 2rem;
             }
 
+            /* Shared memory visuals to match app design */
+            .shared-memory-header {
+                background-color: #f8f9fa !important;
+                border-left: 3px solid #17a2b8;
+            }
+            .shared-memory-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 20px rgba(23, 162, 184, 0.25);
+                transition: all 0.3s ease;
+            }
+
             .memory-item {
                 display: flex;
                 align-items: flex-start;
@@ -451,13 +463,28 @@
                 <div class="search-section">
                     <h2>Find Your Memories</h2>
                     <p>Search through your personal memory collection with ease</p>
-                    <form class="search-form">
-                        <textarea class="search-input" placeholder="Search your memories..."></textarea>
+                    <form class="search-form" action="{% url 'memory_assistant:search_memories' %}" method="get">
+                        <textarea name="q" class="search-input" placeholder="Search your memories..."></textarea>
+                        <div style="display:flex; gap: 0.5rem; align-items:center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                            <label style="font-weight:600; margin-right: 0.5rem;">Mode:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="mode" id="mode_fast" value="fast" checked>
+                                <label class="form-check-label" for="mode_fast">Fast</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="mode" id="mode_semantic" value="semantic">
+                                <label class="form-check-label" for="mode_semantic">Semantic</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="mode" id="mode_hybrid" value="hybrid">
+                                <label class="form-check-label" for="mode_hybrid">Hybrid</label>
+                            </div>
+                        </div>
                         <div class="action-buttons">
                             <button type="submit" class="btn-primary">
-                            <i class="bi bi-search"></i>
-                            Search
-                        </button>
+                                <i class="bi bi-search"></i>
+                                Search
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -474,6 +501,10 @@
                                 <i class="bi bi-plus-circle"></i>
                                 Add Memory
                             </button>
+                            <a href="{% url 'memory_assistant:create_memory' %}" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center;">
+                                <i class="bi bi-pencil-square"></i>
+                                Detailed Memory
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -554,63 +585,87 @@
                 </div>
                 
                 {% if recent_memories %}
-                    {% for memory in recent_memories %}
-                        <div class="memory-item">
-                            <div class="memory-icon">
-                                {% if memory.memory_type == 'work' %}
-                                    <i class="bi bi-briefcase"></i>
-                                {% elif memory.memory_type == 'personal' %}
-                                    <i class="bi bi-heart"></i>
-                                {% elif memory.memory_type == 'learning' %}
-                                    <i class="bi bi-book"></i>
-                                {% elif memory.memory_type == 'idea' %}
-                                    <i class="bi bi-lightbulb"></i>
-                                {% elif memory.memory_type == 'reminder' %}
-                                    <i class="bi bi-bell"></i>
-                                {% else %}
-                                    <i class="bi bi-journal-text"></i>
-                                {% endif %}
-                            </div>
-                            <div class="memory-content">
-                                <div class="memory-title">
-                                    {% if memory.summary %}
-                                        {{ memory.summary|truncatechars:50 }}
-                                    {% else %}
-                                        {{ memory.content|truncatechars:50 }}
-                                    {% endif %}
-                                </div>
-                                <div class="memory-text">{{ memory.content|truncatechars:150 }}</div>
-                                <div class="memory-meta">
-                                    <span class="memory-type">
-                                        {% if memory.memory_type == 'work' %}
-                                            <i class="bi bi-briefcase"></i>
-                                        {% elif memory.memory_type == 'personal' %}
-                                            <i class="bi bi-heart"></i>
-                                        {% elif memory.memory_type == 'learning' %}
-                                            <i class="bi bi-book"></i>
-                                        {% elif memory.memory_type == 'idea' %}
-                                            <i class="bi bi-lightbulb"></i>
-                                        {% elif memory.memory_type == 'reminder' %}
-                                            <i class="bi bi-bell"></i>
-                                        {% else %}
-                                            <i class="bi bi-journal-text"></i>
+                    <div class="row">
+                        {% for memory in recent_memories %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                {% with shared_info=shared_memory_info|lookup:memory.id %}
+                                <div class="card memory-card {% if shared_info %}shared-memory-card border-info{% endif %} h-100">
+                                    <div class="card-body">
+                                        {% if shared_info %}
+                                            <div class="shared-memory-header mb-2 p-2 bg-light rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-share text-info me-2"></i>
+                                                    <small class="text-muted">
+                                                        {% if shared_info.share_type == 'user' %}
+                                                            Shared by <strong>{{ shared_info.shared_by.username }}</strong>
+                                                        {% else %}
+                                                            Shared with <strong>{{ shared_info.organization.name }}</strong>
+                                                        {% endif %}
+                                                    </small>
+                                                </div>
+                                                {% if shared_info.message %}
+                                                    <small class="text-muted d-block">{{ shared_info.message|truncatewords:10 }}</small>
+                                                {% endif %}
+                                            </div>
                                         {% endif %}
-                                        {{ memory.get_memory_type_display }}
-                                    </span>
-                                    <span class="memory-date">
-                                        <i class="bi bi-calendar"></i>
-                                        {{ memory.created_at|timesince }} ago
-                                    </span>
-                                    {% if memory.importance >= 8 %}
-                                        <span class="memory-importance">
-                                            <i class="bi bi-star-fill"></i>
-                                            Important
-                                        </span>
-                                    {% endif %}
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge bg-primary importance-badge">
+                                                {{ memory.importance }}/10
+                                            </span>
+                                            <span class="badge bg-secondary importance-badge">
+                                                {{ memory.get_memory_type_display }}
+                                            </span>
+                                        </div>
+                                        <h6 class="card-title">
+                                            {% if memory.summary %}
+                                                {{ memory.summary|truncatewords:20 }}
+                                            {% else %}
+                                                {{ memory.content|truncatewords:20 }}
+                                            {% endif %}
+                                        </h6>
+                                        {% if memory.image %}
+                                            <div class="mb-2">
+                                                <img src="{{ memory.image.url }}" class="img-fluid rounded" 
+                                                     style="max-width: 100%; max-height: 150px; object-fit: cover;" 
+                                                     alt="Memory thumbnail">
+                                            </div>
+                                        {% endif %}
+                                        {% if memory.summary %}
+                                            <p class="card-text text-muted small">
+                                                {{ memory.summary|truncatewords:25 }}
+                                            </p>
+                                        {% endif %}
+                                        {% if memory.tags %}
+                                            <div class="mb-3">
+                                                {% for tag in memory.tags|slice:":4" %}
+                                                    <span class="badge bg-light text-dark tag-badge">{{ tag }}</span>
+                                                {% endfor %}
+                                                {% if memory.tags|length > 4 %}
+                                                    <span class="badge bg-light text-dark tag-badge">+{{ memory.tags|length|add:"-4" }}</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                {% if memory.delivery_date %}
+                                                    <span class="text-primary fw-semibold">Scheduled for: {{ memory.delivery_date|date:"M j, Y" }}</span>
+                                                {% else %}
+                                                    {{ memory.created_at|date:"M j, Y" }}
+                                                {% endif %}
+                                            </small>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'memory_assistant:memory_detail' memory.id %}" 
+                                                   class="btn btn-outline-primary btn-sm" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                                {% endwith %}
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 {% else %}
                     <div class="memory-item">
                         <div class="memory-icon">

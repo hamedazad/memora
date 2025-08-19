@@ -880,6 +880,7 @@ def decline_memory(request, memory_id):
 def search_memories(request):
     """Enhanced search memories with AI-powered semantic search"""
     query = request.GET.get('q', '').strip()
+    mode = request.GET.get('mode', 'fast')  # fast | semantic | hybrid
     date_filter = request.GET.get('date_filter', '').strip()
     memories = []
     search_method = "basic"
@@ -908,33 +909,32 @@ def search_memories(request):
     # If search query is provided
     elif query:
         
-        # Try AI-powered semantic search first
-        try:
-            chatgpt_service = ChatGPTService()
-            if chatgpt_service.is_available():
-                # Use AI to find semantically related memories
-                memory_data = [
-                    {
-                        'id': memory.id,
-                        'content': memory.content,
-                        'summary': memory.summary or '',
-                        'tags': memory.tags or [],
-                        'memory_type': memory.memory_type,
-                        'delivery_date': memory.delivery_date.isoformat() if memory.delivery_date else None
-                    }
-                    for memory in all_memories
-                ]
-                
-                ai_results = chatgpt_service.search_memories(query, memory_data)
-                if ai_results:
-                    # Get the memory IDs from AI results
-                    ai_memory_ids = [result.get('id') for result in ai_results if result.get('id')]
-                    memories = all_memories.filter(id__in=ai_memory_ids)
-                    search_method = "ai_semantic"
-        except Exception as e:
-            print(f"AI search failed, falling back to basic search: {e}")
+        # Mode: semantic or hybrid uses AI/semantic pipeline first
+        if mode in ['semantic', 'hybrid']:
+            try:
+                chatgpt_service = ChatGPTService()
+                if chatgpt_service.is_available():
+                    # Use AI (legacy) or semantic service when available
+                    memory_data = [
+                        {
+                            'id': memory.id,
+                            'content': memory.content,
+                            'summary': memory.summary or '',
+                            'tags': memory.tags or [],
+                            'memory_type': memory.memory_type,
+                            'delivery_date': memory.delivery_date.isoformat() if memory.delivery_date else None
+                        }
+                        for memory in all_memories
+                    ]
+                    ai_results = chatgpt_service.search_memories(query, memory_data)
+                    if ai_results:
+                        ai_memory_ids = [result.get('id') for result in ai_results if result.get('id')]
+                        memories = all_memories.filter(id__in=ai_memory_ids)
+                        search_method = "ai_semantic"
+            except Exception as e:
+                print(f"AI search failed, will fallback: {e}")
         
-        # If AI search didn't work or returned no results, use enhanced basic search
+        # Fast mode or fallback: enhanced basic (keyword + date-aware)
         if not memories:
             search_conditions = Q()
             
@@ -995,8 +995,28 @@ def search_memories(request):
                     search_conditions |= Q(summary__icontains=word)
                     search_conditions |= Q(tags__contains=[word])
             
-            memories = all_memories.filter(search_conditions)
+            base_qs = all_memories.filter(search_conditions)
             search_method = "enhanced_basic"
+
+            if mode == 'hybrid':
+                # Optional: re-rank with simple semantic weights if available
+                try:
+                    from .semantic_search_service import SemanticSearchService
+                    sem = SemanticSearchService()
+                    ranked = sem.hybrid_search(query, list(base_qs))
+                    ordered_ids = [m.id for (m, _) in ranked]
+                    if ordered_ids:
+                        memories = base_qs.filter(id__in=ordered_ids)
+                        # Preserve order by ids sequence
+                        memories = memories.extra(select={'_order': f'FIELD(id, {",".join(str(i) for i in ordered_ids)})'}).order_by('_order')
+                        search_method = "hybrid"
+                    else:
+                        memories = base_qs
+                except Exception as e:
+                    print(f"Hybrid ranking failed: {e}")
+                    memories = base_qs
+            else:
+                memories = base_qs
         
         # If still no results, try fuzzy matching
         if not memories:

@@ -25,16 +25,23 @@ from memory_assistant import views as memory_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Root redirect
     path('', lambda request: redirect('home') if not request.user.is_authenticated else redirect('memory_assistant:dashboard'), name='root'),
+    
+    # Home page
     path('home/', memory_views.home, name='home'),
-    path('memora/', include('memory_assistant.urls')),
     
     # Authentication URLs
     path('login/', auth_views.LoginView.as_view(template_name='memory_assistant/login.html', form_class=UserLoginForm), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login', http_method_names=['post']), name='logout'),
+    
+    # Main app URLs
+    path('memora/', include('memory_assistant.urls')),
+    path('api/v1/', include('memory_assistant.api_urls')),  # API endpoints for mobile app
 ]
 
-# Serve media files in development
+# Serve static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
