@@ -1,6 +1,6 @@
 # Memora Core - AI-Powered Memory Assistant
 
-**Version 3.1.0** - Enhanced AI memory type recognition and improved search/filter functionality
+**Version 4.2.0** - Mobile API endpoints, JWT authentication, production deployment support, and comprehensive REST API
 
 A comprehensive Django-based memory management system featuring advanced AI-powered categorization, intelligent search, voice input, and personalized insights.
 
