@@ -18,7 +18,7 @@ VERSION_HISTORY = [
     "3.6.0-release - Dashboard clickable cards and contextual AI suggestions with date-aware processing",
     "4.0.0-release - Major social features: image uploads, memory sharing, organizations, friends, notifications, and enhanced UI",
     "4.1.0-release - UI modernization, app-wide header unification, fast Quick Add with background AI enrichment, instant cache refresh for Recent Memories and AI Suggestions",
-    "4.2.0-release - Mobile API endpoints, JWT authentication, production deployment support, cost monitoring system, and comprehensive REST API",
+    "4.2.0-release - Mobile app API support: REST API endpoints, JWT authentication, cost monitoring, production deployment configuration",
 ]
 
 def get_version():
