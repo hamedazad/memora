@@ -22,6 +22,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from memory_assistant.forms import UserLoginForm
 from memory_assistant import views as memory_views
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,12 +34,17 @@ urlpatterns = [
     path('home/', memory_views.home, name='home'),
     
     # Authentication URLs
-    path('login/', auth_views.LoginView.as_view(template_name='memory_assistant/login.html', form_class=UserLoginForm), name='login'),
+    path('login/', memory_views.custom_login, name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login', http_method_names=['post']), name='logout'),
     
     # Main app URLs
     path('memora/', include('memory_assistant.urls')),
     path('api/v1/', include('memory_assistant.api_urls')),  # API endpoints for mobile app
+    
+    # OpenAPI/Swagger Documentation URLs
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 # Serve static files in development

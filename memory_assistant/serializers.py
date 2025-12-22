@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Memory, UserProfile, SharedMemory, MemoryLike, MemoryComment
+from django.contrib.auth.password_validation import validate_password
+from .models import Memory, UserProfile, SharedMemory, MemoryLike, MemoryComment, SmartReminder, ReminderTrigger
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -14,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_profile(self, obj):
         try:
-            profile = obj.userprofile
+            profile = obj.profile
             return {
                 'timezone': profile.user_timezone,
                 'bio': profile.bio,
@@ -72,6 +73,7 @@ class MemorySerializer(serializers.ModelSerializer):
     delivery_date = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', allow_null=True)
     
     # Computed fields
+    title = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     share_count = serializers.SerializerMethodField()
@@ -81,7 +83,7 @@ class MemorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Memory
         fields = [
-            'id', 'user', 'content', 'image', 'image_url', 'summary', 'ai_reasoning',
+            'id', 'user', 'title', 'content', 'image', 'image_url', 'summary', 'ai_reasoning',
             'tags', 'importance', 'memory_type', 'created_at', 'updated_at',
             'delivery_date', 'delivery_type', 'is_delivered', 'is_time_locked',
             'privacy_level', 'allow_comments', 'allow_likes', 'shared_count',
@@ -94,6 +96,15 @@ class MemorySerializer(serializers.ModelSerializer):
             'id', 'user', 'created_at', 'updated_at', 'ai_reasoning',
             'shared_count', 'is_delivered', 'snooze_count', 'last_snoozed_at'
         ]
+    
+    def get_title(self, obj):
+        """Extract title from content (first line before double newline)"""
+        content = obj.content or ''
+        lines = content.split('\n\n')
+        if lines:
+            title = lines[0].strip()
+            return title if title else 'Untitled Memory'
+        return 'Untitled Memory'
     
     def get_comment_count(self, obj):
         return obj.comments.count()
@@ -236,6 +247,36 @@ class AIEnhanceSerializer(serializers.Serializer):
     )
 
 
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for user registration"""
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name']
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError("Passwords don't match.")
+        return attrs
+    
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+    
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("A user with this username already exists.")
+        return value
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm', None)
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user profile"""
     class Meta:
@@ -250,3 +291,95 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             return value
         except pytz.exceptions.UnknownTimeZoneError:
             raise serializers.ValidationError("Invalid timezone.")
+
+
+class ReminderTriggerSerializer(serializers.ModelSerializer):
+    """Serializer for ReminderTrigger model"""
+    
+    class Meta:
+        model = ReminderTrigger
+        fields = ['id', 'reminder', 'triggered_at', 'trigger_reason', 'was_dismissed', 
+                 'was_acted_upon', 'action_taken']
+        read_only_fields = ['id', 'triggered_at']
+
+
+class SmartReminderSerializer(serializers.ModelSerializer):
+    """Serializer for SmartReminder model"""
+    memory = MemorySerializer(read_only=True)
+    user = UserSerializer(read_only=True)
+    triggers = ReminderTriggerSerializer(many=True, read_only=True)
+    memory_id = serializers.IntegerField(source='memory.id', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    
+    class Meta:
+        model = SmartReminder
+        fields = ['id', 'memory_id', 'user_id', 'memory', 'user', 'reminder_type', 'priority', 
+                 'trigger_conditions', 'is_active', 'created_at', 
+                 'last_triggered', 'next_trigger', 'triggers']
+        read_only_fields = ['id', 'memory_id', 'user_id', 'created_at', 'last_triggered', 'next_trigger']
+
+
+class SmartReminderCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating smart reminders"""
+    memory_id = serializers.IntegerField(write_only=True)
+    
+    class Meta:
+        model = SmartReminder
+        fields = ['memory_id', 'reminder_type', 'priority', 'trigger_conditions']
+    
+    def create(self, validated_data):
+        memory_id = validated_data.pop('memory_id')
+        user = self.context['request'].user
+        
+        # Validate memory exists and belongs to user
+        try:
+            memory = Memory.objects.get(id=memory_id, user=user)
+        except Memory.DoesNotExist:
+            raise serializers.ValidationError({'memory_id': 'Memory not found or access denied'})
+        
+        # Check for duplicate reminder
+        existing_reminder = SmartReminder.objects.filter(
+            memory=memory,
+            user=user,
+            reminder_type=validated_data.get('reminder_type')
+        ).first()
+        
+        if existing_reminder:
+            # Update existing reminder instead of creating duplicate
+            existing_reminder.priority = validated_data.get('priority', existing_reminder.priority)
+            existing_reminder.trigger_conditions = validated_data.get('trigger_conditions', existing_reminder.trigger_conditions)
+            existing_reminder.is_active = True
+            existing_reminder.calculate_next_trigger()
+            existing_reminder.save()
+            return existing_reminder
+        
+        reminder = SmartReminder.objects.create(
+            memory=memory,
+            user=user,
+            **validated_data
+        )
+        reminder.calculate_next_trigger()
+        reminder.save()
+        return reminder
+
+
+class SmartReminderAnalyzeSerializer(serializers.Serializer):
+    """Serializer for analyzing memory for reminders"""
+    memory_id = serializers.IntegerField(required=True)
+    
+    def validate_memory_id(self, value):
+        try:
+            Memory.objects.get(id=value)
+            return value
+        except Memory.DoesNotExist:
+            raise serializers.ValidationError("Memory not found.")
+
+
+class SmartReminderStatsSerializer(serializers.Serializer):
+    """Serializer for reminder statistics"""
+    total_reminders = serializers.IntegerField()
+    active_reminders = serializers.IntegerField()
+    triggered_today = serializers.IntegerField()
+    upcoming_count = serializers.IntegerField()
+    by_type = serializers.DictField()
+    by_priority = serializers.DictField()

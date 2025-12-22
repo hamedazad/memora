@@ -1,0 +1,42 @@
+# UPLOAD CHECKLIST - Files to upload to Ubuntu server
+# Upload ALL these files to /home/username/memora_core/ on your server
+
+## Core Docker Files (REQUIRED)
+- Dockerfile
+- docker-compose.yml
+- requirements.txt
+- requirements_production.txt
+- .env (your production environment file)
+- deploy.sh
+- deploy-ubuntu.sh
+- quick-deploy-ubuntu.sh
+
+## Docker Configuration (REQUIRED)
+- docker/entrypoint.sh
+- docker/nginx/nginx.conf
+- docker/postgres/init.sql
+- docker/.gitkeep
+
+## Django Application Files (REQUIRED)
+- manage.py
+- memora_project/ (entire folder)
+- memory_assistant/ (entire folder)
+- version.py
+- staticfiles/ (if exists)
+- media/ (if exists)
+
+## Documentation (OPTIONAL)
+- README.md
+- DEPLOYMENT.md
+- UBUNTU_DEPLOYMENT_GUIDE.md
+- SERVER_SETUP_GUIDE.md
+- env.production.template
+- env.production.example
+
+## Other Files (OPTIONAL)
+- .dockerignore
+- deploy.bat
+- *.md files
+
+## IMPORTANT: Make sure to upload the ENTIRE docker/ folder
+## The docker/entrypoint.sh file is critical for deployment

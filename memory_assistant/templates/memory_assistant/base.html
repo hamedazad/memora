@@ -1101,6 +1101,52 @@
             transform: scale(1.05);
         }
 
+        /* Modern Search Results */
+        .modern-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1050;
+            margin-top: 8px;
+        }
+
+        .search-results-content {
+            padding: 1rem;
+        }
+
+        .search-result-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .search-result-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: rgba(99, 102, 241, 0.1);
+        }
+
+        .search-result-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+
+        .search-result-content {
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
         /* Fast Search Results Dropdown */
         .fast-search-results {
             position: absolute;
@@ -1680,6 +1726,27 @@
                             </ul>
                         </li>
                     </ul>
+                    
+                    <!-- Global Search -->
+                    {% if user.is_authenticated %}
+                    <div class="modern-search-container me-3">
+                        <div class="modern-search-wrapper">
+                            <input type="text" 
+                                   id="fastSearchInput" 
+                                   class="modern-search-input" 
+                                   placeholder="Search memories..." 
+                                   autocomplete="off">
+                            <button class="modern-search-btn" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <div id="fastSearchResults" class="modern-search-results" style="display: none;">
+                            <div class="search-results-content">
+                                <!-- Search results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 {% endif %}
                 
                 <!-- Login/Register Section -->
@@ -2683,6 +2750,7 @@
                 method: 'GET',
                 data: { q: searchQuery },
                 headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
                 },
                 success: function(response) {
@@ -2700,7 +2768,7 @@
         }
 
         function displayFastSearchResults(results, query) {
-            const resultsContainer = $('#fastSearchItems');
+            const resultsContainer = $('.search-results-content');
             const resultsDropdown = $('#fastSearchResults');
             
             if (results.length === 0) {
@@ -2717,19 +2785,13 @@
                 ).join('');
                 
                 html += `
-                    <a href="{% url 'memory_assistant:memory_detail' 0 %}" class="fast-search-item" 
-                       onclick="window.location.href='{% url 'memory_assistant:memory_detail' 0 %}'.replace('0', '${memory.id}')">
-                        <div class="fast-search-item-icon">
-                            <i class="bi bi-journal-text"></i>
+                    <div class="search-result-item" onclick="window.location.href='{% url 'memory_assistant:memory_detail' 0 %}'.replace('0', '${memory.id}')">
+                        <div class="search-result-title">${memory.content.substring(0, 60)}${memory.content.length > 60 ? '...' : ''}</div>
+                        <div class="search-result-content">
+                            <small class="text-muted">${memory.created_at}</small>
+                            ${tagsHtml ? `<div class="mt-1">${tagsHtml}</div>` : ''}
                         </div>
-                        <div class="fast-search-item-content">
-                            <div class="fast-search-item-title">${memory.content}</div>
-                            <div class="fast-search-item-meta">
-                                <span>${memory.created_at}</span>
-                                ${tagsHtml ? `<div class="fast-search-item-tags">${tagsHtml}</div>` : ''}
-                            </div>
-                        </div>
-                    </a>
+                    </div>
                 `;
             });
             
@@ -2746,7 +2808,7 @@
         }
 
         function showFastSearchLoading() {
-            const resultsContainer = $('#fastSearchItems');
+            const resultsContainer = $('.search-results-content');
             const resultsDropdown = $('#fastSearchResults');
             
             resultsContainer.html(`
@@ -2759,7 +2821,7 @@
         }
 
         function showFastSearchNoResults() {
-            const resultsContainer = $('#fastSearchItems');
+            const resultsContainer = $('.search-results-content');
             const resultsDropdown = $('#fastSearchResults');
             
             resultsContainer.html(`

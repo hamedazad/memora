@@ -1,0 +1,123 @@
+{% extends 'memory_assistant/base.html' %}
+{% load static %}
+
+{% block title %}Reminder Calendar - Memora{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0"><i class="bi bi-calendar3"></i> Reminder Calendar</h2>
+                <div>
+                    <a href="{% url 'memory_assistant:smart_reminders' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-list-check"></i> Reminder List
+                    </a>
+                </div>
+            </div>
+
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<style>
+    #calendar {
+        background: #fff;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        min-height: 70vh;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    .fc-event {
+        cursor: move;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        nowIndicator: true,
+        selectable: false,
+        editable: true,
+        eventDurationEditable: false,
+        eventStartEditable: true,
+        events: {
+            url: "{% url 'memory_assistant:reminders_events' %}",
+            failure: () => {
+                alert('Failed to load events.');
+            }
+        },
+        eventDidMount: function(info) {
+            const { priority, type } = info.event.extendedProps;
+            let bg = '#0d6efd';
+            if (priority === 'high') bg = '#dc3545';
+            if (priority === 'medium') bg = '#0d6efd';
+            if (priority === 'low') bg = '#20c997';
+            info.el.style.backgroundColor = bg;
+            info.el.style.borderColor = bg;
+            info.el.title = `${info.event.title}\nType: ${type}\nPriority: ${priority}`;
+        },
+        eventDrop: function(info) {
+            const newStart = info.event.start.toISOString();
+            fetch(`{% url 'memory_assistant:move_reminder_event' 0 %}`.replace('/0/', `/${info.event.id}/`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ start: newStart })
+            }).then(res => res.json())
+              .then(data => {
+                  if (!data.success) {
+                      alert('Failed to reschedule: ' + (data.error || 'Unknown error'));
+                      info.revert();
+                  }
+              })
+              .catch(err => {
+                  console.error(err);
+                  alert('Network error rescheduling event.');
+                  info.revert();
+              });
+        }
+    });
+    calendar.render();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+
+
+
+

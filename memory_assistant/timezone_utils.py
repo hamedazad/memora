@@ -1,22 +1,24 @@
 """
-Timezone utilities for the Memora app.
-Provides country-to-timezone mappings and timezone helper functions.
+Utility functions for timezone handling in Memora
+Ensures memories are saved in user's local timezone
 """
+import pytz
+from django.utils import timezone
+from datetime import datetime
 
-# Country to timezone mapping
-# This maps countries to their most common timezone
+
+# Country to timezone mapping for registration
 COUNTRY_TIMEZONE_MAP = {
-    # North America
-    'US': 'America/New_York',  # Default to Eastern Time
-    'CA': 'America/Toronto',   # Default to Eastern Time
+    'US': 'America/New_York',
+    'CA': 'America/Toronto',
     'MX': 'America/Mexico_City',
-    
-    # Europe
     'GB': 'Europe/London',
-    'DE': 'Europe/Berlin',
+    'IE': 'Europe/Dublin',
     'FR': 'Europe/Paris',
+    'DE': 'Europe/Berlin',
     'IT': 'Europe/Rome',
     'ES': 'Europe/Madrid',
+    'PT': 'Europe/Lisbon',
     'NL': 'Europe/Amsterdam',
     'BE': 'Europe/Brussels',
     'CH': 'Europe/Zurich',
@@ -30,526 +32,177 @@ COUNTRY_TIMEZONE_MAP = {
     'HU': 'Europe/Budapest',
     'RO': 'Europe/Bucharest',
     'BG': 'Europe/Sofia',
-    'HR': 'Europe/Zagreb',
-    'RS': 'Europe/Belgrade',
-    'SI': 'Europe/Ljubljana',
-    'SK': 'Europe/Bratislava',
-    'LT': 'Europe/Vilnius',
-    'LV': 'Europe/Riga',
-    'EE': 'Europe/Tallinn',
-    'IE': 'Europe/Dublin',
-    'PT': 'Europe/Lisbon',
     'GR': 'Europe/Athens',
-    'CY': 'Asia/Nicosia',
-    'MT': 'Europe/Malta',
-    'LU': 'Europe/Luxembourg',
-    'IS': 'Atlantic/Reykjavik',
-    
-    # Asia
-    'CN': 'Asia/Shanghai',
+    'TR': 'Europe/Istanbul',
+    'RU': 'Europe/Moscow',
+    'UA': 'Europe/Kiev',
     'JP': 'Asia/Tokyo',
+    'CN': 'Asia/Shanghai',
     'KR': 'Asia/Seoul',
     'IN': 'Asia/Kolkata',
     'TH': 'Asia/Bangkok',
+    'VN': 'Asia/Ho_Chi_Minh',
     'SG': 'Asia/Singapore',
     'MY': 'Asia/Kuala_Lumpur',
     'ID': 'Asia/Jakarta',
     'PH': 'Asia/Manila',
-    'VN': 'Asia/Ho_Chi_Minh',
-    'TW': 'Asia/Taipei',
-    'HK': 'Asia/Hong_Kong',
-    'MO': 'Asia/Macau',
-    'BD': 'Asia/Dhaka',
     'PK': 'Asia/Karachi',
-    'LK': 'Asia/Colombo',
-    'NP': 'Asia/Kathmandu',
-    'MM': 'Asia/Yangon',
-    'LA': 'Asia/Vientiane',
-    'KH': 'Asia/Phnom_Penh',
-    'MN': 'Asia/Ulaanbaatar',
-    'KZ': 'Asia/Almaty',
-    'UZ': 'Asia/Tashkent',
-    'KG': 'Asia/Bishkek',
-    'TJ': 'Asia/Dushanbe',
-    'TM': 'Asia/Ashgabat',
-    'AF': 'Asia/Kabul',
+    'BD': 'Asia/Dhaka',
     'IR': 'Asia/Tehran',
     'IQ': 'Asia/Baghdad',
     'SA': 'Asia/Riyadh',
     'AE': 'Asia/Dubai',
-    'QA': 'Asia/Qatar',
-    'KW': 'Asia/Kuwait',
-    'BH': 'Asia/Bahrain',
-    'OM': 'Asia/Muscat',
-    'YE': 'Asia/Aden',
-    'JO': 'Asia/Amman',
-    'LB': 'Asia/Beirut',
-    'SY': 'Asia/Damascus',
     'IL': 'Asia/Jerusalem',
-    'PS': 'Asia/Gaza',
-    'TR': 'Europe/Istanbul',
-    'GE': 'Asia/Tbilisi',
-    'AM': 'Asia/Yerevan',
-    'AZ': 'Asia/Baku',
-    
-    # Oceania
     'AU': 'Australia/Sydney',
     'NZ': 'Pacific/Auckland',
     'FJ': 'Pacific/Fiji',
-    'PG': 'Pacific/Port_Moresby',
-    'NC': 'Pacific/Noumea',
-    'VU': 'Pacific/Efate',
-    'SB': 'Pacific/Guadalcanal',
-    'TO': 'Pacific/Tongatapu',
-    'WS': 'Pacific/Apia',
-    'KI': 'Pacific/Tarawa',
-    'TV': 'Pacific/Funafuti',
-    'NR': 'Pacific/Nauru',
-    'PW': 'Pacific/Palau',
-    'MH': 'Pacific/Majuro',
-    'FM': 'Pacific/Pohnpei',
-    'CK': 'Pacific/Rarotonga',
-    'NU': 'Pacific/Niue',
-    'TK': 'Pacific/Fakaofo',
-    'WF': 'Pacific/Wallis',
-    
-    # Africa
-    'ZA': 'Africa/Johannesburg',
-    'EG': 'Africa/Cairo',
-    'NG': 'Africa/Lagos',
-    'KE': 'Africa/Nairobi',
-    'ET': 'Africa/Addis_Ababa',
-    'TZ': 'Africa/Dar_es_Salaam',
-    'UG': 'Africa/Kampala',
-    'GH': 'Africa/Accra',
-    'CI': 'Africa/Abidjan',
-    'SN': 'Africa/Dakar',
-    'ML': 'Africa/Bamako',
-    'BF': 'Africa/Ouagadougou',
-    'NE': 'Africa/Niamey',
-    'TD': 'Africa/Ndjamena',
-    'SD': 'Africa/Khartoum',
-    'SS': 'Africa/Juba',
-    'CM': 'Africa/Douala',
-    'CF': 'Africa/Bangui',
-    'CG': 'Africa/Brazzaville',
-    'CD': 'Africa/Kinshasa',
-    'AO': 'Africa/Luanda',
-    'ZM': 'Africa/Lusaka',
-    'ZW': 'Africa/Harare',
-    'BW': 'Africa/Gaborone',
-    'NA': 'Africa/Windhoek',
-    'SZ': 'Africa/Mbabane',
-    'LS': 'Africa/Maseru',
-    'MG': 'Indian/Antananarivo',
-    'MU': 'Indian/Mauritius',
-    'SC': 'Indian/Mahe',
-    'KM': 'Indian/Comoro',
-    'DJ': 'Africa/Djibouti',
-    'SO': 'Africa/Mogadishu',
-    'ER': 'Africa/Asmara',
-    'DZ': 'Africa/Algiers',
-    'TN': 'Africa/Tunis',
-    'LY': 'Africa/Tripoli',
-    'MA': 'Africa/Casablanca',
-    'EH': 'Africa/El_Aaiun',
-    'MR': 'Africa/Nouakchott',
-    'GM': 'Africa/Banjul',
-    'GW': 'Africa/Bissau',
-    'GN': 'Africa/Conakry',
-    'SL': 'Africa/Freetown',
-    'LR': 'Africa/Monrovia',
-    'TG': 'Africa/Lome',
-    'BJ': 'Africa/Porto-Novo',
-    'GA': 'Africa/Libreville',
-    'GQ': 'Africa/Malabo',
-    'ST': 'Africa/Sao_Tome',
-    'CV': 'Atlantic/Cape_Verde',
-    'GM': 'Africa/Banjul',
-    
-    # South America
     'BR': 'America/Sao_Paulo',
     'AR': 'America/Argentina/Buenos_Aires',
     'CL': 'America/Santiago',
     'CO': 'America/Bogota',
     'PE': 'America/Lima',
     'VE': 'America/Caracas',
-    'EC': 'America/Guayaquil',
-    'BO': 'America/La_Paz',
-    'PY': 'America/Asuncion',
-    'UY': 'America/Montevideo',
-    'GY': 'America/Guyana',
-    'SR': 'America/Paramaribo',
-    'GF': 'America/Cayenne',
-    'FK': 'Atlantic/Stanley',
-    
-    # Central America and Caribbean
-    'GT': 'America/Guatemala',
-    'BZ': 'America/Belize',
-    'SV': 'America/El_Salvador',
-    'HN': 'America/Tegucigalpa',
-    'NI': 'America/Managua',
-    'CR': 'America/Costa_Rica',
-    'PA': 'America/Panama',
-    'CU': 'America/Havana',
-    'JM': 'America/Jamaica',
-    'HT': 'America/Port-au-Prince',
-    'DO': 'America/Santo_Domingo',
-    'PR': 'America/Puerto_Rico',
-    'TT': 'America/Port_of_Spain',
-    'BB': 'America/Barbados',
-    'GD': 'America/Grenada',
-    'LC': 'America/St_Lucia',
-    'VC': 'America/St_Vincent',
-    'AG': 'America/Antigua',
-    'KN': 'America/St_Kitts',
-    'DM': 'America/Dominica',
-    'BS': 'America/Nassau',
-    'TC': 'America/Grand_Turk',
-    'AI': 'America/Anguilla',
-    'VG': 'America/Tortola',
-    'VI': 'America/St_Thomas',
-    'AW': 'America/Aruba',
-    'CW': 'America/Curacao',
-    'SX': 'America/Lower_Princes',
-    'BL': 'America/St_Barthelemy',
-    'MF': 'America/Marigot',
-    'GP': 'America/Guadeloupe',
-    'MQ': 'America/Martinique',
-    
-    # Other regions
-    'RU': 'Europe/Moscow',
-    'UA': 'Europe/Kiev',
-    'BY': 'Europe/Minsk',
-    'MD': 'Europe/Chisinau',
-    'KZ': 'Asia/Almaty',
-    'UZ': 'Asia/Tashkent',
-    'KG': 'Asia/Bishkek',
-    'TJ': 'Asia/Dushanbe',
-    'TM': 'Asia/Ashgabat',
-    'AF': 'Asia/Kabul',
-    'PK': 'Asia/Karachi',
-    'BD': 'Asia/Dhaka',
-    'LK': 'Asia/Colombo',
-    'NP': 'Asia/Kathmandu',
-    'BT': 'Asia/Thimphu',
-    'MM': 'Asia/Yangon',
-    'LA': 'Asia/Vientiane',
-    'KH': 'Asia/Phnom_Penh',
-    'VN': 'Asia/Ho_Chi_Minh',
-    'TH': 'Asia/Bangkok',
-    'MY': 'Asia/Kuala_Lumpur',
-    'SG': 'Asia/Singapore',
-    'ID': 'Asia/Jakarta',
-    'PH': 'Asia/Manila',
-    'TW': 'Asia/Taipei',
-    'HK': 'Asia/Hong_Kong',
-    'MO': 'Asia/Macau',
-    'CN': 'Asia/Shanghai',
-    'MN': 'Asia/Ulaanbaatar',
-    'KP': 'Asia/Pyongyang',
-    'JP': 'Asia/Tokyo',
-    'KR': 'Asia/Seoul',
-    'IN': 'Asia/Kolkata',
-    'MV': 'Indian/Maldives',
-    'IO': 'Indian/Chagos',
-    'RE': 'Indian/Reunion',
-    'YT': 'Indian/Mayotte',
-    'TF': 'Indian/Kerguelen',
-    'HM': 'Indian/Kerguelen',
-    'CC': 'Indian/Cocos',
-    'CX': 'Indian/Christmas',
-    'AU': 'Australia/Sydney',
-    'NZ': 'Pacific/Auckland',
-    'FJ': 'Pacific/Fiji',
-    'PG': 'Pacific/Port_Moresby',
-    'NC': 'Pacific/Noumea',
-    'VU': 'Pacific/Efate',
-    'SB': 'Pacific/Guadalcanal',
-    'TO': 'Pacific/Tongatapu',
-    'WS': 'Pacific/Apia',
-    'KI': 'Pacific/Tarawa',
-    'TV': 'Pacific/Funafuti',
-    'NR': 'Pacific/Nauru',
-    'PW': 'Pacific/Palau',
-    'MH': 'Pacific/Majuro',
-    'FM': 'Pacific/Pohnpei',
-    'CK': 'Pacific/Rarotonga',
-    'NU': 'Pacific/Niue',
-    'TK': 'Pacific/Fakaofo',
-    'WF': 'Pacific/Wallis',
-    'AS': 'Pacific/Pago_Pago',
-    'GU': 'Pacific/Guam',
-    'MP': 'Pacific/Saipan',
-    'PW': 'Pacific/Palau',
-    'MH': 'Pacific/Majuro',
-    'FM': 'Pacific/Pohnpei',
-    'KI': 'Pacific/Tarawa',
-    'TV': 'Pacific/Funafuti',
-    'NR': 'Pacific/Nauru',
-    'CK': 'Pacific/Rarotonga',
-    'NU': 'Pacific/Niue',
-    'TK': 'Pacific/Fakaofo',
-    'WF': 'Pacific/Wallis',
-    'AS': 'Pacific/Pago_Pago',
-    'GU': 'Pacific/Guam',
-    'MP': 'Pacific/Saipan',
+    'ZA': 'Africa/Johannesburg',
+    'EG': 'Africa/Cairo',
+    'NG': 'Africa/Lagos',
+    'KE': 'Africa/Nairobi',
+    'ET': 'Africa/Addis_Ababa',
 }
 
-# Country choices for the form
-COUNTRY_CHOICES = [
-    ('', 'Select your country'),
-    ('US', 'United States'),
-    ('CA', 'Canada'),
-    ('MX', 'Mexico'),
-    ('GB', 'United Kingdom'),
-    ('DE', 'Germany'),
-    ('FR', 'France'),
-    ('IT', 'Italy'),
-    ('ES', 'Spain'),
-    ('NL', 'Netherlands'),
-    ('BE', 'Belgium'),
-    ('CH', 'Switzerland'),
-    ('AT', 'Austria'),
-    ('SE', 'Sweden'),
-    ('NO', 'Norway'),
-    ('DK', 'Denmark'),
-    ('FI', 'Finland'),
-    ('PL', 'Poland'),
-    ('CZ', 'Czech Republic'),
-    ('HU', 'Hungary'),
-    ('RO', 'Romania'),
-    ('BG', 'Bulgaria'),
-    ('HR', 'Croatia'),
-    ('RS', 'Serbia'),
-    ('SI', 'Slovenia'),
-    ('SK', 'Slovakia'),
-    ('LT', 'Lithuania'),
-    ('LV', 'Latvia'),
-    ('EE', 'Estonia'),
-    ('IE', 'Ireland'),
-    ('PT', 'Portugal'),
-    ('GR', 'Greece'),
-    ('CY', 'Cyprus'),
-    ('MT', 'Malta'),
-    ('LU', 'Luxembourg'),
-    ('IS', 'Iceland'),
-    ('CN', 'China'),
-    ('JP', 'Japan'),
-    ('KR', 'South Korea'),
-    ('IN', 'India'),
-    ('TH', 'Thailand'),
-    ('SG', 'Singapore'),
-    ('MY', 'Malaysia'),
-    ('ID', 'Indonesia'),
-    ('PH', 'Philippines'),
-    ('VN', 'Vietnam'),
-    ('TW', 'Taiwan'),
-    ('HK', 'Hong Kong'),
-    ('MO', 'Macau'),
-    ('BD', 'Bangladesh'),
-    ('PK', 'Pakistan'),
-    ('LK', 'Sri Lanka'),
-    ('NP', 'Nepal'),
-    ('MM', 'Myanmar'),
-    ('LA', 'Laos'),
-    ('KH', 'Cambodia'),
-    ('MN', 'Mongolia'),
-    ('KZ', 'Kazakhstan'),
-    ('UZ', 'Uzbekistan'),
-    ('KG', 'Kyrgyzstan'),
-    ('TJ', 'Tajikistan'),
-    ('TM', 'Turkmenistan'),
-    ('AF', 'Afghanistan'),
-    ('IR', 'Iran'),
-    ('IQ', 'Iraq'),
-    ('SA', 'Saudi Arabia'),
-    ('AE', 'United Arab Emirates'),
-    ('QA', 'Qatar'),
-    ('KW', 'Kuwait'),
-    ('BH', 'Bahrain'),
-    ('OM', 'Oman'),
-    ('YE', 'Yemen'),
-    ('JO', 'Jordan'),
-    ('LB', 'Lebanon'),
-    ('SY', 'Syria'),
-    ('IL', 'Israel'),
-    ('PS', 'Palestine'),
-    ('TR', 'Turkey'),
-    ('GE', 'Georgia'),
-    ('AM', 'Armenia'),
-    ('AZ', 'Azerbaijan'),
-    ('AU', 'Australia'),
-    ('NZ', 'New Zealand'),
-    ('FJ', 'Fiji'),
-    ('PG', 'Papua New Guinea'),
-    ('NC', 'New Caledonia'),
-    ('VU', 'Vanuatu'),
-    ('SB', 'Solomon Islands'),
-    ('TO', 'Tonga'),
-    ('WS', 'Samoa'),
-    ('KI', 'Kiribati'),
-    ('TV', 'Tuvalu'),
-    ('NR', 'Nauru'),
-    ('PW', 'Palau'),
-    ('MH', 'Marshall Islands'),
-    ('FM', 'Micronesia'),
-    ('CK', 'Cook Islands'),
-    ('NU', 'Niue'),
-    ('TK', 'Tokelau'),
-    ('WF', 'Wallis and Futuna'),
-    ('ZA', 'South Africa'),
-    ('EG', 'Egypt'),
-    ('NG', 'Nigeria'),
-    ('KE', 'Kenya'),
-    ('ET', 'Ethiopia'),
-    ('TZ', 'Tanzania'),
-    ('UG', 'Uganda'),
-    ('GH', 'Ghana'),
-    ('CI', 'Ivory Coast'),
-    ('SN', 'Senegal'),
-    ('ML', 'Mali'),
-    ('BF', 'Burkina Faso'),
-    ('NE', 'Niger'),
-    ('TD', 'Chad'),
-    ('SD', 'Sudan'),
-    ('SS', 'South Sudan'),
-    ('CM', 'Cameroon'),
-    ('CF', 'Central African Republic'),
-    ('CG', 'Republic of the Congo'),
-    ('CD', 'Democratic Republic of the Congo'),
-    ('AO', 'Angola'),
-    ('ZM', 'Zambia'),
-    ('ZW', 'Zimbabwe'),
-    ('BW', 'Botswana'),
-    ('NA', 'Namibia'),
-    ('SZ', 'Eswatini'),
-    ('LS', 'Lesotho'),
-    ('MG', 'Madagascar'),
-    ('MU', 'Mauritius'),
-    ('SC', 'Seychelles'),
-    ('KM', 'Comoros'),
-    ('DJ', 'Djibouti'),
-    ('SO', 'Somalia'),
-    ('ER', 'Eritrea'),
-    ('DZ', 'Algeria'),
-    ('TN', 'Tunisia'),
-    ('LY', 'Libya'),
-    ('MA', 'Morocco'),
-    ('EH', 'Western Sahara'),
-    ('MR', 'Mauritania'),
-    ('GM', 'Gambia'),
-    ('GW', 'Guinea-Bissau'),
-    ('GN', 'Guinea'),
-    ('SL', 'Sierra Leone'),
-    ('LR', 'Liberia'),
-    ('TG', 'Togo'),
-    ('BJ', 'Benin'),
-    ('GA', 'Gabon'),
-    ('GQ', 'Equatorial Guinea'),
-    ('ST', 'Sao Tome and Principe'),
-    ('CV', 'Cape Verde'),
-    ('BR', 'Brazil'),
-    ('AR', 'Argentina'),
-    ('CL', 'Chile'),
-    ('CO', 'Colombia'),
-    ('PE', 'Peru'),
-    ('VE', 'Venezuela'),
-    ('EC', 'Ecuador'),
-    ('BO', 'Bolivia'),
-    ('PY', 'Paraguay'),
-    ('UY', 'Uruguay'),
-    ('GY', 'Guyana'),
-    ('SR', 'Suriname'),
-    ('GF', 'French Guiana'),
-    ('FK', 'Falkland Islands'),
-    ('GT', 'Guatemala'),
-    ('BZ', 'Belize'),
-    ('SV', 'El Salvador'),
-    ('HN', 'Honduras'),
-    ('NI', 'Nicaragua'),
-    ('CR', 'Costa Rica'),
-    ('PA', 'Panama'),
-    ('CU', 'Cuba'),
-    ('JM', 'Jamaica'),
-    ('HT', 'Haiti'),
-    ('DO', 'Dominican Republic'),
-    ('PR', 'Puerto Rico'),
-    ('TT', 'Trinidad and Tobago'),
-    ('BB', 'Barbados'),
-    ('GD', 'Grenada'),
-    ('LC', 'Saint Lucia'),
-    ('VC', 'Saint Vincent and the Grenadines'),
-    ('AG', 'Antigua and Barbuda'),
-    ('KN', 'Saint Kitts and Nevis'),
-    ('DM', 'Dominica'),
-    ('BS', 'Bahamas'),
-    ('TC', 'Turks and Caicos Islands'),
-    ('AI', 'Anguilla'),
-    ('VG', 'British Virgin Islands'),
-    ('VI', 'U.S. Virgin Islands'),
-    ('AW', 'Aruba'),
-    ('CW', 'Curacao'),
-    ('SX', 'Sint Maarten'),
-    ('BL', 'Saint Barthelemy'),
-    ('MF', 'Saint Martin'),
-    ('GP', 'Guadeloupe'),
-    ('MQ', 'Martinique'),
-    ('RU', 'Russia'),
-    ('UA', 'Ukraine'),
-    ('BY', 'Belarus'),
-    ('MD', 'Moldova'),
-    ('MV', 'Maldives'),
-    ('IO', 'British Indian Ocean Territory'),
-    ('RE', 'Reunion'),
-    ('YT', 'Mayotte'),
-    ('TF', 'French Southern Territories'),
-    ('HM', 'Heard and McDonald Islands'),
-    ('CC', 'Cocos Islands'),
-    ('CX', 'Christmas Island'),
-    ('AS', 'American Samoa'),
-    ('GU', 'Guam'),
-    ('MP', 'Northern Mariana Islands'),
-]
-
-def get_timezone_for_country(country_code):
-    """
-    Get the appropriate timezone for a given country code.
-    
-    Args:
-        country_code (str): ISO 3166-1 alpha-2 country code
-        
-    Returns:
-        str: Timezone name (e.g., 'America/New_York')
-    """
-    return COUNTRY_TIMEZONE_MAP.get(country_code, 'UTC')
 
 def get_country_choices():
     """
-    Get the list of country choices for forms.
-    
-    Returns:
-        list: List of tuples (country_code, country_name)
+    Returns a list of (country_code, country_name) tuples for form choices
     """
-    return COUNTRY_CHOICES
+    countries = [
+        ('', 'Select your country'),
+        ('US', 'United States'),
+        ('CA', 'Canada'),
+        ('MX', 'Mexico'),
+        ('GB', 'United Kingdom'),
+        ('IE', 'Ireland'),
+        ('FR', 'France'),
+        ('DE', 'Germany'),
+        ('IT', 'Italy'),
+        ('ES', 'Spain'),
+        ('PT', 'Portugal'),
+        ('NL', 'Netherlands'),
+        ('BE', 'Belgium'),
+        ('CH', 'Switzerland'),
+        ('AT', 'Austria'),
+        ('SE', 'Sweden'),
+        ('NO', 'Norway'),
+        ('DK', 'Denmark'),
+        ('FI', 'Finland'),
+        ('PL', 'Poland'),
+        ('CZ', 'Czech Republic'),
+        ('HU', 'Hungary'),
+        ('RO', 'Romania'),
+        ('BG', 'Bulgaria'),
+        ('GR', 'Greece'),
+        ('TR', 'Turkey'),
+        ('RU', 'Russia'),
+        ('UA', 'Ukraine'),
+        ('JP', 'Japan'),
+        ('CN', 'China'),
+        ('KR', 'South Korea'),
+        ('IN', 'India'),
+        ('TH', 'Thailand'),
+        ('VN', 'Vietnam'),
+        ('SG', 'Singapore'),
+        ('MY', 'Malaysia'),
+        ('ID', 'Indonesia'),
+        ('PH', 'Philippines'),
+        ('PK', 'Pakistan'),
+        ('BD', 'Bangladesh'),
+        ('IR', 'Iran'),
+        ('IQ', 'Iraq'),
+        ('SA', 'Saudi Arabia'),
+        ('AE', 'United Arab Emirates'),
+        ('IL', 'Israel'),
+        ('AU', 'Australia'),
+        ('NZ', 'New Zealand'),
+        ('FJ', 'Fiji'),
+        ('BR', 'Brazil'),
+        ('AR', 'Argentina'),
+        ('CL', 'Chile'),
+        ('CO', 'Colombia'),
+        ('PE', 'Peru'),
+        ('VE', 'Venezuela'),
+        ('ZA', 'South Africa'),
+        ('EG', 'Egypt'),
+        ('NG', 'Nigeria'),
+        ('KE', 'Kenya'),
+        ('ET', 'Ethiopia'),
+    ]
+    return countries
 
-def get_current_time_in_timezone(timezone_name):
+
+def get_timezone_for_country(country_code):
     """
-    Get the current time in a specific timezone.
-    
-    Args:
-        timezone_name (str): Timezone name (e.g., 'America/New_York')
-        
-    Returns:
-        str: Formatted current time in the specified timezone
+    Get the timezone string for a given country code
+    Returns UTC if country code is not found
     """
-    from django.utils import timezone
-    import pytz
-    
+    return COUNTRY_TIMEZONE_MAP.get(country_code, 'UTC')
+
+
+def get_user_timezone(user):
+    """
+    Get the user's timezone from their profile
+    Returns a pytz timezone object
+    """
     try:
-        tz = pytz.timezone(timezone_name)
-        now = timezone.now()
-        local_time = now.astimezone(tz)
-        return local_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+        if hasattr(user, 'profile') and user.profile:
+            tz_name = user.profile.user_timezone
+            return pytz.timezone(tz_name)
     except:
-        return 'Error getting time'
+        pass
+    
+    # Default to UTC if no profile timezone
+    return pytz.UTC
+
+
+def get_current_time_in_user_timezone(user):
+    """
+    Get the current time in the user's local timezone
+    This is what should be saved as created_at for memories
+    """
+    user_tz = get_user_timezone(user)
+    
+    # Get current UTC time
+    utc_now = datetime.now(pytz.UTC)
+    
+    # Convert to user's timezone
+    local_time = utc_now.astimezone(user_tz)
+    
+    return local_time
+
+
+def convert_to_user_timezone(dt, user):
+    """
+    Convert any datetime to user's timezone
+    """
+    if dt is None:
+        return None
+    
+    user_tz = get_user_timezone(user)
+    
+    # Make sure datetime is timezone-aware
+    if dt.tzinfo is None:
+        # Assume UTC if no timezone info
+        dt = pytz.UTC.localize(dt)
+    
+    return dt.astimezone(user_tz)
+
+
+def naive_datetime_in_user_timezone(user):
+    """
+    Get current time in user's timezone as a naive datetime
+    (without timezone info - for storage in database with USE_TZ=False)
+    """
+    user_tz = get_user_timezone(user)
+    utc_now = datetime.now(pytz.UTC)
+    local_time = utc_now.astimezone(user_tz)
+    
+    # Return as naive datetime (remove timezone info)
+    return local_time.replace(tzinfo=None)

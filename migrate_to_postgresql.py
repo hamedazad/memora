@@ -1,181 +1,200 @@
 #!/usr/bin/env python3
 """
-Data Migration Script: SQLite to PostgreSQL
+Migration script from SQLite to PostgreSQL for Memora
+This script helps migrate existing data from SQLite to PostgreSQL
 """
 
 import os
 import sys
 import django
-from pathlib import Path
+from django.core.management import execute_from_command_line
 
-# Add the project directory to Python path
-project_dir = Path(__file__).resolve().parent
-sys.path.insert(0, str(project_dir))
-
-# Set up Django
+# Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'memora_project.settings')
 django.setup()
 
-from django.conf import settings
-from django.db import connections
-from memory_assistant.models import Memory
-from django.contrib.auth.models import User
+from django.core.management.commands.dumpdata import Command as DumpDataCommand
+from django.core.management.commands.loaddata import Command as LoadDataCommand
+from django.db import connection
 import json
 
 def backup_sqlite_data():
-    """Backup SQLite data to JSON files"""
+    """Backup data from SQLite database"""
     print("📦 Backing up SQLite data...")
     
-    # Backup users
-    users_data = []
-    for user in User.objects.all():
-        users_data.append({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser,
-            'date_joined': user.date_joined.isoformat(),
-        })
+    # Create backup directory
+    backup_dir = 'sqlite_backup'
+    os.makedirs(backup_dir, exist_ok=True)
     
-    with open('backup_users.json', 'w') as f:
-        json.dump(users_data, f, indent=2)
-    print(f"✅ Backed up {len(users_data)} users")
+    # Dump data from SQLite
+    apps_to_backup = [
+        'memory_assistant.Memory',
+        'memory_assistant.UserProfile', 
+        'memory_assistant.SharedMemory',
+        'memory_assistant.MemoryLike',
+        'memory_assistant.MemoryComment',
+        'auth.User',
+    ]
     
-    # Backup memories
-    memories_data = []
-    for memory in Memory.objects.all():
-        memories_data.append({
-            'id': memory.id,
-            'user_id': memory.user.id,
-            'content': memory.content,
-            'summary': memory.summary,
-            'tags': memory.tags,
-            'created_at': memory.created_at.isoformat(),
-            'updated_at': memory.updated_at.isoformat(),
-        })
-    
-    with open('backup_memories.json', 'w') as f:
-        json.dump(memories_data, f, indent=2)
-    print(f"✅ Backed up {len(memories_data)} memories")
-    
-    return users_data, memories_data
-
-def switch_to_postgresql():
-    """Switch Django settings to use PostgreSQL"""
-    print("\n🔄 Switching to PostgreSQL...")
-    
-    # Temporarily change settings
-    settings.DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'memora_db'),
-        'USER': os.getenv('DB_USER', 'memora_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'memora_password'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
-    
-    # Close SQLite connection
-    connections.close_all()
-    
-    print("✅ Switched to PostgreSQL configuration")
-
-def restore_data_to_postgresql(users_data, memories_data):
-    """Restore data to PostgreSQL"""
-    print("\n📥 Restoring data to PostgreSQL...")
-    
-    # Restore users
-    print("   Restoring users...")
-    for user_data in users_data:
-        user, created = User.objects.get_or_create(
-            id=user_data['id'],
-            defaults={
-                'username': user_data['username'],
-                'email': user_data['email'],
-                'first_name': user_data['first_name'],
-                'last_name': user_data['last_name'],
-                'is_staff': user_data['is_staff'],
-                'is_superuser': user_data['is_superuser'],
-                'date_joined': user_data['date_joined'],
-            }
-        )
-        if created:
-            print(f"     ✅ Created user: {user.username}")
-        else:
-            print(f"     ⚠️  User already exists: {user.username}")
-    
-    # Restore memories
-    print("   Restoring memories...")
-    for memory_data in memories_data:
+    for app_model in apps_to_backup:
         try:
-            user = User.objects.get(id=memory_data['user_id'])
-            memory, created = Memory.objects.get_or_create(
-                id=memory_data['id'],
-                defaults={
-                    'user': user,
-                    'content': memory_data['content'],
-                    'summary': memory_data['summary'],
-                    'tags': memory_data['tags'],
-                    'created_at': memory_data['created_at'],
-                    'updated_at': memory_data['updated_at'],
-                }
-            )
-            if created:
-                print(f"     ✅ Created memory: {memory.content[:50]}...")
-            else:
-                print(f"     ⚠️  Memory already exists: {memory.content[:50]}...")
-        except User.DoesNotExist:
-            print(f"     ❌ User not found for memory {memory_data['id']}")
+            output_file = os.path.join(backup_dir, f'{app_model.replace(".", "_")}.json')
+            execute_from_command_line([
+                'manage.py', 'dumpdata', app_model, 
+                '--indent', '2', '--output', output_file
+            ])
+            print(f"✅ Backed up {app_model}")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not backup {app_model}: {e}")
+    
+    print(f"✅ Data backed up to {backup_dir}/")
+    return backup_dir
+
+def setup_postgresql():
+    """Setup PostgreSQL database"""
+    print("🗄️  Setting up PostgreSQL...")
+    
+    # Update environment to use PostgreSQL
+    os.environ['DB_ENGINE'] = 'django.db.backends.postgresql'
+    os.environ['DB_NAME'] = 'memora_db'
+    os.environ['DB_USER'] = 'memora_user'
+    os.environ['DB_PASSWORD'] = 'memora_password_2024'
+    os.environ['DB_HOST'] = 'localhost'
+    os.environ['DB_PORT'] = '5432'
+    
+    # Run migrations
+    try:
+        execute_from_command_line(['manage.py', 'migrate'])
+        print("✅ PostgreSQL migrations completed")
+        return True
+    except Exception as e:
+        print(f"❌ Migration failed: {e}")
+        return False
+
+def restore_data(backup_dir):
+    """Restore data to PostgreSQL"""
+    print("📥 Restoring data to PostgreSQL...")
+    
+    # Load data in correct order (to handle foreign keys)
+    load_order = [
+        'auth_User.json',
+        'memory_assistant_UserProfile.json',
+        'memory_assistant_Memory.json',
+        'memory_assistant_SharedMemory.json',
+        'memory_assistant_MemoryLike.json',
+        'memory_assistant_MemoryComment.json',
+    ]
+    
+    for filename in load_order:
+        filepath = os.path.join(backup_dir, filename)
+        if os.path.exists(filepath):
+            try:
+                execute_from_command_line(['manage.py', 'loaddata', filepath])
+                print(f"✅ Loaded {filename}")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not load {filename}: {e}")
+        else:
+            print(f"ℹ️  Skipping {filename} (file not found)")
     
     print("✅ Data restoration completed")
 
 def verify_migration():
-    """Verify that the migration was successful"""
-    print("\n🔍 Verifying migration...")
+    """Verify the migration was successful"""
+    print("🔍 Verifying migration...")
     
-    user_count = User.objects.count()
-    memory_count = Memory.objects.count()
-    
-    print(f"   Users in PostgreSQL: {user_count}")
-    print(f"   Memories in PostgreSQL: {memory_count}")
-    
-    if user_count > 0 and memory_count > 0:
-        print("✅ Migration verification successful!")
+    try:
+        from memory_assistant.models import Memory, UserProfile
+        from django.contrib.auth.models import User
+        
+        user_count = User.objects.count()
+        memory_count = Memory.objects.count()
+        profile_count = UserProfile.objects.count()
+        
+        print(f"✅ Migration verified:")
+        print(f"   • Users: {user_count}")
+        print(f"   • Memories: {memory_count}")
+        print(f"   • Profiles: {profile_count}")
+        
         return True
-    else:
-        print("❌ Migration verification failed!")
+    except Exception as e:
+        print(f"❌ Verification failed: {e}")
         return False
+
+def create_env_file():
+    """Create .env file for PostgreSQL"""
+    env_content = """# Memora Core - PostgreSQL Configuration
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=memora_db
+DB_USER=memora_user
+DB_PASSWORD=memora_password_2024
+DB_HOST=localhost
+DB_PORT=5432
+
+# Django Settings
+SECRET_KEY=django-insecure-change-this-in-production
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+
+# CORS Settings for Mobile App
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8081,http://127.0.0.1:8081
+CORS_ALLOW_CREDENTIALS=True
+
+# API Settings
+OPENAI_API_KEY=your-openai-api-key-here
+"""
+    
+    with open('.env', 'w') as f:
+        f.write(env_content)
+    print("✅ Created .env file for PostgreSQL")
 
 def main():
     """Main migration function"""
-    print("🚀 SQLite to PostgreSQL Migration")
-    print("=" * 40)
+    print("🔄 Migrating Memora from SQLite to PostgreSQL")
+    print("=" * 50)
     
-    try:
-        # Step 1: Backup SQLite data
-        users_data, memories_data = backup_sqlite_data()
-        
-        # Step 2: Switch to PostgreSQL
-        switch_to_postgresql()
-        
-        # Step 3: Restore data to PostgreSQL
-        restore_data_to_postgresql(users_data, memories_data)
-        
-        # Step 4: Verify migration
-        if verify_migration():
-            print("\n🎉 Migration completed successfully!")
-            print("\n📋 Next steps:")
-            print("   1. Test your application")
-            print("   2. Remove backup files if everything works")
-            print("   3. Update your .env file with production credentials")
-        else:
-            print("\n❌ Migration failed. Please check the errors above.")
-            
-    except Exception as e:
-        print(f"\n❌ Migration error: {e}")
-        print("Please check your PostgreSQL setup and try again.")
+    # Check if SQLite database exists
+    if not os.path.exists('db.sqlite3'):
+        print("ℹ️  No SQLite database found. Setting up fresh PostgreSQL installation...")
+        create_env_file()
+        if setup_postgresql():
+            print("✅ Fresh PostgreSQL setup completed!")
+        return
+    
+    print("📋 Migration steps:")
+    print("   1. Backup SQLite data")
+    print("   2. Setup PostgreSQL")
+    print("   3. Restore data to PostgreSQL")
+    print("   4. Verify migration")
+    
+    response = input("\nContinue with migration? (y/N): ")
+    if response.lower() != 'y':
+        print("Migration cancelled.")
+        return
+    
+    # Step 1: Backup SQLite data
+    backup_dir = backup_sqlite_data()
+    
+    # Step 2: Create .env file
+    create_env_file()
+    
+    # Step 3: Setup PostgreSQL
+    if not setup_postgresql():
+        print("❌ PostgreSQL setup failed. Check your PostgreSQL installation.")
+        return
+    
+    # Step 4: Restore data
+    restore_data(backup_dir)
+    
+    # Step 5: Verify migration
+    if verify_migration():
+        print("\n🎉 Migration completed successfully!")
+        print("\n📋 Next steps:")
+        print("   1. Test your application: python manage.py runserver")
+        print("   2. Create new superuser if needed: python manage.py createsuperuser")
+        print("   3. Backup SQLite file: mv db.sqlite3 db.sqlite3.backup")
+        print("   4. Update mobile app to use new server API")
+    else:
+        print("❌ Migration verification failed. Please check the logs.")
 
 if __name__ == "__main__":
-    main() 
+    main()

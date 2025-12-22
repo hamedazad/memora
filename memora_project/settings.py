@@ -34,7 +34,12 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
+# Allowed hosts (supports comma-separated env var)
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0', 'testserver']
 
 # Application version
 APP_VERSION = get_version()
@@ -48,11 +53,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'drf_spectacular',  # OpenAPI/Swagger documentation
     'memory_assistant',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # Add locale middleware
     'django.middleware.common.CommonMiddleware',
@@ -90,12 +100,12 @@ WSGI_APPLICATION = 'memora_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME', 'memora_db'),
-        'USER': os.getenv('DB_USER', 'memora_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'memora_password_2024'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'ENGINE': os.getenv('DB_ENGINE', os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql')),
+        'NAME': os.getenv('DB_NAME', os.getenv('DATABASE_NAME', 'memora_db')),
+        'USER': os.getenv('DB_USER', os.getenv('DATABASE_USER', 'memora_user')),
+        'PASSWORD': os.getenv('DB_PASSWORD', os.getenv('DATABASE_PASSWORD', 'memora_password_2024')),
+        'HOST': os.getenv('DB_HOST', os.getenv('DATABASE_HOST', 'db')),
+        'PORT': os.getenv('DB_PORT', os.getenv('DATABASE_PORT', '5432')),
     }
 }
 
@@ -124,12 +134,16 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-# Use a more user-friendly default timezone - can be overridden per user
-TIME_ZONE = 'America/New_York'  # Changed from 'UTC' to a more common timezone
+# IMPORTANT: Timezone Handling for User-Local Time Storage
+# Memories are saved in each user's LOCAL timezone (from their profile)
+# This is done via custom save() method in Memory model
+# USE_TZ = False allows storing naive datetimes (without timezone info)
+TIME_ZONE = 'UTC'  # Default timezone for system operations
 
 USE_I18N = True
 
-USE_TZ = True
+# Set to False to store timestamps as naive datetimes in user's local timezone
+USE_TZ = False
 
 
 
@@ -146,6 +160,11 @@ STATICFILES_DIRS = [
 # Media files (user uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# File upload settings for mobile app
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -168,3 +187,104 @@ MESSAGE_TAGS = {
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
 }
+
+# CORS Configuration for mobile app
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins.split(',') if o.strip()]
+    CORS_ALLOW_CREDENTIALS = True
+
+# Allow specific headers for mobile app
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# DRF settings for mobile API
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    # OpenAPI schema generation
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# Spectacular (OpenAPI/Swagger) settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Memora Core API',
+    'DESCRIPTION': 'RESTful API for Memora - AI-Powered Memory Assistant Mobile App. '
+                   'This API provides endpoints for memory management, smart reminders, '
+                   'AI-powered features, voice processing, and social features.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'CONTACT': {
+        'name': 'Memora API Support',
+        'email': 'support@memora.app',
+    },
+    'LICENSE': {
+        'name': 'Proprietary',
+    },
+    # API versioning
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Local Development Server'},
+        {'url': 'http://10.0.2.2:8000', 'description': 'Android Emulator'},
+        {'url': 'https://api.memora.app', 'description': 'Production Server'},
+    ],
+    # Authentication
+    'SECURITY': [
+        {
+            'jwtAuth': []
+        }
+    ],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'SCHEMA_PATH_PREFIX_TRIM': True,
+    # Tags for grouping endpoints
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'User authentication and token management'},
+        {'name': 'Memories', 'description': 'Memory CRUD operations and management'},
+        {'name': 'Smart Reminders', 'description': 'Smart reminder system for memories'},
+        {'name': 'AI Features', 'description': 'AI-powered categorization, summarization, and tagging'},
+        {'name': 'Voice', 'description': 'Voice transcription and voice search'},
+        {'name': 'Search', 'description': 'Memory search with multiple modes'},
+        {'name': 'Social', 'description': 'Friends, sharing, and social interactions'},
+        {'name': 'Dashboard', 'description': 'Dashboard statistics and analytics'},
+        {'name': 'Flutter', 'description': 'Flutter-optimized endpoints'},
+        {'name': 'System', 'description': 'Health checks and system information'},
+    ],
+}
+
+# JWT Settings
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+}
+
+# Import local settings if available (for development)
+try:
+    from .local_settings import *
+except ImportError:
+    pass

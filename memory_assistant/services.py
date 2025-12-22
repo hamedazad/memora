@@ -673,4 +673,223 @@ class ChatGPTService:
                     "What's the next step for your current projects?",
                     "Any insights from today's experiences?",
                     "What would you like to remember about this week?"
-                ] 
+                ]
+    
+    def categorize_memory(self, content: str) -> Dict[str, Any]:
+        """
+        Categorize memory content using AI
+        """
+        if not self.is_available():
+            # Enhanced fallback categorization
+            content_lower = content.lower()
+            
+            # Simple rule-based categorization
+            if any(word in content_lower for word in ['work', 'meeting', 'project', 'deadline', 'office', 'job', 'task']):
+                memory_type = 'work'
+                importance = 7
+                tags = ['work', 'professional']
+            elif any(word in content_lower for word in ['learn', 'study', 'course', 'book', 'education', 'knowledge']):
+                memory_type = 'learning'
+                importance = 6
+                tags = ['learning', 'education']
+            elif any(word in content_lower for word in ['idea', 'creative', 'invention', 'concept', 'brainstorm']):
+                memory_type = 'idea'
+                importance = 6
+                tags = ['idea', 'creative']
+            elif any(word in content_lower for word in ['remind', 'appointment', 'schedule', 'todo', 'task']):
+                memory_type = 'reminder'
+                importance = 8
+                tags = ['reminder', 'task']
+            elif any(word in content_lower for word in ['family', 'friend', 'personal', 'home', 'relationship']):
+                memory_type = 'personal'
+                importance = 5
+                tags = ['personal', 'life']
+            else:
+                memory_type = 'general'
+                importance = 5
+                tags = ['general']
+            
+            return {
+                'success': True,
+                'memory_type': memory_type,
+                'importance': importance,
+                'tags': tags,
+                'reasoning': 'Fallback categorization (AI service not available)'
+            }
+        
+        prompt = f"""
+        Categorize this memory content:
+        "{content}"
+        
+        Return a JSON response with:
+        {{
+            "memory_type": "general|work|personal|learning|idea|reminder",
+            "importance": 1-10,
+            "tags": ["tag1", "tag2", "tag3"],
+            "reasoning": "Why this categorization was chosen"
+        }}
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=200
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            result['success'] = True
+            return result
+            
+        except Exception as e:
+            # Fallback to rule-based categorization
+            content_lower = content.lower()
+            
+            if any(word in content_lower for word in ['work', 'meeting', 'project', 'deadline', 'office', 'job', 'task']):
+                memory_type = 'work'
+                importance = 7
+                tags = ['work', 'professional']
+            elif any(word in content_lower for word in ['learn', 'study', 'course', 'book', 'education', 'knowledge']):
+                memory_type = 'learning'
+                importance = 6
+                tags = ['learning', 'education']
+            elif any(word in content_lower for word in ['idea', 'creative', 'invention', 'concept', 'brainstorm']):
+                memory_type = 'idea'
+                importance = 6
+                tags = ['idea', 'creative']
+            elif any(word in content_lower for word in ['remind', 'appointment', 'schedule', 'todo', 'task']):
+                memory_type = 'reminder'
+                importance = 8
+                tags = ['reminder', 'task']
+            elif any(word in content_lower for word in ['family', 'friend', 'personal', 'home', 'relationship']):
+                memory_type = 'personal'
+                importance = 5
+                tags = ['personal', 'life']
+            else:
+                memory_type = 'general'
+                importance = 5
+                tags = ['general']
+            
+            return {
+                'success': True,
+                'memory_type': memory_type,
+                'importance': importance,
+                'tags': tags,
+                'reasoning': f'Fallback categorization due to error: {str(e)}'
+            }
+    
+    def generate_summary(self, content: str, max_length: int = 200) -> Dict[str, Any]:
+        """
+        Generate a summary of memory content using AI
+        """
+        if not self.is_available():
+            # Simple fallback summary
+            if len(content) <= max_length:
+                return {
+                    'success': True,
+                    'summary': content,
+                    'original_length': len(content),
+                    'summary_length': len(content)
+                }
+            else:
+                summary = content[:max_length-3] + "..."
+                return {
+                    'success': True,
+                    'summary': summary,
+                    'original_length': len(content),
+                    'summary_length': len(summary)
+                }
+        
+        prompt = f"""
+        Summarize this memory content in {max_length} characters or less:
+        "{content}"
+        
+        Return a JSON response with:
+        {{
+            "summary": "Brief summary of the content",
+            "original_length": {len(content)},
+            "summary_length": "Length of the summary"
+        }}
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=150
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            result['success'] = True
+            return result
+            
+        except Exception as e:
+            # Fallback summary
+            if len(content) <= max_length:
+                summary = content
+            else:
+                summary = content[:max_length-3] + "..."
+            
+            return {
+                'success': True,
+                'summary': summary,
+                'original_length': len(content),
+                'summary_length': len(summary),
+                'error': str(e)
+            }
+    
+    def generate_tags(self, content: str) -> Dict[str, Any]:
+        """
+        Generate tags for memory content using AI
+        """
+        if not self.is_available():
+            # Simple fallback tag generation
+            words = content.lower().split()
+            common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'was', 'are', 'were', 'i', 'you', 'he', 'she', 'it', 'we', 'they'}
+            keywords = [word for word in words if len(word) > 3 and word not in common_words]
+            tags = list(set(keywords[:5]))  # Get unique keywords, max 5
+            
+            return {
+                'success': True,
+                'tags': tags,
+                'confidence': 0.5
+            }
+        
+        prompt = f"""
+        Generate 3-5 relevant tags for this memory content:
+        "{content}"
+        
+        Return a JSON response with:
+        {{
+            "tags": ["tag1", "tag2", "tag3"],
+            "confidence": 0.8
+        }}
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=100
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            result['success'] = True
+            return result
+            
+        except Exception as e:
+            # Fallback tag generation
+            words = content.lower().split()
+            common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'was', 'are', 'were', 'i', 'you', 'he', 'she', 'it', 'we', 'they'}
+            keywords = [word for word in words if len(word) > 3 and word not in common_words]
+            tags = list(set(keywords[:5]))
+            
+            return {
+                'success': True,
+                'tags': tags,
+                'confidence': 0.5,
+                'error': str(e)
+            } 

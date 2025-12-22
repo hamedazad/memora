@@ -1,0 +1,99 @@
+{% extends 'memory_assistant/base.html' %}
+{% load static %}
+
+{% block title %}Memories Kanban - Memora{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="bi bi-columns-gap"></i> Memories Kanban</h2>
+        <a class="btn btn-outline-primary" href="{% url 'memory_assistant:all_memories' %}">
+            <i class="bi bi-list-task"></i> All Memories
+        </a>
+    </div>
+    <div class="row g-3">
+        {% for t in types %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold text-capitalize">{{ t }}</div>
+                    <span class="badge text-bg-secondary">{{ memories_by_type.t|length }}</span>
+                </div>
+                <div class="card-body" 
+                     data-type="{{ t }}" 
+                     ondragover="event.preventDefault();" 
+                     ondrop="onDrop(event, '{{ t }}')"
+                     style="min-height: 200px; background: #fafafa;">
+                    {% for m in memories_by_type.t %}
+                    <div class="card mb-2" draggable="true" ondragstart="onDragStart(event)" data-id="{{ m.id }}">
+                        <div class="card-body p-2">
+                            <div class="small text-muted">{{ m.created_at|date:"M d, Y H:i" }}</div>
+                            <div class="fw-semibold">{{ m.content|truncatechars:120 }}</div>
+                            <div class="mt-1">
+                                <span class="badge bg-light text-dark">Importance: {{ m.importance }}</span>
+                                {% if m.tags %}
+                                    {% for tg in m.tags %}
+                                        <span class="badge bg-secondary">{{ tg }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small">Drag memories here</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let draggedId = null;
+function onDragStart(ev) {
+    draggedId = ev.target.getAttribute('data-id');
+}
+function onDrop(ev, targetType) {
+    ev.preventDefault();
+    if (!draggedId) return;
+    fetch(`{% url 'memory_assistant:move_memory_to_type' 0 %}`.replace('/0/', `/${draggedId}/`), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ target_type: targetType })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Move failed: ' + (data.error || 'unknown error'));
+        }
+    }).catch(err => {
+        console.error(err);
+        alert('Network error.');
+    })
+}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+
+
+
+

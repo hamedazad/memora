@@ -54,7 +54,16 @@ class AIRecommendationService:
         # Tag analysis
         all_tags = []
         for memory in memories:
-            all_tags.extend(memory.tags)
+            # Guard against null or malformed tags
+            tags_value = getattr(memory, 'tags', [])
+            if tags_value is None:
+                tags_value = []
+            elif isinstance(tags_value, str):
+                # If stored as comma-separated string, split; else wrap as list
+                tags_value = [t.strip() for t in tags_value.split(',') if t.strip()]
+            elif not isinstance(tags_value, list):
+                tags_value = [str(tags_value)]
+            all_tags.extend(tags_value)
         tag_counts = Counter(all_tags)
         common_tags = [tag for tag, count in tag_counts.most_common(10)]
         
@@ -62,10 +71,14 @@ class AIRecommendationService:
         recent_memories = memories.filter(
             created_at__gte=datetime.now() - timedelta(days=30)
         )
-        # Use SQLite-compatible datetime extraction
-        hourly_pattern = recent_memories.extra(
-            select={'hour': "strftime('%H', created_at)"}
-        ).values('hour').annotate(count=Count('id'))
+        # Use SQLite-compatible datetime extraction - fix strftime format issue
+        try:
+            hourly_pattern = recent_memories.extra(
+                select={'hour': "strftime('%%H', created_at)"}
+            ).values('hour').annotate(count=Count('id'))
+        except Exception:
+            # Fallback if datetime extraction fails
+            hourly_pattern = []
         
         # Importance distribution
         importance_dist = memories.values('importance').annotate(count=Count('id'))
@@ -82,7 +95,7 @@ class AIRecommendationService:
             'favorite_types': favorite_types,
             'common_tags': common_tags,
             'activity_patterns': {
-                'hourly': {str(item['hour']): item['count'] for item in hourly_pattern},
+                'hourly': {str(item['hour']): item['count'] for item in hourly_pattern} if hourly_pattern else {},
                 'recent_count': recent_memories.count()
             },
             'importance_distribution': importance_distribution,
@@ -317,7 +330,14 @@ class AIRecommendationService:
         # Count recent tags
         recent_tags = []
         for memory in recent_memories:
-            recent_tags.extend(memory.tags)
+            tags_value = getattr(memory, 'tags', [])
+            if tags_value is None:
+                tags_value = []
+            elif isinstance(tags_value, str):
+                tags_value = [t.strip() for t in tags_value.split(',') if t.strip()]
+            elif not isinstance(tags_value, list):
+                tags_value = [str(tags_value)]
+            recent_tags.extend(tags_value)
         
         tag_counts = Counter(recent_tags)
         trending = []

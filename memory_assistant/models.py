@@ -3,6 +3,93 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 import os
 from datetime import datetime, timedelta
+from .timezone_utils import get_current_time_in_user_timezone, naive_datetime_in_user_timezone
+
+
+class UserProfile(models.Model):
+    """Extended user profile with social and mobile app features"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    
+    # Social profile fields
+    bio = models.TextField(max_length=500, blank=True, help_text="Brief description about yourself")
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, help_text="Profile picture")
+    location = models.CharField(max_length=100, blank=True, help_text="Your location")
+    website = models.URLField(blank=True, help_text="Personal website or social media")
+    
+    # Privacy settings
+    privacy_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('public', 'Public'),
+            ('friends', 'Friends Only'),
+            ('private', 'Private')
+        ],
+        default='friends',
+        help_text="Default privacy level for memories"
+    )
+    
+    # Timezone settings (with comprehensive timezone choices)
+    user_timezone = models.CharField(
+        max_length=50,
+        default='America/New_York',
+        choices=[
+            ('UTC', 'UTC'),
+            ('America/New_York', 'Eastern Time (US & Canada)'),
+            ('America/Chicago', 'Central Time (US & Canada)'),
+            ('America/Denver', 'Mountain Time (US & Canada)'),
+            ('America/Los_Angeles', 'Pacific Time (US & Canada)'),
+            ('America/Anchorage', 'Alaska Time'),
+            ('Pacific/Honolulu', 'Hawaii Time'),
+            ('Europe/London', 'London'),
+            ('Europe/Paris', 'Paris'),
+            ('Europe/Berlin', 'Berlin'),
+            ('Europe/Moscow', 'Moscow'),
+            ('Asia/Tokyo', 'Tokyo'),
+            ('Asia/Shanghai', 'Shanghai'),
+            ('Asia/Kolkata', 'India'),
+            ('Australia/Sydney', 'Sydney'),
+            ('Pacific/Auckland', 'Auckland'),
+        ],
+        help_text="User's preferred timezone"
+    )
+    
+    # Mobile app fields
+    fcm_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        help_text="Firebase Cloud Messaging token for push notifications"
+    )
+    device_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('android', 'Android'),
+            ('ios', 'iOS'),
+            ('web', 'Web')
+        ],
+        default='android',
+        help_text="Type of device for push notifications"
+    )
+    push_notifications_enabled = models.BooleanField(
+        default=True,
+        help_text="Whether user wants to receive push notifications"
+    )
+    last_notification_sent = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time a push notification was sent to this user"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
+    
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
 
 
 def memory_image_path(instance, filename):
@@ -108,6 +195,20 @@ class Memory(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.content[:50]}..."
     
+    def save(self, *args, **kwargs):
+        """
+        Override save to set created_at in user's local timezone
+        This ensures memories are saved with the user's actual local time
+        """
+        if not self.pk:  # Only on creation
+            # Set created_at to current time in user's timezone
+            if hasattr(self.user, 'profile') and self.user.profile:
+                # Get current time in user's timezone as naive datetime
+                self.created_at = naive_datetime_in_user_timezone(self.user)
+            # If no profile, use default Django timezone.now()
+        
+        super().save(*args, **kwargs)
+    
     def delete(self, *args, **kwargs):
         # Delete the image file when the memory is deleted
         if self.image:
@@ -173,53 +274,7 @@ class MemorySearch(models.Model):
 
 
 # Social Features Models
-
-class UserProfile(models.Model):
-    """Extended user profile for social features"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    bio = models.TextField(max_length=500, blank=True, help_text="Brief description about yourself")
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, help_text="Profile picture")
-    location = models.CharField(max_length=100, blank=True, help_text="Your location")
-    website = models.URLField(blank=True, help_text="Personal website or social media")
-    privacy_level = models.CharField(
-        max_length=20,
-        choices=[
-            ('public', 'Public'),
-            ('friends', 'Friends Only'),
-            ('private', 'Private')
-        ],
-        default='friends',
-        help_text="Default privacy level for memories"
-    )
-    user_timezone = models.CharField(
-        max_length=50,
-        default='America/New_York',
-        choices=[
-            ('UTC', 'UTC'),
-            ('America/New_York', 'Eastern Time (US & Canada)'),
-            ('America/Chicago', 'Central Time (US & Canada)'),
-            ('America/Denver', 'Mountain Time (US & Canada)'),
-            ('America/Los_Angeles', 'Pacific Time (US & Canada)'),
-            ('America/Anchorage', 'Alaska Time'),
-            ('Pacific/Honolulu', 'Hawaii Time'),
-            ('Europe/London', 'London'),
-            ('Europe/Paris', 'Paris'),
-            ('Europe/Berlin', 'Berlin'),
-            ('Europe/Moscow', 'Moscow'),
-            ('Asia/Tokyo', 'Tokyo'),
-            ('Asia/Shanghai', 'Shanghai'),
-            ('Asia/Kolkata', 'India'),
-            ('Australia/Sydney', 'Sydney'),
-            ('Pacific/Auckland', 'Auckland'),
-        ],
-        help_text="User's preferred timezone"
-    )
-    
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"{self.user.username}'s Profile"
+# Note: UserProfile model is defined above (lines 8-88) to avoid duplication
 
 
 class FriendRequest(models.Model):

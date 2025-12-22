@@ -1,357 +1,313 @@
-# Deployment Guide
+# Memora Core - Docker Deployment Guide
 
-This guide will help you deploy Memora Memory Assistant to production.
+This guide explains how to deploy the Memora Core application to your server at `185.231.59.157` using Docker and FileZilla.
 
-## 🚀 Production Deployment
+## Prerequisites
 
-### Prerequisites
+### Server Requirements
+- Ubuntu 20.04+ or CentOS 8+ (recommended)
+- Docker and Docker Compose installed
+- At least 2GB RAM
+- At least 10GB free disk space
+- Ports 80, 443, 8000, 5432, 6379 available
 
-- Python 3.8+
-- PostgreSQL (recommended) or MySQL
-- Nginx or Apache
-- SSL certificate (required for voice features)
-- Domain name
+### Local Requirements
+- FileZilla or similar FTP client
+- Git (optional, for version control)
 
-### 1. Server Setup
+## Step 1: Prepare Your Local Environment
 
-#### Ubuntu/Debian
+1. **Create production environment file:**
+   ```bash
+   cp env.production.example .env
+   ```
+
+2. **Edit the `.env` file with your production values:**
+   ```bash
+   # Generate a secure secret key
+   python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+   
+   # Update .env with your values
+   SECRET_KEY=your-generated-secret-key
+   OPENAI_API_KEY=your-openai-api-key
+   ALLOWED_HOSTS=185.231.59.157,localhost,127.0.0.1
+   ```
+
+## Step 2: Upload Files to Server
+
+### Using FileZilla:
+
+1. **Connect to your server:**
+   - Host: `185.231.59.157`
+   - Username: Your server username
+   - Password: Your server password
+   - Port: 22 (SSH) or 21 (FTP)
+
+2. **Create project directory on server:**
+   - Navigate to `/home/your-username/` or `/var/www/`
+   - Create folder: `memora_core`
+
+3. **Upload all project files:**
+   - Upload the entire project folder to the server
+   - Make sure to include all Docker files:
+     - `Dockerfile`
+     - `docker-compose.yml`
+     - `requirements.txt`
+     - `requirements_production.txt`
+     - `.env` (your production environment file)
+     - `docker/` folder
+     - All Django application files
+
+## Step 3: Server Setup
+
+### SSH into your server:
+```bash
+ssh username@185.231.59.157
+```
+
+### Install Docker (if not already installed):
 ```bash
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install Python and dependencies
-sudo apt install python3 python3-pip python3-venv nginx postgresql postgresql-contrib
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
 
-# Install additional dependencies for voice features
-sudo apt install ffmpeg portaudio19-dev python3-pyaudio
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-#### CentOS/RHEL
+### Navigate to project directory:
 ```bash
-# Update system
-sudo yum update -y
-
-# Install Python and dependencies
-sudo yum install python3 python3-pip nginx postgresql postgresql-server
-
-# Enable and start services
-sudo systemctl enable nginx postgresql
-sudo systemctl start nginx postgresql
+cd /path/to/memora_core
 ```
 
-### 2. Application Setup
+## Step 4: SSL Certificate Setup (Optional but Recommended)
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/memora.git
-cd memora
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install production dependencies
-pip install gunicorn psycopg2-binary
-```
-
-### 3. Environment Configuration
-
-Create a production `.env` file:
-
-```env
-# Django Settings
-SECRET_KEY=your-very-secure-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-
-# Database
-DATABASE_URL=postgresql://username:password@localhost/memora_db
-
-# OpenAI API
-OPENAI_API_KEY=your-openai-api-key
-
-# Security
-CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-
-# Static Files
-STATIC_ROOT=/var/www/memora/static/
-MEDIA_ROOT=/var/www/memora/media/
-```
-
-### 4. Database Setup
-
-#### PostgreSQL
-```bash
-# Create database and user
-sudo -u postgres psql
-
-CREATE DATABASE memora_db;
-CREATE USER memora_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE memora_db TO memora_user;
-\q
-
-# Update settings.py to use PostgreSQL
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'memora_db',
-        'USER': 'memora_user',
-        'PASSWORD': 'your_secure_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-```
-
-### 5. Django Configuration
-
-Update `settings.py` for production:
-
-```python
-# Security settings
-DEBUG = False
-ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']
-
-# HTTPS settings
-SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-# Static files
-STATIC_ROOT = '/var/www/memora/static/'
-MEDIA_ROOT = '/var/www/memora/media/'
-
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
-}
-```
-
-### 6. Static Files
-
-```bash
-# Collect static files
-python manage.py collectstatic
-
-# Create media directory
-sudo mkdir -p /var/www/memora/media/
-sudo chown -R www-data:www-data /var/www/memora/
-```
-
-### 7. Gunicorn Configuration
-
-Create `/etc/systemd/system/memora.service`:
-
-```ini
-[Unit]
-Description=Memora Memory Assistant
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/path/to/memora
-Environment="PATH=/path/to/memora/venv/bin"
-ExecStart=/path/to/memora/venv/bin/gunicorn --workers 3 --bind unix:/run/memora.sock memora_project.wsgi:application
-ExecReload=/bin/kill -s HUP $MAINPID
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 8. Nginx Configuration
-
-Create `/etc/nginx/sites-available/memora`:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # SSL Configuration
-    ssl_certificate /path/to/your/certificate.crt;
-    ssl_certificate_key /path/to/your/private.key;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
-
-    # Static files
-    location /static/ {
-        alias /var/www/memora/static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /media/ {
-        alias /var/www/memora/media/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Proxy to Gunicorn
-    location / {
-        proxy_pass http://unix:/run/memora.sock;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_redirect off;
-    }
-}
-```
-
-### 9. Start Services
-
-```bash
-# Enable and start services
-sudo systemctl enable memora
-sudo systemctl start memora
-sudo systemctl reload nginx
-
-# Check status
-sudo systemctl status memora
-sudo systemctl status nginx
-```
-
-### 10. SSL Certificate (Let's Encrypt)
-
+### For Let's Encrypt SSL:
 ```bash
 # Install Certbot
-sudo apt install certbot python3-certbot-nginx
+sudo apt install certbot
 
 # Get SSL certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot certonly --standalone -d your-domain.com
 
-# Auto-renewal
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+# Copy certificates to Docker SSL directory
+sudo mkdir -p docker/nginx/ssl
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem docker/nginx/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem docker/nginx/ssl/key.pem
+sudo chmod 644 docker/nginx/ssl/cert.pem
+sudo chmod 600 docker/nginx/ssl/key.pem
 ```
 
-### 11. Database Migrations
-
+### For self-signed certificate (development only):
 ```bash
-# Run migrations
-python manage.py migrate
-
-# Create superuser
-python manage.py createsuperuser
+# Generate self-signed certificate
+sudo mkdir -p docker/nginx/ssl
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout docker/nginx/ssl/key.pem \
+  -out docker/nginx/ssl/cert.pem \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=185.231.59.157"
 ```
 
-### 12. Monitoring and Logs
+## Step 5: Deploy the Application
 
+### Build and start containers:
 ```bash
-# View application logs
-sudo journalctl -u memora -f
+# Build the Docker images
+docker-compose build
 
-# View Nginx logs
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
+# Start all services
+docker-compose up -d
 
-# Check application status
-sudo systemctl status memora
+# Check status
+docker-compose ps
 ```
 
-## 🔧 Maintenance
-
-### Backup Database
+### Monitor logs:
 ```bash
-# Create backup
-pg_dump memora_db > backup_$(date +%Y%m%d_%H%M%S).sql
+# View all logs
+docker-compose logs -f
 
-# Restore backup
-psql memora_db < backup_file.sql
+# View specific service logs
+docker-compose logs -f web
+docker-compose logs -f db
+docker-compose logs -f nginx
 ```
 
-### Update Application
+## Step 6: Database Setup
+
+### Run migrations:
 ```bash
-# Pull latest changes
-git pull origin main
+# Run Django migrations
+docker-compose exec web python manage.py migrate
 
-# Update dependencies
-pip install -r requirements.txt
-
-# Run migrations
-python manage.py migrate
+# Create superuser (optional)
+docker-compose exec web python manage.py createsuperuser
 
 # Collect static files
-python manage.py collectstatic
-
-# Restart services
-sudo systemctl restart memora
-sudo systemctl reload nginx
+docker-compose exec web python manage.py collectstatic --noinput
 ```
 
-### Version Management
+## Step 7: Verify Deployment
+
+### Check application health:
 ```bash
-# Show current version
-python manage_version.py show
+# Test health endpoint
+curl http://185.231.59.157/health/
 
-# Update version
-python manage_version.py patch  # or minor, major
+# Test main application
+curl http://185.231.59.157/
 ```
 
-## 🛡️ Security Checklist
+### Check container status:
+```bash
+docker-compose ps
+docker-compose logs --tail=50
+```
 
-- [ ] HTTPS enabled with valid SSL certificate
-- [ ] DEBUG=False in production
-- [ ] Strong SECRET_KEY
-- [ ] Database credentials secured
-- [ ] API keys protected
-- [ ] Regular security updates
-- [ ] Firewall configured
-- [ ] Backup strategy implemented
-- [ ] Monitoring and logging enabled
+## Step 8: Firewall Configuration
 
-## 📊 Performance Optimization
+### Configure UFW firewall:
+```bash
+# Allow SSH
+sudo ufw allow ssh
 
-- [ ] Database indexing
-- [ ] Static file caching
-- [ ] Gzip compression enabled
-- [ ] CDN for static assets
-- [ ] Database connection pooling
-- [ ] Redis for caching (optional)
+# Allow HTTP and HTTPS
+sudo ufw allow 80
+sudo ufw allow 443
 
-## 🆘 Troubleshooting
+# Enable firewall
+sudo ufw enable
+```
 
-### Common Issues
+## Step 9: Maintenance Commands
 
-1. **Voice features not working**: Ensure HTTPS is enabled
-2. **Static files not loading**: Check STATIC_ROOT and permissions
-3. **Database connection errors**: Verify database credentials and connectivity
-4. **Permission denied**: Check file ownership and permissions
+### Update application:
+```bash
+# Pull latest changes (if using Git)
+git pull
 
-### Log Locations
-- Application logs: `sudo journalctl -u memora`
-- Nginx logs: `/var/log/nginx/`
-- Django logs: Check your logging configuration
+# Rebuild and restart
+docker-compose down
+docker-compose build
+docker-compose up -d
+```
 
----
+### Backup database:
+```bash
+# Create backup
+docker-compose exec db pg_dump -U memora_user memora_db > backup_$(date +%Y%m%d_%H%M%S).sql
 
-For additional support, check the main README.md or create an issue on GitHub. 
+# Restore backup
+docker-compose exec -T db psql -U memora_user memora_db < backup_file.sql
+```
+
+### View logs:
+```bash
+# Application logs
+docker-compose logs -f web
+
+# Database logs
+docker-compose logs -f db
+
+# Nginx logs
+docker-compose logs -f nginx
+```
+
+### Restart services:
+```bash
+# Restart all services
+docker-compose restart
+
+# Restart specific service
+docker-compose restart web
+```
+
+## Troubleshooting
+
+### Common Issues:
+
+1. **Port already in use:**
+   ```bash
+   # Check what's using the port
+   sudo netstat -tulpn | grep :80
+   
+   # Stop conflicting service
+   sudo systemctl stop apache2  # or nginx
+   ```
+
+2. **Database connection issues:**
+   ```bash
+   # Check database container
+   docker-compose logs db
+   
+   # Test database connection
+   docker-compose exec web python manage.py dbshell
+   ```
+
+3. **Permission issues:**
+   ```bash
+   # Fix file permissions
+   sudo chown -R $USER:$USER .
+   chmod +x docker/entrypoint.sh
+   ```
+
+4. **SSL certificate issues:**
+   ```bash
+   # Check certificate validity
+   openssl x509 -in docker/nginx/ssl/cert.pem -text -noout
+   
+   # Renew Let's Encrypt certificate
+   sudo certbot renew
+   ```
+
+### Performance Optimization:
+
+1. **Increase Docker resources** in Docker Desktop settings
+2. **Add Redis caching** (already included in docker-compose.yml)
+3. **Configure database connection pooling**
+4. **Enable Gzip compression** (already configured in nginx)
+
+## Security Considerations
+
+1. **Change default passwords** in `.env` file
+2. **Use strong secret keys**
+3. **Enable HTTPS** with proper SSL certificates
+4. **Configure firewall** to only allow necessary ports
+5. **Regular security updates**
+6. **Database backups**
+7. **Monitor logs** for suspicious activity
+
+## Monitoring
+
+### Basic monitoring setup:
+```bash
+# Check resource usage
+docker stats
+
+# Monitor disk space
+df -h
+
+# Check memory usage
+free -h
+
+# Monitor application logs
+docker-compose logs -f --tail=100
+```
+
+## Support
+
+If you encounter issues:
+1. Check the logs: `docker-compose logs -f`
+2. Verify environment variables in `.env`
+3. Ensure all required ports are open
+4. Check server resources (CPU, memory, disk)
+
+For additional help, refer to the Docker and Django documentation. 

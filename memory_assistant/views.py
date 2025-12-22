@@ -5,15 +5,16 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils import timezone
 from datetime import datetime, timedelta
 import threading
 import json
 import os
 import re
+from django.contrib.auth import authenticate, login as auth_login
 from .models import Memory, MemorySearch, UserProfile
-from .forms import MemoryForm, QuickMemoryForm, SearchForm, UserRegistrationForm
+from .forms import MemoryForm, QuickMemoryForm, SearchForm, UserRegistrationForm, UserLoginForm
 from .services import ChatGPTService
 from .voice_service import voice_service
 from .recommendation_service import AIRecommendationService
@@ -27,6 +28,31 @@ def home(request):
     if request.user.is_authenticated:
         return redirect('memory_assistant:dashboard')
     return render(request, 'memory_assistant/home.html')
+
+
+@csrf_protect
+def custom_login(request):
+    """Custom login view with proper CSRF handling"""
+    if request.user.is_authenticated:
+        return redirect('memory_assistant:dashboard')
+    
+    if request.method == 'POST':
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+                next_url = request.GET.get('next', 'memory_assistant:dashboard')
+                return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid username or password.')
+    else:
+        form = UserLoginForm()
+    
+    return render(request, 'memory_assistant/login.html', {'form': form})
 
 
 @login_required
@@ -327,8 +353,8 @@ def memory_list(request):
         search_conditions |= Q(content__icontains=search_query)
         search_conditions |= Q(summary__icontains=search_query)
         
-        # Search in tags (JSON field)
-        search_conditions |= Q(tags__contains=[search_query])
+        # Search in tags (convert JSON to string for compatibility)
+        search_conditions |= Q(tags__icontains=search_query)
         
         # Search in AI reasoning
         search_conditions |= Q(ai_reasoning__icontains=search_query)
@@ -339,7 +365,7 @@ def memory_list(request):
             if len(word) >= 2:  # Only search for words with 2+ characters
                 search_conditions |= Q(content__icontains=word)
                 search_conditions |= Q(summary__icontains=word)
-                search_conditions |= Q(tags__contains=[word])
+                search_conditions |= Q(tags__icontains=word)
         
         memories = memories.filter(search_conditions)
     
@@ -981,8 +1007,8 @@ def search_memories(request):
             search_conditions |= Q(content__icontains=query)
             search_conditions |= Q(summary__icontains=query)
             
-            # Search in tags (JSON field)
-            search_conditions |= Q(tags__contains=[query])
+            # Search in tags (convert JSON to string for compatibility)
+            search_conditions |= Q(tags__icontains=query)
             
             # Search in AI reasoning
             search_conditions |= Q(ai_reasoning__icontains=query)
@@ -993,7 +1019,7 @@ def search_memories(request):
                 if len(word) >= 2:  # Only search for words with 2+ characters
                     search_conditions |= Q(content__icontains=word)
                     search_conditions |= Q(summary__icontains=word)
-                    search_conditions |= Q(tags__contains=[word])
+                    search_conditions |= Q(tags__icontains=word)
             
             base_qs = all_memories.filter(search_conditions)
             search_method = "enhanced_basic"
@@ -1026,7 +1052,7 @@ def search_memories(request):
                     memories = all_memories.filter(
                         Q(content__icontains=word) |
                         Q(summary__icontains=word) |
-                        Q(tags__contains=[word])
+                        Q(tags__icontains=word)
                     )
                     if memories.exists():
                         search_method = "fuzzy"
@@ -1076,6 +1102,25 @@ def search_memories(request):
                 }
             
             return render(request, 'memory_assistant/search_results.html', context)
+    
+    # Handle AJAX requests (for fast search)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        results_data = []
+        for memory in memories[:10]:  # Limit to 10 results for fast search
+            results_data.append({
+                'id': memory.id,
+                'content': memory.content,
+                'created_at': memory.created_at.strftime('%Y-%m-%d %H:%M'),
+                'tags': ', '.join(memory.tags) if memory.tags else '',
+                'memory_type': memory.get_memory_type_display(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'results': results_data,
+            'count': len(memories),
+            'query': query
+        })
     
     context = {
         'search_results': memories,
@@ -1526,7 +1571,7 @@ def voice_search_memories(request):
                 content_search = Q()
                 content_search |= Q(content__icontains=query)
                 content_search |= Q(summary__icontains=query)
-                content_search |= Q(tags__contains=[query])
+                content_search |= Q(tags__icontains=query)
                 content_search |= Q(ai_reasoning__icontains=query)
                 
                 # Filter out common stop words that shouldn't be searched individually
@@ -1552,7 +1597,7 @@ def voice_search_memories(request):
                 for word in meaningful_words:
                     content_search |= Q(content__icontains=word)
                     content_search |= Q(summary__icontains=word)
-                    content_search |= Q(tags__contains=[word])
+                    content_search |= Q(tags__icontains=word)
                 
                 # Combine date filter AND content search (both must be true)
                 search_conditions = date_filter & content_search
@@ -1562,7 +1607,7 @@ def voice_search_memories(request):
                 # No date detected, use regular content search
                 search_conditions |= Q(content__icontains=query)
                 search_conditions |= Q(summary__icontains=query)
-                search_conditions |= Q(tags__contains=[query])
+                search_conditions |= Q(tags__icontains=query)
                 search_conditions |= Q(ai_reasoning__icontains=query)
                 
                 # Filter out common stop words that shouldn't be searched individually
@@ -1587,7 +1632,7 @@ def voice_search_memories(request):
                 for word in meaningful_words:
                     search_conditions |= Q(content__icontains=word)
                     search_conditions |= Q(summary__icontains=word)
-                    search_conditions |= Q(tags__contains=[word])
+                    search_conditions |= Q(tags__icontains=word)
                 
                 # Partial matches for common meaningful words
                 common_words = ['plan', 'meeting', 'work', 'home', 'buy', 'need', 'project', 'task']
@@ -2127,7 +2172,7 @@ def important_memories(request):
         search_conditions = Q()
         search_conditions |= Q(content__icontains=search_query)
         search_conditions |= Q(summary__icontains=search_query)
-        search_conditions |= Q(tags__contains=[search_query])
+        search_conditions |= Q(tags__icontains=search_query)
         memories = memories.filter(search_conditions)
     
     # Apply sorting
@@ -2171,7 +2216,7 @@ def scheduled_memories(request):
         search_conditions = Q()
         search_conditions |= Q(content__icontains=search_query)
         search_conditions |= Q(summary__icontains=search_query)
-        search_conditions |= Q(tags__contains=[search_query])
+        search_conditions |= Q(tags__icontains=search_query)
         memories = memories.filter(search_conditions)
     
     # Apply sorting
@@ -2214,7 +2259,7 @@ def todays_memories(request):
         search_conditions = Q()
         search_conditions |= Q(content__icontains=search_query)
         search_conditions |= Q(summary__icontains=search_query)
-        search_conditions |= Q(tags__contains=[search_query])
+        search_conditions |= Q(tags__icontains=search_query)
         memories = memories.filter(search_conditions)
     
     # Apply sorting
@@ -2280,7 +2325,7 @@ def all_memories(request):
         search_conditions = Q()
         search_conditions |= Q(content__icontains=search_query)
         search_conditions |= Q(summary__icontains=search_query)
-        search_conditions |= Q(tags__contains=[search_query])
+        search_conditions |= Q(tags__icontains=search_query)
         memories = memories.filter(search_conditions)
     
     # Apply sorting
@@ -2290,6 +2335,42 @@ def all_memories(request):
     # Add prefetching for comments and likes
     memories = memories.prefetch_related('comments__user__profile', 'likes__user')
     
+    # Bulk actions
+    if request.method == 'POST':
+        action = request.POST.get('bulk_action')
+        ids = request.POST.getlist('ids')
+        if ids and action:
+            qs = Memory.objects.filter(user=request.user, id__in=ids)
+            if action == 'archive':
+                qs.update(is_archived=True)
+                messages.success(request, f'Archived {qs.count()} item(s).')
+            elif action == 'delete':
+                deleted = qs.count()
+                for m in qs:
+                    m.delete()
+                messages.success(request, f'Deleted {deleted} item(s).')
+                return redirect('memory_assistant:all_memories')
+            elif action == 'set_private':
+                qs.update(privacy_level='private')
+                messages.success(request, f'Updated privacy to Private for {qs.count()} item(s).')
+            elif action == 'set_friends':
+                qs.update(privacy_level='friends')
+                messages.success(request, f'Updated privacy to Friends for {qs.count()} item(s).')
+            elif action == 'set_public':
+                qs.update(privacy_level='public')
+                messages.success(request, f'Updated privacy to Public for {qs.count()} item(s).')
+            elif action == 'inc_importance':
+                for m in qs:
+                    m.importance = min(10, (m.importance or 0) + 1)
+                    m.save(update_fields=['importance'])
+                messages.success(request, f'Increased importance for {qs.count()} item(s).')
+            elif action == 'dec_importance':
+                for m in qs:
+                    m.importance = max(1, (m.importance or 1) - 1)
+                    m.save(update_fields=['importance'])
+                messages.success(request, f'Decreased importance for {qs.count()} item(s).')
+            return redirect(request.get_full_path())
+
     # Pagination
     paginator = Paginator(memories, 12)
     page_number = request.GET.get('page')
@@ -2392,6 +2473,66 @@ def smart_reminders(request):
     }
     
     return render(request, 'memory_assistant/smart_reminders.html', context)
+
+
+@login_required
+def reminders_calendar(request):
+    """Calendar view for upcoming smart reminders"""
+    return render(request, 'memory_assistant/reminders_calendar.html')
+
+
+@login_required
+def reminders_events(request):
+    """Return user's active reminders as FullCalendar events (JSON)"""
+    from .models import SmartReminder
+    reminders = (
+        SmartReminder.objects
+        .filter(user=request.user, is_active=True)
+        .exclude(next_trigger__isnull=True)
+        .select_related('memory')
+        .order_by('next_trigger')
+    )
+    events = []
+    for r in reminders:
+        title = f"{r.memory.content[:60]}{'…' if len(r.memory.content) > 60 else ''}"
+        events.append({
+            'id': r.id,
+            'title': title,
+            'start': r.next_trigger.isoformat() if r.next_trigger else None,
+            'extendedProps': {
+                'priority': r.priority,
+                'type': r.reminder_type,
+                'memoryId': r.memory_id,
+            }
+        })
+    return JsonResponse(events, safe=False)
+
+
+@login_required
+def move_reminder_event(request, reminder_id):
+    """Handle drag-and-drop reschedule from the calendar (POST with new start ISO string)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
+    try:
+        from .models import SmartReminder
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        new_start = data.get('start')
+        if not new_start:
+            return JsonResponse({'success': False, 'error': 'Missing start'}, status=400)
+        # Parse ISO8601 (allow trailing Z)
+        try:
+            dt_str = new_start.replace('Z', '+00:00') if isinstance(new_start, str) else new_start
+            new_dt = datetime.fromisoformat(dt_str)
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'Invalid datetime format'}, status=400)
+        # Load reminder and authorize
+        reminder = get_object_or_404(SmartReminder, id=reminder_id, user=request.user, is_active=True)
+        reminder.next_trigger = timezone.make_aware(new_dt) if new_dt.tzinfo is None else new_dt
+        reminder.last_triggered = None
+        reminder.save()
+        return JsonResponse({'success': True, 'next_trigger': reminder.next_trigger.isoformat()})
+    except Exception as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=500)
 
 
 @login_required
@@ -2703,6 +2844,49 @@ def debug_ai_suggestions(request):
                 } for memory in recent_memories
             ]
         })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+# ============ Kanban Board ============ #
+@login_required
+def kanban_memories(request):
+    """Render a simple Kanban board grouping memories by memory_type."""
+    # Fetch user memories grouped by type
+    types = ['general', 'work', 'personal', 'learning', 'idea', 'reminder']
+    memories_by_type = {}
+    for t in types:
+        memories_by_type[t] = (
+            Memory.objects.filter(user=request.user, memory_type=t, is_archived=False)
+            .order_by('-updated_at')[:200]
+        )
+    context = {
+        'types': types,
+        'memories_by_type': memories_by_type,
+    }
+    return render(request, 'memory_assistant/kanban.html', context)
+
+
+@login_required
+def move_memory_to_type(request, memory_id):
+    """Handle AJAX to move a memory to a different memory_type via drag-and-drop."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        target_type = data.get('target_type')
+        valid_types = {'general', 'work', 'personal', 'learning', 'idea', 'reminder'}
+        if target_type not in valid_types:
+            return JsonResponse({'success': False, 'error': 'Invalid type'}, status=400)
+        mem = get_object_or_404(Memory, id=memory_id, user=request.user)
+        mem.memory_type = target_type
+        mem.save(update_fields=['memory_type', 'updated_at'])
+        return JsonResponse({'success': True, 'memory_id': mem.id, 'memory_type': mem.memory_type})
+    except Exception as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=500)
         
     except Exception as e:
         return JsonResponse({

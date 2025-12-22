@@ -116,9 +116,16 @@ urlpatterns = [
 
     # Smart Reminders
     path('smart-reminders/', views.smart_reminders, name='smart_reminders'),
+    path('smart-reminders/calendar/', views.reminders_calendar, name='reminders_calendar'),
+    path('smart-reminders/events/', views.reminders_events, name='reminders_events'),
+    path('smart-reminders/events/<int:reminder_id>/move/', views.move_reminder_event, name='move_reminder_event'),
     path('memories/<int:memory_id>/create-reminder/', views.create_smart_reminder, name='create_smart_reminder'),
     path('memories/<int:memory_id>/auto-create-reminders/', views.auto_create_reminders, name='auto_create_reminders'),
     path('reminders/<int:reminder_id>/actions/', views.reminder_actions, name='reminder_actions'),
+
+    # Kanban
+    path('memories/kanban/', views.kanban_memories, name='kanban_memories'),
+    path('memories/<int:memory_id>/move-type/', views.move_memory_to_type, name='move_memory_to_type'),
     
     # Smart Reminder Notifications
     path('reminders/check/', views.check_reminders, name='check_reminders'),

@@ -1,0 +1,69 @@
+{
+  "server": {
+    "development": {
+      "baseUrl": "http://localhost:8000",
+      "apiUrl": "http://localhost:8000/api/v1",
+      "websocketUrl": "ws://localhost:8000/ws",
+      "timeout": 10000
+    },
+    "production": {
+      "baseUrl": "http://your-server-ip:8000",
+      "apiUrl": "http://your-server-ip:8000/api/v1",
+      "websocketUrl": "ws://your-server-ip:8000/ws",
+      "timeout": 15000
+    }
+  },
+  "authentication": {
+    "tokenKey": "memora_auth_token",
+    "refreshTokenKey": "memora_refresh_token",
+    "tokenExpiry": 3600,
+    "refreshTokenExpiry": 604800
+  },
+  "api": {
+    "endpoints": {
+      "auth": {
+        "login": "/auth/login/",
+        "register": "/auth/register/",
+        "refresh": "/auth/token/refresh/",
+        "verify": "/auth/token/verify/"
+      },
+      "memories": {
+        "list": "/memories/",
+        "create": "/memories/",
+        "detail": "/memories/{id}/",
+        "search": "/memories/search/",
+        "quickAdd": "/memories/quick-add/",
+        "stats": "/memories/dashboard-stats/"
+      },
+      "ai": {
+        "enhance": "/ai/enhance/",
+        "categorize": "/ai/categorize/",
+        "suggestions": "/ai/suggestions/",
+        "status": "/ai/status/"
+      },
+      "voice": {
+        "transcribe": "/voice/transcribe/",
+        "enhance": "/voice/enhance/"
+      },
+      "user": {
+        "profile": "/users/profile/",
+        "updateProfile": "/users/update-profile/"
+      }
+    }
+  },
+  "database": {
+    "name": "memora_mobile",
+    "version": 1,
+    "syncInterval": 300000,
+    "offlineMode": true
+  },
+  "features": {
+    "voiceRecording": true,
+    "imageUpload": true,
+    "offlineSync": true,
+    "pushNotifications": true,
+    "biometricAuth": true
+  }
+}
+
+

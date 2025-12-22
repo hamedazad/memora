@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from .models import SmartReminder, ReminderTrigger, Memory
 from .ai_services import AIService
+from .push_notification_service import push_notification_service
 
 class SmartReminderService:
     """Enhanced service for analyzing memories and creating smart reminders with scheduled memory integration"""
@@ -390,6 +391,12 @@ class SmartReminderService:
             r'call\s+(?:my\s+)?(\w+)\s+(?:at|on)\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
             r'call\s+(?:my\s+)?(\w+)\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
             r'(\w+)\s+call\s+(?:at|on)\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            # Patterns with "tomorrow"
+            r'call\s+(?:my\s+)?(\w+)\s+tomorrow\s+at\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            r'call\s+(?:my\s+)?(\w+)\s+tomorrow\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            # Patterns with "tonight"
+            r'call\s+(?:my\s+)?(\w+)\s+tonight\s+at\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            r'call\s+(?:my\s+)?(\w+)\s+tonight\s+(\d{1,2}):?(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
         ]
         
         # Enhanced patterns for meetings with time
@@ -400,6 +407,12 @@ class SmartReminderService:
             r'meeting\s+(?:at|on)\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
             r'meeting\s+(?:with\s+)?(\w+)\s+(?:at|on)\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
             r'meeting\s+(?:with\s+)?(\w+)\s+(?:\w+\s+)?(?:at|on)\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            # Patterns with "tomorrow"
+            r'have\s+a\s+meeting\s+(?:with\s+)?(\w+)\s+tomorrow\s+at\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            r'meeting\s+(?:with\s+)?(\w+)\s+tomorrow\s+at\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            # Patterns with "tonight"
+            r'have\s+a\s+meeting\s+(?:with\s+)?(\w+)\s+tonight\s+at\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
+            r'meeting\s+(?:with\s+)?(\w+)\s+tonight\s+at\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?)?',
         ]
         
         # Check for call patterns with time
@@ -425,11 +438,36 @@ class SmartReminderService:
                             if hour < 12:
                                 hour += 12
                     
+                    # Determine if this is a "tomorrow" or "tonight" call
+                    is_tomorrow = 'tomorrow' in match.group(0).lower()
+                    is_tonight = 'tonight' in match.group(0).lower()
+                    
+                    # Calculate target date
+                    now = timezone.now()
+                    if is_tomorrow:
+                        target_date = now + timedelta(days=1)
+                        target_date = target_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        description = f"Call {person} tomorrow at {hour:02d}:{minute:02d}"
+                    elif is_tonight:
+                        target_date = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        # If the time has already passed today, assume tomorrow
+                        if target_date <= now:
+                            target_date = target_date + timedelta(days=1)
+                        description = f"Call {person} tonight at {hour:02d}:{minute:02d}"
+                    else:
+                        # For regular time-based calls, use current logic
+                        target_date = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        # If the time has already passed today, assume tomorrow
+                        if target_date <= now:
+                            target_date = target_date + timedelta(days=1)
+                        description = f"Call {person} at {hour:02d}:{minute:02d}"
+                    
                     suggestions.append({
                         'type': 'time_based',
                         'priority': 'medium',
-                        'description': f"Call {person} at {hour:02d}:{minute:02d}",
+                        'description': description,
                         'trigger_conditions': {
+                            'target_time': target_date.isoformat(),
                             'offset_minutes': 10,  # 10 minutes before for calls
                             'reason': f"Call with {person} at {hour:02d}:{minute:02d} detected"
                         }
@@ -480,11 +518,36 @@ class SmartReminderService:
                             if hour < 12:
                                 hour += 12
                     
+                    # Determine if this is a "tomorrow" or "tonight" meeting
+                    is_tomorrow = 'tomorrow' in match.group(0).lower()
+                    is_tonight = 'tonight' in match.group(0).lower()
+                    
+                    # Calculate target date
+                    now = timezone.now()
+                    if is_tomorrow:
+                        target_date = now + timedelta(days=1)
+                        target_date = target_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        description = f"Meeting with {person} tomorrow at {hour:02d}:{minute:02d}"
+                    elif is_tonight:
+                        target_date = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        # If the time has already passed today, assume tomorrow
+                        if target_date <= now:
+                            target_date = target_date + timedelta(days=1)
+                        description = f"Meeting with {person} tonight at {hour:02d}:{minute:02d}"
+                    else:
+                        # For regular time-based meetings, use current logic
+                        target_date = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                        # If the time has already passed today, assume tomorrow
+                        if target_date <= now:
+                            target_date = target_date + timedelta(days=1)
+                        description = f"Meeting with {person} at {hour:02d}:{minute:02d}"
+                    
                     suggestions.append({
                         'type': 'time_based',
                         'priority': 'medium',
-                        'description': f"Meeting with {person} at {hour:02d}:{minute:02d}",
+                        'description': description,
                         'trigger_conditions': {
+                            'target_time': target_date.isoformat(),
                             'offset_minutes': 30,  # 30 minutes before for meetings
                             'reason': f"Meeting with {person} at {hour:02d}:{minute:02d} detected"
                         }
@@ -926,23 +989,33 @@ class SmartReminderService:
             delivery_date = memory.delivery_date
             now = timezone.now()
             
-            # Recalculate advance notices
+            # Recalculate advance notices (returns minutes, not hours!)
             advance_notices = self._get_advance_notices_for_memory(memory, delivery_date)
             
             if advance_notices:
-                advance_hours = advance_notices[0]
-                reminder_time = delivery_date - timedelta(hours=advance_hours)
+                advance_minutes = advance_notices[0]  # This is in MINUTES
+                reminder_time = delivery_date - timedelta(minutes=advance_minutes)  # Use minutes, not hours
+                
+                # Skip if reminder time is in the past
+                if reminder_time <= now:
+                    continue
+                
+                # Calculate offset in minutes
+                offset_minutes = max(1, int((reminder_time - now).total_seconds() / 60))
                 
                 # Update trigger conditions
                 reminder.trigger_conditions.update({
                     'target_time': delivery_date.isoformat(),
                     'reminder_time': reminder_time.isoformat(),
-                    'advance_hours': advance_hours,
-                    'offset_minutes': int((reminder_time - now).total_seconds() / 60) if reminder_time > now else 0
+                    'advance_minutes': advance_minutes,
+                    'advance_hours': advance_minutes / 60.0,  # Convert to hours for display
+                    'offset_minutes': offset_minutes,
+                    'memory_id': memory.id,
+                    'reason': f"Reminder {advance_minutes} minutes before scheduled time"
                 })
                 
-                # Update priority
-                reminder.priority = self._determine_priority(memory.importance, advance_hours)
+                # Update priority (convert minutes to hours for priority calculation)
+                reminder.priority = self._determine_priority(memory.importance, max(1, advance_minutes // 60))
                 
                 # Recalculate next trigger
                 reminder.calculate_next_trigger()
@@ -1001,12 +1074,32 @@ class SmartReminderService:
                 ['last_triggered', 'next_trigger']
             )
         
-        # Build result list
+        # Build result list and send push notifications
         for i, reminder in enumerate(reminders_to_update):
             triggered_reminders.append({
                 'reminder': reminder,
                 'trigger': triggers_to_create[i]
             })
+            
+            # Send push notification for triggered reminder
+            try:
+                if reminder.memory.delivery_type == 'scheduled':
+                    # Send scheduled memory notification
+                    push_notification_service.send_scheduled_memory_notification(
+                        reminder.memory, 
+                        reminder
+                    )
+                else:
+                    # Send regular reminder notification
+                    push_notification_service.send_reminder_notification(
+                        reminder, 
+                        triggers_to_create[i]
+                    )
+            except Exception as e:
+                # Log error but don't fail the reminder check
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send push notification for reminder {reminder.id}: {str(e)}")
         
         return triggered_reminders
     

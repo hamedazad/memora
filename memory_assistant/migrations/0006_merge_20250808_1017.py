@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('memory_assistant', '0003_add_delivery_fields_fake'),
         ('memory_assistant', '0005_add_ai_reasoning_field'),
     ]
 

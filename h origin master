@@ -1,0 +1,5 @@
+[33m2a9eaaf[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m Version 4.2.0: Update version and README for mobile app API support
+[33m90bcf8e[m v4.2.0: Update version and documentation
+[33m72b81fc[m v3.2.0: Add mobile API endpoints and production deployment support - Added REST API endpoints for mobile app - Added JWT authentication for API - Added production settings and deployment config - Added cost monitoring system - Fixed URL routing issues - Added comprehensive serializers for API - Updated requirements for production deployment
+[33m5c313ed[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat(branding): add clean SVG logo matching app colors; switch header to use it
+[33m52a43a6[m feat(branding): switch header to use static logo image
